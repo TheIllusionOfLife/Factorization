@@ -1,27 +1,138 @@
 import random
 import time
 import math
-from typing import List, Dict, Callable
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Sequence, Tuple
 
 # ------------------------------------------------------------------------------
-# Mock LLM - 課題解決のための「戦略」を提案する創造主
+# Strategy representation
 # ------------------------------------------------------------------------------
-def LLM_propose_strategy(base_strategy: str, generation: int) -> str:
-    """
-    LLMが新しい探索戦略（ヒューリスティック）をPythonコードとして生成・進化させるプロセスを模倣する。
-    世代が進むにつれて、より洗練された戦略を提案する可能性がある。
-    """
-    # 新しい戦略を生成（ここでは既存の戦略に摂動を加えることで模倣）
-    if generation < 2: # 初期世代は単純な戦略
-        return f"lambda x, n: (x**2 - n) % {random.choice([3, 5, 7, 11, 13])} == 0"
-    else: # 進化した世代は、より複雑な戦略を試みる
-        new_strategy_code = base_strategy.replace(
-            f"{random.choice([3, 5, 7, 11, 13, 17, 19])}",
-            f"{random.choice([3, 5, 7, 11, 13, 17, 19, 23, 29])}"
+SMALL_PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
+
+
+@dataclass
+class Strategy:
+    power: int
+    modulus_filters: List[Tuple[int, List[int]]]
+    smoothness_bound: int
+    min_small_prime_hits: int
+
+    def __post_init__(self) -> None:
+        self._normalize()
+
+    def copy(self) -> "Strategy":
+        return Strategy(
+            power=self.power,
+            modulus_filters=[(mod, residues[:]) for mod, residues in self.modulus_filters],
+            smoothness_bound=self.smoothness_bound,
+            min_small_prime_hits=self.min_small_prime_hits,
         )
-        if random.random() < 0.3:
-             new_strategy_code += " or (x**3 - n) % 2 == 0"
-        return new_strategy_code
+
+    def describe(self) -> str:
+        filters = ", ".join(
+            f"%{mod} in {tuple(residues)}" for mod, residues in self.modulus_filters
+        ) or "<none>"
+        return (
+            f"power={self.power}, filters=[{filters}],"
+            f" bound<={self.smoothness_bound}, hits>={self.min_small_prime_hits}"
+        )
+
+    def __call__(self, x: int, n: int) -> bool:
+        candidate = abs(pow(x, self.power) - n)
+        if candidate == 0:
+            return True
+
+        for modulus, residues in self.modulus_filters:
+            if candidate % modulus not in residues:
+                return False
+
+        return self._count_small_prime_hits(candidate) >= self.min_small_prime_hits
+
+    def _normalize(self) -> None:
+        self.power = max(2, min(5, self.power))
+        normalized_filters: List[Tuple[int, List[int]]] = []
+        for modulus, residues in self.modulus_filters:
+            modulus = max(2, modulus)
+            residues = sorted({residue % modulus for residue in residues})
+            if residues:
+                normalized_filters.append((modulus, residues))
+        self.modulus_filters = normalized_filters[:4]
+        self.smoothness_bound = max(3, min(self.smoothness_bound, SMALL_PRIMES[-1]))
+        self.min_small_prime_hits = max(1, min(self.min_small_prime_hits, 6))
+
+    def _count_small_prime_hits(self, candidate: int) -> int:
+        hits = 0
+        remainder = candidate
+        for prime in SMALL_PRIMES:
+            if prime > self.smoothness_bound:
+                break
+            while remainder % prime == 0:
+                remainder //= prime
+                hits += 1
+                if hits >= self.min_small_prime_hits:
+                    return hits
+        return hits
+
+
+class StrategyGenerator:
+    def __init__(self, primes: Sequence[int] = SMALL_PRIMES) -> None:
+        self.primes = list(primes)
+
+    def random_strategy(self) -> Strategy:
+        power = random.choice([2, 2, 2, 3, 3, 4])
+        filter_count = random.randint(1, 3)
+        filters: List[Tuple[int, List[int]]] = []
+        for _ in range(filter_count):
+            modulus = random.choice(self.primes)
+            residue_count = random.randint(1, min(3, modulus))
+            residues = random.sample(range(modulus), residue_count)
+            filters.append((modulus, residues))
+
+        smoothness_bound = random.choice(self.primes[3:])
+        min_hits = random.randint(1, 4)
+
+        return Strategy(
+            power=power,
+            modulus_filters=filters,
+            smoothness_bound=smoothness_bound,
+            min_small_prime_hits=min_hits,
+        )
+
+    def mutate_strategy(self, parent: Strategy) -> Strategy:
+        child = parent.copy()
+        mutation_roll = random.random()
+
+        if mutation_roll < 0.3:
+            child.power = random.choice([2, 2, 3, 3, 4, 5])
+        elif mutation_roll < 0.6 and child.modulus_filters:
+            index = random.randrange(len(child.modulus_filters))
+            modulus, residues = child.modulus_filters[index]
+            if random.random() < 0.5:
+                modulus = random.choice(self.primes)
+                residues = [r % modulus for r in residues]
+            else:
+                choices = list(range(modulus))
+                if random.random() < 0.5 and len(residues) > 1:
+                    residues.pop(random.randrange(len(residues)))
+                else:
+                    candidate = random.choice(choices)
+                    if candidate not in residues:
+                        residues.append(candidate)
+            child.modulus_filters[index] = (modulus, residues)
+        else:
+            adjustment = random.choice([-2, -1, 1, 2])
+            child.smoothness_bound = child.smoothness_bound + adjustment
+            child.min_small_prime_hits = max(1, child.min_small_prime_hits + random.choice([-1, 0, 1]))
+
+        if random.random() < 0.15 and len(child.modulus_filters) < 4:
+            modulus = random.choice(self.primes)
+            residues = random.sample(range(modulus), random.randint(1, min(3, modulus)))
+            child.modulus_filters.append((modulus, residues))
+        elif random.random() < 0.05 and len(child.modulus_filters) > 1:
+            child.modulus_filters.pop(random.randrange(len(child.modulus_filters)))
+
+        child._normalize()
+        return child
 
 # ------------------------------------------------------------------------------
 # るつぼ (Crucible) - AI文明が挑戦する環境
@@ -67,47 +178,48 @@ class EvolutionaryEngine:
         self.population_size = population_size
         self.civilizations: Dict[str, Dict] = {}
         self.generation = 0
+        self.generator = StrategyGenerator()
 
     def initialize_population(self):
         """最初の文明（戦略）群を生成する"""
         for i in range(self.population_size):
             civ_id = f"civ_{self.generation}_{i}"
-            strategy_code = LLM_propose_strategy("lambda x, n: (x**2 - n) % 2 == 0", self.generation)
-            self.civilizations[civ_id] = {"strategy_code": strategy_code, "fitness": 0}
+            strategy = self.generator.random_strategy()
+            self.civilizations[civ_id] = {"strategy": strategy, "fitness": 0}
 
     def run_evolutionary_cycle(self):
         """1世代分の進化（評価、選択、繁殖）を実行する"""
         print(f"\n===== Generation {self.generation}: Evaluating Strategies =====")
-        
+
         # 評価: 全ての文明の戦略を評価する
         for civ_id, civ_data in self.civilizations.items():
-            strategy_code = civ_data["strategy_code"]
-            try:
-                strategy_func = eval(strategy_code)
-                fitness = self.crucible.evaluate_strategy(strategy_func, duration_seconds=0.1)
-                self.civilizations[civ_id]["fitness"] = fitness
-            except Exception as e:
-                print(f"  Error evaluating {civ_id}: {e}")
-                self.civilizations[civ_id]["fitness"] = 0
+            strategy = civ_data["strategy"]
+            fitness = self.crucible.evaluate_strategy(strategy, duration_seconds=0.1)
+            civ_data["fitness"] = fitness
 
-            print(f"  Civilization {civ_id}: Fitness = {self.civilizations[civ_id]['fitness']:<5} | Strategy: {strategy_code}")
+            print(
+                f"  Civilization {civ_id}: Fitness = {fitness:<5} | Strategy: {strategy.describe()}"
+            )
 
         # 選択: フィットネスが高い上位20%の文明を選択
         sorted_civs = sorted(self.civilizations.items(), key=lambda item: item[1]['fitness'], reverse=True)
         num_elites = max(1, int(self.population_size * 0.2))
         elites = sorted_civs[:num_elites]
-        
+
         print(f"\n--- Top performing civilization in Generation {self.generation}: {elites[0][0]} with fitness {elites[0][1]['fitness']} ---")
 
         # 繁殖: エリート戦略を基に、次世代の文明（戦略）を生成
         next_generation_civs = {}
         for i in range(self.population_size):
             parent_civ = random.choice(elites)
-            parent_strategy_code = parent_civ[1]['strategy_code']
-            
+            parent_strategy = parent_civ[1]['strategy']
+
             new_civ_id = f"civ_{self.generation + 1}_{i}"
-            new_strategy_code = LLM_propose_strategy(parent_strategy_code, self.generation + 1)
-            next_generation_civs[new_civ_id] = {"strategy_code": new_strategy_code, "fitness": 0}
+            if random.random() < 0.2:
+                new_strategy = self.generator.random_strategy()
+            else:
+                new_strategy = self.generator.mutate_strategy(parent_strategy)
+            next_generation_civs[new_civ_id] = {"strategy": new_strategy, "fitness": 0}
 
         self.civilizations = next_generation_civs
         self.generation += 1
