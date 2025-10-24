@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.DS_Store
+.vscode/
+.idea/
+logs/
+checkpoints/
+
+.gemini/
+gha-creds-*.json
