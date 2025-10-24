@@ -370,13 +370,87 @@ class EvolutionaryEngine:
 # メイン実行ブロック
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
-    NUMBER_TO_FACTOR = 961730063
-    NUM_GENERATIONS = 5
+    import argparse
 
-    crucible = FactorizationCrucible(NUMBER_TO_FACTOR)
-    engine = EvolutionaryEngine(crucible)
-    
+    parser = argparse.ArgumentParser(
+        description="Evolutionary GNFS strategy optimizer with optional LLM integration"
+    )
+    parser.add_argument(
+        "--number",
+        type=int,
+        default=961730063,
+        help="Number to factor (default: 961730063)",
+    )
+    parser.add_argument(
+        "--generations",
+        type=int,
+        default=5,
+        help="Number of generations to evolve (default: 5)",
+    )
+    parser.add_argument(
+        "--population",
+        type=int,
+        default=10,
+        help="Population size per generation (default: 10)",
+    )
+    parser.add_argument(
+        "--duration",
+        type=float,
+        default=0.1,
+        help="Evaluation duration in seconds (default: 0.1)",
+    )
+    parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="Enable LLM-guided mutations (requires GEMINI_API_KEY in .env)",
+    )
+
+    args = parser.parse_args()
+
+    # Initialize LLM provider if requested
+    llm_provider = None
+    if args.llm:
+        try:
+            from src.config import load_config
+            from src.llm.gemini import GeminiProvider
+
+            config = load_config()
+            if not config.api_key:
+                print("❌ ERROR: GEMINI_API_KEY not set in .env file")
+                print("Please create .env file with your API key (see .env.example)")
+                exit(1)
+
+            llm_provider = GeminiProvider(config.api_key, config)
+            print(f"✅ LLM mode enabled (Gemini 2.5 Flash Lite)")
+            print(f"   Max API calls: {config.max_llm_calls}")
+        except ImportError as e:
+            print(f"❌ ERROR: Missing dependencies for LLM mode: {e}")
+            print("Please run: pip install -r requirements.txt")
+            exit(1)
+    else:
+        print("📊 Rule-based mode (no LLM)")
+
+    # Create and run evolutionary engine
+    crucible = FactorizationCrucible(args.number)
+    engine = EvolutionaryEngine(
+        crucible,
+        population_size=args.population,
+        llm_provider=llm_provider,
+        evaluation_duration=args.duration,
+    )
+
+    print(f"\n🎯 Target number: {args.number}")
+    print(f"🧬 Generations: {args.generations}, Population: {args.population}")
+    print(f"⏱️  Evaluation duration: {args.duration}s per strategy\n")
+
     engine.initialize_population()
-    
-    for gen in range(NUM_GENERATIONS):
+
+    for gen in range(args.generations):
         engine.run_evolutionary_cycle()
+
+    # Display LLM cost summary if used
+    if llm_provider:
+        print(f"\n💰 LLM Cost Summary:")
+        print(f"   Total API calls: {llm_provider.call_count}")
+        print(f"   Total tokens: {llm_provider._input_tokens} in, {llm_provider._output_tokens} out")
+        print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
