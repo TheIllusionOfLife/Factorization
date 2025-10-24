@@ -86,13 +86,16 @@ def test_llm_strategy_generator_fallback_on_llm_failure():
     gen = LLMStrategyGenerator(llm_provider=mock_provider)
     parent = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
 
-    child = gen.mutate_strategy_with_context(parent, fitness=50, generation=5)
+    # Run multiple times to ensure at least one mutation happens (random may sometimes return same values)
+    mutations = [gen.mutate_strategy_with_context(parent, fitness=50, generation=5) for _ in range(10)]
 
-    # Should have called LLM
-    mock_provider.propose_mutation.assert_called_once()
+    # Should have called LLM multiple times
+    assert mock_provider.propose_mutation.call_count == 10
     # Should fall back to rule-based
-    assert isinstance(child, Strategy)
-    assert child != parent
+    for child in mutations:
+        assert isinstance(child, Strategy)
+    # At least one should be different from parent
+    assert any(m != parent for m in mutations)
 
 
 def test_evolutionary_engine_with_llm_provider():
@@ -133,9 +136,6 @@ def test_evolutionary_engine_evaluation_duration():
 
     # Initialize population
     engine.initialize_population()
-
-    # Store initial civilizations to check after evaluation
-    initial_gen_civs = list(engine.civilizations.items())
 
     # Run one cycle - this evaluates current gen and creates next gen
     engine.run_evolutionary_cycle()

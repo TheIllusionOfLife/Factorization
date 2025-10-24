@@ -1,4 +1,5 @@
 """Gemini API provider with structured output"""
+import json
 from google import genai
 from google.genai import types
 from typing import Optional
@@ -50,7 +51,6 @@ class GeminiProvider(LLMProvider):
             self._call_count += 1
 
             # Parse structured JSON response
-            import json
             mutation_data = json.loads(response.text)
 
             # Track token usage
@@ -197,3 +197,11 @@ Consider: What mathematical properties make numbers smooth? How can modular arit
     @property
     def call_count(self) -> int:
         return self._call_count
+
+    @property
+    def input_tokens(self) -> int:
+        return self._input_tokens
+
+    @property
+    def output_tokens(self) -> int:
+        return self._output_tokens

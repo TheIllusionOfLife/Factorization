@@ -8,3 +8,6 @@ __pycache__/
 .idea/
 logs/
 checkpoints/
+
+.gemini/
+gha-creds-*.json

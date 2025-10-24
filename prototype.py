@@ -263,7 +263,7 @@ class LLMStrategyGenerator(StrategyGenerator):
             bound_delta = params.get("bound_delta", 0)
             new_bound = parent.smoothness_bound + bound_delta
             # SMALL_PRIMESに含まれる素数に制限
-            new_bound = max(min(new_bound, max(self.primes)), min(self.primes))
+            new_bound = max(min(self.primes), min(new_bound, max(self.primes)))
 
             # min_small_prime_hitsの変更
             hits_delta = params.get("hits_delta", 0)
@@ -445,12 +445,12 @@ if __name__ == "__main__":
 
     engine.initialize_population()
 
-    for gen in range(args.generations):
+    for _ in range(args.generations):
         engine.run_evolutionary_cycle()
 
     # Display LLM cost summary if used
     if llm_provider:
-        print(f"\n💰 LLM Cost Summary:")
+        print("\n💰 LLM Cost Summary:")
         print(f"   Total API calls: {llm_provider.call_count}")
-        print(f"   Total tokens: {llm_provider._input_tokens} in, {llm_provider._output_tokens} out")
+        print(f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out")
         print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")

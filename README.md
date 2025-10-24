@@ -62,7 +62,7 @@ python prototype.py --llm --generations 5 --population 10
 
 ### CLI Options
 
-```
+```text
 usage: prototype.py [-h] [--number NUMBER] [--generations GENERATIONS]
                     [--population POPULATION] [--duration DURATION] [--llm]
 
@@ -94,7 +94,7 @@ python prototype.py --llm --number 12345678901 --generations 5
 ### Expected Output
 
 #### Rule-Based Mode
-```
+```text
 📊 Rule-based mode (no LLM)
 
 🎯 Target number: 961730063
@@ -109,7 +109,7 @@ python prototype.py --llm --number 12345678901 --generations 5
 ```
 
 #### LLM-Guided Mode
-```
+```text
 ✅ LLM mode enabled (Gemini 2.5 Flash Lite)
    Max API calls: 100
 
@@ -155,7 +155,7 @@ GEMINI_API_KEY=your_key pytest tests/test_llm_provider.py::test_real_gemini_call
 
 ## Project Structure
 
-```
+```text
 Factorization/
 ├── prototype.py           # Main evolutionary engine
 ├── src/

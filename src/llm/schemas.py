@@ -3,6 +3,13 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Literal, Optional
 
 
+def _validate_residues_in_modulus_range(residues: list[int], modulus: int) -> list[int]:
+    """Validate that all residues are in range [0, modulus)"""
+    if any(r >= modulus or r < 0 for r in residues):
+        raise ValueError(f"All residues must be in range [0, {modulus})")
+    return residues
+
+
 class PowerMutation(BaseModel):
     new_power: int = Field(..., ge=2, le=5, description="New power value (2-5)")
 
@@ -15,8 +22,8 @@ class AddFilterMutation(BaseModel):
     @classmethod
     def validate_residues(cls, v, info):
         modulus = info.data.get('modulus')
-        if modulus and any(r >= modulus or r < 0 for r in v):
-            raise ValueError(f"All residues must be in range [0, {modulus})")
+        if modulus:
+            return _validate_residues_in_modulus_range(v, modulus)
         return v
 
 
@@ -29,8 +36,8 @@ class ModifyFilterMutation(BaseModel):
     @classmethod
     def validate_residues(cls, v, info):
         modulus = info.data.get('modulus')
-        if modulus and any(r >= modulus or r < 0 for r in v):
-            raise ValueError(f"All residues must be in range [0, {modulus})")
+        if modulus:
+            return _validate_residues_in_modulus_range(v, modulus)
         return v
 
 
