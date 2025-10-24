@@ -169,16 +169,139 @@ class FactorizationCrucible:
 # ------------------------------------------------------------------------------
 # 進化的エンジン - 文明を進化させる淘汰圧
 # ------------------------------------------------------------------------------
+class LLMStrategyGenerator(StrategyGenerator):
+    """
+    LLM統合版の戦略生成器。
+    LLMによる戦略提案を試み、失敗時は従来のルールベース手法にフォールバックする。
+    """
+    def __init__(self, llm_provider=None, primes=SMALL_PRIMES):
+        super().__init__(primes)
+        self.llm_provider = llm_provider
+        self.fitness_history = []
+
+    def mutate_strategy_with_context(
+        self, parent: Strategy, fitness: int, generation: int
+    ) -> Strategy:
+        """
+        文脈（fitness、世代数）を考慮した戦略の変異。
+        LLMが利用可能な場合はLLMによる提案を試み、失敗時はルールベースにフォールバック。
+        """
+        # LLMが利用可能な場合は提案を試みる
+        if self.llm_provider:
+            from src.llm.base import LLMResponse
+
+            response = self.llm_provider.propose_mutation(
+                parent_strategy={
+                    "power": parent.power,
+                    "modulus_filters": parent.modulus_filters,
+                    "smoothness_bound": parent.smoothness_bound,
+                    "min_small_prime_hits": parent.min_small_prime_hits,
+                },
+                fitness=fitness,
+                generation=generation,
+                fitness_history=self.fitness_history[-5:],  # 直近5世代の履歴
+            )
+
+            if response.success:
+                child = self._apply_llm_mutation(parent, response.mutation_params)
+                print(f"    [LLM] {response.reasoning}")
+                return child
+
+        # LLMが失敗またはNoneの場合は従来のルールベース手法
+        return super().mutate_strategy(parent)
+
+    def _apply_llm_mutation(self, parent: Strategy, mutation_params: dict) -> Strategy:
+        """LLMの提案した変異パラメータを実際の戦略に適用"""
+        mutation_type = mutation_params["mutation_type"]
+        params = mutation_params.get("parameters", {})
+
+        if mutation_type == "power":
+            return Strategy(
+                power=params["new_power"],
+                modulus_filters=parent.modulus_filters[:],
+                smoothness_bound=parent.smoothness_bound,
+                min_small_prime_hits=parent.min_small_prime_hits,
+            )
+
+        elif mutation_type == "add_filter":
+            new_filters = parent.modulus_filters[:]
+            if len(new_filters) < 4:  # 最大4フィルタまで
+                new_filters.append((params["modulus"], params["residues"]))
+            return Strategy(
+                power=parent.power,
+                modulus_filters=new_filters,
+                smoothness_bound=parent.smoothness_bound,
+                min_small_prime_hits=parent.min_small_prime_hits,
+            )
+
+        elif mutation_type == "modify_filter":
+            new_filters = parent.modulus_filters[:]
+            idx = params["index"]
+            if 0 <= idx < len(new_filters):
+                new_filters[idx] = (params["modulus"], params["residues"])
+            return Strategy(
+                power=parent.power,
+                modulus_filters=new_filters,
+                smoothness_bound=parent.smoothness_bound,
+                min_small_prime_hits=parent.min_small_prime_hits,
+            )
+
+        elif mutation_type == "remove_filter":
+            new_filters = parent.modulus_filters[:]
+            idx = params["index"]
+            if 0 <= idx < len(new_filters) and len(new_filters) > 1:
+                del new_filters[idx]
+            return Strategy(
+                power=parent.power,
+                modulus_filters=new_filters,
+                smoothness_bound=parent.smoothness_bound,
+                min_small_prime_hits=parent.min_small_prime_hits,
+            )
+
+        elif mutation_type == "adjust_smoothness":
+            # smoothness_boundの変更（利用可能な素数内に制限）
+            bound_delta = params.get("bound_delta", 0)
+            new_bound = parent.smoothness_bound + bound_delta
+            # SMALL_PRIMESに含まれる素数に制限
+            new_bound = max(min(new_bound, max(self.primes)), min(self.primes))
+
+            # min_small_prime_hitsの変更
+            hits_delta = params.get("hits_delta", 0)
+            new_hits = max(1, parent.min_small_prime_hits + hits_delta)
+
+            return Strategy(
+                power=parent.power,
+                modulus_filters=parent.modulus_filters[:],
+                smoothness_bound=new_bound,
+                min_small_prime_hits=new_hits,
+            )
+
+        # 未知の変異タイプの場合は親をそのまま返す
+        return parent
+
+
 class EvolutionaryEngine:
     """
     文明の世代交代を司る。優れた戦略を選択し、次世代の戦略を生み出す。
     """
-    def __init__(self, crucible: FactorizationCrucible, population_size: int = 10):
+    def __init__(
+        self,
+        crucible: FactorizationCrucible,
+        population_size: int = 10,
+        llm_provider=None,
+        evaluation_duration: float = 0.1,
+    ):
         self.crucible = crucible
         self.population_size = population_size
+        self.evaluation_duration = evaluation_duration
         self.civilizations: Dict[str, Dict] = {}
         self.generation = 0
-        self.generator = StrategyGenerator()
+
+        # LLM統合版または従来版のジェネレータを選択
+        if llm_provider:
+            self.generator = LLMStrategyGenerator(llm_provider=llm_provider)
+        else:
+            self.generator = LLMStrategyGenerator()  # llm_provider=None で従来と同じ動作
 
     def initialize_population(self):
         """最初の文明（戦略）群を生成する"""
@@ -194,7 +317,9 @@ class EvolutionaryEngine:
         # 評価: 全ての文明の戦略を評価する
         for civ_id, civ_data in self.civilizations.items():
             strategy = civ_data["strategy"]
-            fitness = self.crucible.evaluate_strategy(strategy, duration_seconds=0.1)
+            fitness = self.crucible.evaluate_strategy(
+                strategy, duration_seconds=self.evaluation_duration
+            )
             civ_data["fitness"] = fitness
 
             print(
@@ -202,23 +327,40 @@ class EvolutionaryEngine:
             )
 
         # 選択: フィットネスが高い上位20%の文明を選択
-        sorted_civs = sorted(self.civilizations.items(), key=lambda item: item[1]['fitness'], reverse=True)
+        sorted_civs = sorted(
+            self.civilizations.items(), key=lambda item: item[1]["fitness"], reverse=True
+        )
         num_elites = max(1, int(self.population_size * 0.2))
         elites = sorted_civs[:num_elites]
 
-        print(f"\n--- Top performing civilization in Generation {self.generation}: {elites[0][0]} with fitness {elites[0][1]['fitness']} ---")
+        print(
+            f"\n--- Top performing civilization in Generation {self.generation}: "
+            f"{elites[0][0]} with fitness {elites[0][1]['fitness']} ---"
+        )
+
+        # フィットネス履歴を更新（LLM用）
+        if isinstance(self.generator, LLMStrategyGenerator):
+            self.generator.fitness_history.append(elites[0][1]["fitness"])
 
         # 繁殖: エリート戦略を基に、次世代の文明（戦略）を生成
         next_generation_civs = {}
         for i in range(self.population_size):
             parent_civ = random.choice(elites)
-            parent_strategy = parent_civ[1]['strategy']
+            parent_strategy = parent_civ[1]["strategy"]
+            parent_fitness = parent_civ[1]["fitness"]
 
             new_civ_id = f"civ_{self.generation + 1}_{i}"
             if random.random() < 0.2:
                 new_strategy = self.generator.random_strategy()
             else:
-                new_strategy = self.generator.mutate_strategy(parent_strategy)
+                # LLM統合版の場合は文脈を渡す
+                if isinstance(self.generator, LLMStrategyGenerator):
+                    new_strategy = self.generator.mutate_strategy_with_context(
+                        parent_strategy, parent_fitness, self.generation
+                    )
+                else:
+                    new_strategy = self.generator.mutate_strategy(parent_strategy)
+
             next_generation_civs[new_civ_id] = {"strategy": new_strategy, "fitness": 0}
 
         self.civilizations = next_generation_civs
