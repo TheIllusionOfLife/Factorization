@@ -13,8 +13,15 @@ class Config:
 
 def load_config() -> Config:
     load_dotenv()
+
+    # Load and validate max_llm_calls
+    try:
+        max_llm_calls = int(os.getenv("MAX_LLM_CALLS_PER_RUN", "100"))
+    except ValueError:
+        max_llm_calls = 100
+
     return Config(
         api_key=os.getenv("GEMINI_API_KEY", ""),
-        max_llm_calls=int(os.getenv("MAX_LLM_CALLS_PER_RUN", "100")),
+        max_llm_calls=max_llm_calls,
         llm_enabled=os.getenv("LLM_ENABLED", "true").lower() == "true"
     )

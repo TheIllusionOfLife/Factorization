@@ -53,15 +53,20 @@ class GeminiProvider(LLMProvider):
             # Parse structured JSON response
             mutation_data = json.loads(response.text)
 
-            # Track token usage
-            if hasattr(response, 'usage_metadata'):
-                input_tokens = response.usage_metadata.prompt_token_count
-                output_tokens = response.usage_metadata.candidates_token_count
-                self._input_tokens += input_tokens
-                self._output_tokens += output_tokens
-                cost = self._calculate_cost(input_tokens, output_tokens)
-                self._total_cost += cost
-            else:
+            # Track token usage with defensive access
+            try:
+                usage = getattr(response, 'usage_metadata', None)
+                if usage:
+                    input_tokens = getattr(usage, 'prompt_token_count', 0)
+                    output_tokens = getattr(usage, 'candidates_token_count', 0)
+                    self._input_tokens += input_tokens
+                    self._output_tokens += output_tokens
+                    cost = self._calculate_cost(input_tokens, output_tokens)
+                    self._total_cost += cost
+                else:
+                    input_tokens = output_tokens = 0
+                    cost = 0.0
+            except Exception:
                 input_tokens = output_tokens = 0
                 cost = 0.0
 
