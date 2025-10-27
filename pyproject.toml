@@ -54,8 +54,6 @@ unfixable = []
 [tool.ruff.lint.per-file-ignores]
 # Ignore unused imports in __init__.py
 "__init__.py" = ["F401"]
-# Allow assert statements in tests
-"tests/**/*.py" = ["S101"]
 
 [tool.ruff.format]
 # Use Black-compatible formatting
