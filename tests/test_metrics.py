@@ -4,12 +4,8 @@ import json
 import math
 import os
 import tempfile
-from pathlib import Path
-
-import pytest
 
 from prototype import (
-    SMALL_PRIMES,
     EvaluationMetrics,
     EvolutionaryEngine,
     FactorizationCrucible,
@@ -123,7 +119,10 @@ class TestDetailedEvaluation:
         crucible = FactorizationCrucible(961730063)
         # Very permissive strategy to find many candidates
         strategy = Strategy(
-            power=2, modulus_filters=[(2, [0])], smoothness_bound=31, min_small_prime_hits=1
+            power=2,
+            modulus_filters=[(2, [0])],
+            smoothness_bound=31,
+            min_small_prime_hits=1,
         )
 
         metrics = crucible.evaluate_strategy_detailed(strategy, duration_seconds=0.1)
@@ -135,7 +134,10 @@ class TestDetailedEvaluation:
         """Test that example candidates are limited to first 5."""
         crucible = FactorizationCrucible(961730063)
         strategy = Strategy(
-            power=2, modulus_filters=[(2, [0])], smoothness_bound=31, min_small_prime_hits=1
+            power=2,
+            modulus_filters=[(2, [0])],
+            smoothness_bound=31,
+            min_small_prime_hits=1,
         )
 
         metrics = crucible.evaluate_strategy_detailed(strategy, duration_seconds=0.1)
@@ -147,7 +149,10 @@ class TestDetailedEvaluation:
         """Test that smoothness scores are calculated correctly."""
         crucible = FactorizationCrucible(961730063)
         strategy = Strategy(
-            power=2, modulus_filters=[(2, [0])], smoothness_bound=7, min_small_prime_hits=1
+            power=2,
+            modulus_filters=[(2, [0])],
+            smoothness_bound=7,
+            min_small_prime_hits=1,
         )
 
         metrics = crucible.evaluate_strategy_detailed(strategy, duration_seconds=0.05)

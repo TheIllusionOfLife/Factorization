@@ -226,7 +226,6 @@ class FactorizationCrucible:
             "smoothness_check": 0.0,
         }
 
-        search_radius = self.search_space_root * 2
         start_time = time.perf_counter()
         end_time = start_time + duration_seconds
 
@@ -274,7 +273,9 @@ class FactorizationCrucible:
 
                 # Smoothness: ratio of candidate to smooth part
                 # Lower = smoother (more factors removed)
-                smoothness = candidate / prime_product if prime_product > 1 else float("inf")
+                smoothness = (
+                    candidate / prime_product if prime_product > 1 else float("inf")
+                )
                 smoothness_scores.append(smoothness)
             else:
                 rejections["min_hits"] += 1
@@ -488,9 +489,7 @@ class EvolutionaryEngine:
             print(
                 f"  Civilization {civ_id}: Fitness = {metrics.candidate_count:<5} | Strategy: {strategy.describe()}"
             )
-            print(
-                f"    ⏱️  Timing: Filter {filter_pct:.0f}%, Smooth {smooth_pct:.0f}%"
-            )
+            print(f"    ⏱️  Timing: Filter {filter_pct:.0f}%, Smooth {smooth_pct:.0f}%")
 
             # Show smoothness quality
             if metrics.smoothness_scores:

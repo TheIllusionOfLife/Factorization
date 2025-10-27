@@ -26,6 +26,7 @@ python prototype.py --llm --generations 5 --population 10
 - `--population N`: Population size per generation (default: 10)
 - `--duration SECS`: Evaluation duration in seconds (default: 0.1)
 - `--llm`: Enable LLM-guided mutations using Gemini 2.5 Flash Lite
+- `--export-metrics PATH`: Export detailed metrics to JSON file for analysis
 
 ### Testing
 
@@ -106,6 +107,36 @@ cp .env.example .env
    - `modulus_filters`: List of (modulus, residues) for fast rejection
    - `smoothness_bound`: Maximum prime factor to check (from SMALL_PRIMES)
    - `min_small_prime_hits`: Required count of small prime factors
+
+4. **EvaluationMetrics**: Detailed metrics tracking (NEW in PR #X)
+   - `candidate_count`: Total smooth candidates found
+   - `smoothness_scores`: Quality metrics (lower = smoother)
+   - `timing_breakdown`: Time spent in each evaluation phase
+   - `rejection_stats`: Counts of rejection reasons
+   - `example_candidates`: Sample smooth numbers found
+
+### Metrics & Instrumentation
+
+**evaluate_strategy_detailed()**: Comprehensive evaluation method
+- Tracks timing using `time.perf_counter()` for high precision
+- Separates timing into three phases:
+  - Candidate generation: `pow(x, power) - N`
+  - Modulus filtering: Fast rejection via residue checks
+  - Smoothness check: Prime factorization counting
+- Calculates smoothness ratio: `candidate / product_of_small_primes`
+- Limits stored data: 10 smoothness scores, 5 example candidates
+
+**metrics_history**: List[List[EvaluationMetrics]]
+- Nested structure: `[generation][civilization]`
+- Stored in EvolutionaryEngine for entire evolution
+- Exported to JSON via `export_metrics(output_path)`
+
+**Visualization**: Jupyter notebook (analysis/visualize_metrics.ipynb)
+- Fitness trends over generations
+- Timing breakdown analysis (stacked area charts)
+- Rejection statistics (bar charts)
+- Smoothness quality evolution
+- Best strategy analysis with detailed stats
 
 ### LLM Integration (src/llm/)
 
