@@ -14,11 +14,8 @@ This directory contains all CI/CD workflows for the Factorization project.
 ### AI Bot Integrations
 - **`bot-claude.yml`**: Claude Code bot integration
 - **`bot-claude-review.yml`**: Automated Claude PR reviews
-- **`bot-gemini-dispatch.yml`**: Main dispatcher for Gemini bot commands
-- **`bot-gemini-review.yml`**: Gemini PR review workflow (reusable)
-- **`bot-gemini-invoke.yml`**: Gemini invocation workflow (reusable)
-- **`bot-gemini-triage.yml`**: Gemini issue triage workflow (reusable)
-- **`bot-gemini-scheduled.yml`**: Scheduled Gemini triage
+
+**Note**: Code reviews are also automatically provided by the [Gemini Code Assist GitHub App](https://github.com/marketplace/gemini-code-assist).
 
 ## Local Development
 
@@ -50,23 +47,11 @@ mypy src/ --ignore-missing-imports
 - **Pull Requests**: When Python files, requirements.txt, or pyproject.toml change
 - **Push to main**: Same path filters
 
-### Gemini Dispatch (`bot-gemini-dispatch.yml`)
-- **Pull Requests**: When opened (skips docs-only PRs)
-- **Issues**: When opened or reopened
-- **Comments**: When @gemini-cli is mentioned by OWNER/MEMBER/COLLABORATOR
-
 ### Claude Workflows
 - **`bot-claude.yml`**: Issue/PR comments mentioning @claude
 - **`bot-claude-review.yml`**: Pull request opened events
 
 ## Path Filters
-
-### Gemini Review Skips
-Documentation-only PRs skip Gemini review to avoid unnecessary failures:
-- `**.md` files
-- `**.txt` files
-- `docs/**` directory
-- `LICENSE`, `.gitignore`, `.env.example`
 
 ### Python CI Triggers
 Only runs when relevant files change:
@@ -75,10 +60,6 @@ Only runs when relevant files change:
 - `pyproject.toml`
 
 ## Troubleshooting
-
-### "Workflow file not found" errors
-- Ensure reusable workflow paths in `bot-gemini-dispatch.yml` are correct
-- Reusable workflows must be in `.github/workflows/` directory
 
 ### Ruff failures
 ```bash
