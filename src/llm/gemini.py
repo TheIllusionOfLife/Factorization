@@ -48,8 +48,6 @@ class GeminiProvider(LLMProvider):
                 )
             )
 
-            self._call_count += 1
-
             # Parse structured JSON response
             mutation_data = json.loads(response.text)
 
@@ -88,6 +86,9 @@ class GeminiProvider(LLMProvider):
                 mutation_params={},
                 error=f"API error: {str(e)}"
             )
+        finally:
+            # Increment call count regardless of success/failure to prevent infinite retries
+            self._call_count += 1
 
     def _build_prompt(
         self,

@@ -161,6 +161,31 @@ def test_api_call_limit():
     assert "limit reached" in response.error
 
 
+def test_api_call_count_increments_on_failure():
+    """Test that API call count increments even when API call fails"""
+    from unittest.mock import MagicMock, patch
+    from src.config import Config
+    from src.llm.gemini import GeminiProvider
+
+    config = Config(api_key="test", max_llm_calls=10)
+    provider = GeminiProvider("test", config)
+
+    assert provider.call_count == 0
+
+    parent = {"power": 2, "modulus_filters": [(3, [0, 1])], "smoothness_bound": 13, "min_small_prime_hits": 2}
+
+    # Mock the API call to raise an exception
+    with patch.object(provider.client.models, 'generate_content', side_effect=Exception("API Error")):
+        response = provider.propose_mutation(parent, fitness=50, generation=0, fitness_history=[])
+
+        # Should return error response
+        assert response.success is False
+        assert "API error" in response.error
+
+        # Call count should still increment (critical for preventing infinite retries)
+        assert provider.call_count == 1
+
+
 @pytest.mark.skipif(
     not os.getenv("GEMINI_API_KEY"),
     reason="No GEMINI_API_KEY environment variable"

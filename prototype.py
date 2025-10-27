@@ -1,8 +1,11 @@
 import random
 import time
 import math
+import logging
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Sequence, Tuple
+
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
 # Strategy representation
@@ -229,6 +232,8 @@ class LLMStrategyGenerator(StrategyGenerator):
             new_filters = parent.modulus_filters[:]
             if len(new_filters) < 4:  # 最大4フィルタまで
                 new_filters.append((params["modulus"], params["residues"]))
+            else:
+                logger.warning(f"Cannot add filter: maximum limit (4) reached, keeping parent strategy")
             return Strategy(
                 power=parent.power,
                 modulus_filters=new_filters,
@@ -241,6 +246,8 @@ class LLMStrategyGenerator(StrategyGenerator):
             idx = params["index"]
             if 0 <= idx < len(new_filters):
                 new_filters[idx] = (params["modulus"], params["residues"])
+            else:
+                logger.warning(f"Invalid filter index {idx} (valid range: 0-{len(new_filters)-1}), keeping parent strategy")
             return Strategy(
                 power=parent.power,
                 modulus_filters=new_filters,
@@ -253,6 +260,11 @@ class LLMStrategyGenerator(StrategyGenerator):
             idx = params["index"]
             if 0 <= idx < len(new_filters) and len(new_filters) > 1:
                 del new_filters[idx]
+            else:
+                if len(new_filters) <= 1:
+                    logger.warning(f"Cannot remove filter: minimum 1 filter required, keeping parent strategy")
+                else:
+                    logger.warning(f"Invalid filter index {idx} (valid range: 0-{len(new_filters)-1}), keeping parent strategy")
             return Strategy(
                 power=parent.power,
                 modulus_filters=new_filters,
