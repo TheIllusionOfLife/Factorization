@@ -256,28 +256,29 @@ class FactorizationCrucible:
             if not passes_filter:
                 continue
 
-            # Time smoothness check
+            # Time smoothness check (combined with prime factorization)
             smooth_start = time.perf_counter()
-            hits = strategy._count_small_prime_hits(candidate)
+            hits = 0
+            prime_product = 1
+            temp = candidate
+
+            for prime in SMALL_PRIMES:
+                if prime > strategy.smoothness_bound:
+                    break
+                while temp % prime == 0:
+                    temp //= prime
+                    prime_product *= prime
+                    hits += 1
+
             timing["smoothness_check"] += time.perf_counter() - smooth_start
 
             if hits >= strategy.min_small_prime_hits:
                 rejections["passed"] += 1
                 candidates_found.append(candidate)
 
-                # Calculate smoothness score (how smooth is this candidate?)
-                prime_product = 1
-                temp = candidate
-                for prime in SMALL_PRIMES:
-                    if prime > strategy.smoothness_bound:
-                        break
-                    while temp % prime == 0:
-                        temp //= prime
-                        prime_product *= prime
-
                 # Smoothness: ratio of candidate to smooth part
                 # Lower = smoother (more factors removed)
-                # Always finite since prime_product >= 1
+                # prime_product > 1 guaranteed here (hits >= min_small_prime_hits)
                 smoothness = candidate / prime_product
                 smoothness_scores.append(smoothness)
             else:

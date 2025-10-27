@@ -108,7 +108,7 @@ cp .env.example .env
    - `smoothness_bound`: Maximum prime factor to check (from SMALL_PRIMES)
    - `min_small_prime_hits`: Required count of small prime factors
 
-4. **EvaluationMetrics**: Detailed metrics tracking (NEW in PR #X)
+4. **EvaluationMetrics**: Detailed metrics tracking (NEW in PR #8)
    - `candidate_count`: Total smooth candidates found
    - `smoothness_scores`: Quality metrics (lower = smoother)
    - `timing_breakdown`: Time spent in each evaluation phase
