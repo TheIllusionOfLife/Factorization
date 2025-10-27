@@ -605,23 +605,46 @@ class EvolutionaryEngine:
                 self.generator.fitness_history = self.generator.fitness_history[-5:]
 
         # 繁殖: エリート戦略を基に、次世代の文明（戦略）を生成
+        # 30% crossover, 50% mutation, 20% random newcomers
         next_generation_civs = {}
         for i in range(self.population_size):
-            parent_civ = random.choice(elites)
-            parent_strategy = parent_civ[1]["strategy"]
-            parent_fitness = parent_civ[1]["fitness"]
-
             new_civ_id = f"civ_{self.generation + 1}_{i}"
-            if random.random() < 0.2:
-                new_strategy = self.generator.random_strategy()
-            else:
-                # LLM統合版の場合は文脈を渡す
+
+            rand = random.random()
+            if rand < 0.3:
+                # Crossover: Combine two elite parents
+                if len(elites) >= 2:
+                    parent1_civ = random.choice(elites)
+                    parent2_civ = random.choice(elites)
+                    parent1_strategy = parent1_civ[1]["strategy"]
+                    parent2_strategy = parent2_civ[1]["strategy"]
+                    new_strategy = crossover_strategies(parent1_strategy, parent2_strategy)
+                else:
+                    # Fallback to mutation if only one elite
+                    parent_civ = random.choice(elites)
+                    parent_strategy = parent_civ[1]["strategy"]
+                    parent_fitness = parent_civ[1]["fitness"]
+                    if isinstance(self.generator, LLMStrategyGenerator):
+                        new_strategy = self.generator.mutate_strategy_with_context(
+                            parent_strategy, parent_fitness, self.generation
+                        )
+                    else:
+                        new_strategy = self.generator.mutate_strategy(parent_strategy)
+            elif rand < 0.8:
+                # Mutation: Mutate single elite parent (50% of population)
+                parent_civ = random.choice(elites)
+                parent_strategy = parent_civ[1]["strategy"]
+                parent_fitness = parent_civ[1]["fitness"]
+
                 if isinstance(self.generator, LLMStrategyGenerator):
                     new_strategy = self.generator.mutate_strategy_with_context(
                         parent_strategy, parent_fitness, self.generation
                     )
                 else:
                     new_strategy = self.generator.mutate_strategy(parent_strategy)
+            else:
+                # Random newcomer: Introduce genetic diversity (20% of population)
+                new_strategy = self.generator.random_strategy()
 
             next_generation_civs[new_civ_id] = {"strategy": new_strategy, "fitness": 0}
 
