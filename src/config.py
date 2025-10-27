@@ -1,9 +1,11 @@
-from dataclasses import dataclass
 import logging
 import os
+from dataclasses import dataclass
+
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class Config:
@@ -13,7 +15,10 @@ class Config:
     temperature_base: float = 0.8
     temperature_max: float = 1.2
     max_tokens: int = 1024
-    temperature_scaling_generations: int = 10  # Number of generations to scale temperature from base to max
+    temperature_scaling_generations: int = (
+        10  # Number of generations to scale temperature from base to max
+    )
+
 
 def load_config() -> Config:
     load_dotenv()
@@ -36,8 +41,4 @@ def load_config() -> Config:
             "Either set GEMINI_API_KEY in .env or disable LLM with LLM_ENABLED=false"
         )
 
-    return Config(
-        api_key=api_key,
-        max_llm_calls=max_llm_calls,
-        llm_enabled=llm_enabled
-    )
+    return Config(api_key=api_key, max_llm_calls=max_llm_calls, llm_enabled=llm_enabled)

@@ -1,6 +1,8 @@
 """Pydantic schemas for LLM structured output with field validation"""
-from pydantic import BaseModel, Field, field_validator
+
 from typing import Literal, Optional
+
+from pydantic import BaseModel, Field, field_validator
 
 
 def _validate_residues_in_modulus_range(residues: list[int], modulus: int) -> list[int]:
@@ -16,12 +18,14 @@ class PowerMutation(BaseModel):
 
 class AddFilterMutation(BaseModel):
     modulus: int = Field(..., ge=2, le=37, description="Prime modulus")
-    residues: list[int] = Field(..., min_length=1, max_length=10, description="Allowed residues")
+    residues: list[int] = Field(
+        ..., min_length=1, max_length=10, description="Allowed residues"
+    )
 
-    @field_validator('residues')
+    @field_validator("residues")
     @classmethod
     def validate_residues(cls, v, info):
-        modulus = info.data.get('modulus')
+        modulus = info.data.get("modulus")
         if modulus:
             return _validate_residues_in_modulus_range(v, modulus)
         return v
@@ -32,10 +36,10 @@ class ModifyFilterMutation(BaseModel):
     modulus: int = Field(..., ge=2, le=37)
     residues: list[int] = Field(..., min_length=1, max_length=10)
 
-    @field_validator('residues')
+    @field_validator("residues")
     @classmethod
     def validate_residues(cls, v, info):
-        modulus = info.data.get('modulus')
+        modulus = info.data.get("modulus")
         if modulus:
             return _validate_residues_in_modulus_range(v, modulus)
         return v
@@ -52,7 +56,9 @@ class AdjustSmoothnessMutation(BaseModel):
 
 class MutationResponse(BaseModel):
     reasoning: str = Field(..., description="Brief explanation of mutation strategy")
-    mutation_type: Literal["power", "add_filter", "modify_filter", "remove_filter", "adjust_smoothness"]
+    mutation_type: Literal[
+        "power", "add_filter", "modify_filter", "remove_filter", "adjust_smoothness"
+    ]
 
     # Only one of these will be populated based on mutation_type
     power_params: Optional[PowerMutation] = None

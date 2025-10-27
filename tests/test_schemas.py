@@ -1,4 +1,5 @@
 """Tests for Pydantic schemas with validators"""
+
 import pytest
 from pydantic import ValidationError
 
@@ -107,7 +108,7 @@ def test_mutation_response_power():
     response = MutationResponse(
         reasoning="Testing power change",
         mutation_type="power",
-        power_params=PowerMutation(new_power=4)
+        power_params=PowerMutation(new_power=4),
     )
     assert response.mutation_type == "power"
     assert response.power_params.new_power == 4
@@ -116,12 +117,12 @@ def test_mutation_response_power():
 
 def test_mutation_response_add_filter():
     """Test MutationResponse with add_filter mutation"""
-    from src.llm.schemas import MutationResponse, AddFilterMutation
+    from src.llm.schemas import AddFilterMutation, MutationResponse
 
     response = MutationResponse(
         reasoning="Adding filter",
         mutation_type="add_filter",
-        add_filter_params=AddFilterMutation(modulus=7, residues=[0, 1])
+        add_filter_params=AddFilterMutation(modulus=7, residues=[0, 1]),
     )
     assert response.mutation_type == "add_filter"
     assert response.add_filter_params.modulus == 7
@@ -132,7 +133,4 @@ def test_mutation_response_invalid_type():
     from src.llm.schemas import MutationResponse
 
     with pytest.raises(ValidationError):
-        MutationResponse(
-            reasoning="Test",
-            mutation_type="invalid_type"
-        )
+        MutationResponse(reasoning="Test", mutation_type="invalid_type")

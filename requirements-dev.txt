@@ -1,0 +1,8 @@
+# Development dependencies
+# Pinned versions for reproducible builds
+pytest==8.4.2
+pytest-cov==4.1.0
+ruff==0.14.2
+mypy==1.18.2
+
+# Install with: pip install -r requirements-dev.txt

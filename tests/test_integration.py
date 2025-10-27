@@ -1,8 +1,10 @@
 """Integration tests for LLM-enabled evolutionary engine"""
+
 import pytest
+
 from src.config import Config
-from src.llm.gemini import GeminiProvider
 from src.llm.base import LLMResponse
+from src.llm.gemini import GeminiProvider
 
 
 def test_llm_strategy_generator_init():
@@ -28,10 +30,18 @@ def test_llm_strategy_generator_fallback_to_rule_based():
     # Create generator without LLM
     gen = LLMStrategyGenerator(llm_provider=None)
 
-    parent = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
+    parent = Strategy(
+        power=2,
+        modulus_filters=[(3, [0, 1])],
+        smoothness_bound=13,
+        min_small_prime_hits=2,
+    )
 
     # Run multiple times to ensure at least one mutation happens (random may sometimes return same values)
-    mutations = [gen.mutate_strategy_with_context(parent, fitness=50, generation=0) for _ in range(10)]
+    mutations = [
+        gen.mutate_strategy_with_context(parent, fitness=50, generation=0)
+        for _ in range(10)
+    ]
 
     # Should get valid mutated strategies
     for child in mutations:
@@ -45,22 +55,25 @@ def test_llm_strategy_generator_fallback_to_rule_based():
 
 def test_llm_strategy_generator_uses_llm_on_success():
     """Test that LLMStrategyGenerator uses LLM when available and successful"""
-    from prototype import LLMStrategyGenerator, Strategy
     from unittest.mock import MagicMock
+
+    from prototype import LLMStrategyGenerator, Strategy
 
     # Create mock LLM provider that returns success
     mock_provider = MagicMock()
     mock_provider.propose_mutation.return_value = LLMResponse(
         success=True,
-        mutation_params={
-            "mutation_type": "power",
-            "parameters": {"new_power": 3}
-        },
-        reasoning="Test reasoning"
+        mutation_params={"mutation_type": "power", "parameters": {"new_power": 3}},
+        reasoning="Test reasoning",
     )
 
     gen = LLMStrategyGenerator(llm_provider=mock_provider)
-    parent = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
+    parent = Strategy(
+        power=2,
+        modulus_filters=[(3, [0, 1])],
+        smoothness_bound=13,
+        min_small_prime_hits=2,
+    )
 
     child = gen.mutate_strategy_with_context(parent, fitness=50, generation=5)
 
@@ -72,22 +85,29 @@ def test_llm_strategy_generator_uses_llm_on_success():
 
 def test_llm_strategy_generator_fallback_on_llm_failure():
     """Test fallback to rule-based when LLM returns failure"""
-    from prototype import LLMStrategyGenerator, Strategy
     from unittest.mock import MagicMock
+
+    from prototype import LLMStrategyGenerator, Strategy
 
     # Create mock LLM provider that returns failure
     mock_provider = MagicMock()
     mock_provider.propose_mutation.return_value = LLMResponse(
-        success=False,
-        mutation_params={},
-        error="API error"
+        success=False, mutation_params={}, error="API error"
     )
 
     gen = LLMStrategyGenerator(llm_provider=mock_provider)
-    parent = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
+    parent = Strategy(
+        power=2,
+        modulus_filters=[(3, [0, 1])],
+        smoothness_bound=13,
+        min_small_prime_hits=2,
+    )
 
     # Run multiple times to ensure at least one mutation happens (random may sometimes return same values)
-    mutations = [gen.mutate_strategy_with_context(parent, fitness=50, generation=5) for _ in range(10)]
+    mutations = [
+        gen.mutate_strategy_with_context(parent, fitness=50, generation=5)
+        for _ in range(10)
+    ]
 
     # Should have called LLM multiple times
     assert mock_provider.propose_mutation.call_count == 10
@@ -101,8 +121,8 @@ def test_llm_strategy_generator_fallback_on_llm_failure():
 def test_evolutionary_engine_with_llm_provider():
     """Test EvolutionaryEngine accepts and uses LLM provider"""
     from prototype import EvolutionaryEngine, FactorizationCrucible
-    from src.llm.gemini import GeminiProvider
     from src.config import Config
+    from src.llm.gemini import GeminiProvider
 
     config = Config(api_key="test", max_llm_calls=0)  # No calls allowed
     provider = GeminiProvider("test", config)
@@ -151,12 +171,14 @@ def test_apply_llm_mutation_power():
     from prototype import LLMStrategyGenerator, Strategy
 
     gen = LLMStrategyGenerator()
-    parent = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
+    parent = Strategy(
+        power=2,
+        modulus_filters=[(3, [0, 1])],
+        smoothness_bound=13,
+        min_small_prime_hits=2,
+    )
 
-    mutation_params = {
-        "mutation_type": "power",
-        "parameters": {"new_power": 4}
-    }
+    mutation_params = {"mutation_type": "power", "parameters": {"new_power": 4}}
 
     child = gen._apply_llm_mutation(parent, mutation_params)
     assert child.power == 4
@@ -168,11 +190,16 @@ def test_apply_llm_mutation_add_filter():
     from prototype import LLMStrategyGenerator, Strategy
 
     gen = LLMStrategyGenerator()
-    parent = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
+    parent = Strategy(
+        power=2,
+        modulus_filters=[(3, [0, 1])],
+        smoothness_bound=13,
+        min_small_prime_hits=2,
+    )
 
     mutation_params = {
         "mutation_type": "add_filter",
-        "parameters": {"modulus": 5, "residues": [0, 1, 4]}
+        "parameters": {"modulus": 5, "residues": [0, 1, 4]},
     }
 
     child = gen._apply_llm_mutation(parent, mutation_params)
@@ -185,11 +212,16 @@ def test_apply_llm_mutation_adjust_smoothness():
     from prototype import LLMStrategyGenerator, Strategy
 
     gen = LLMStrategyGenerator()
-    parent = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
+    parent = Strategy(
+        power=2,
+        modulus_filters=[(3, [0, 1])],
+        smoothness_bound=13,
+        min_small_prime_hits=2,
+    )
 
     mutation_params = {
         "mutation_type": "adjust_smoothness",
-        "parameters": {"bound_delta": 1, "hits_delta": -1}
+        "parameters": {"bound_delta": 1, "hits_delta": -1},
     }
 
     child = gen._apply_llm_mutation(parent, mutation_params)
@@ -199,22 +231,25 @@ def test_apply_llm_mutation_adjust_smoothness():
 
 def test_first_generation_mutation_with_empty_history():
     """Test LLM mutation works with no prior fitness history"""
-    from prototype import LLMStrategyGenerator, Strategy
     from unittest.mock import MagicMock
+
+    from prototype import LLMStrategyGenerator, Strategy
 
     # Create mock LLM provider that returns success
     mock_provider = MagicMock()
     mock_provider.propose_mutation.return_value = LLMResponse(
         success=True,
-        mutation_params={
-            "mutation_type": "power",
-            "parameters": {"new_power": 3}
-        },
-        reasoning="Test reasoning for first generation"
+        mutation_params={"mutation_type": "power", "parameters": {"new_power": 3}},
+        reasoning="Test reasoning for first generation",
     )
 
     gen = LLMStrategyGenerator(llm_provider=mock_provider)
-    parent = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
+    parent = Strategy(
+        power=2,
+        modulus_filters=[(3, [0, 1])],
+        smoothness_bound=13,
+        min_small_prime_hits=2,
+    )
 
     # First generation with empty fitness history
     child = gen.mutate_strategy_with_context(parent, fitness=10, generation=0)
@@ -222,8 +257,8 @@ def test_first_generation_mutation_with_empty_history():
     # Should have called LLM with empty fitness history
     mock_provider.propose_mutation.assert_called_once()
     call_args = mock_provider.propose_mutation.call_args
-    assert call_args[1]['fitness_history'] == []  # Empty list for first generation
-    assert call_args[1]['generation'] == 0
+    assert call_args[1]["fitness_history"] == []  # Empty list for first generation
+    assert call_args[1]["generation"] == 0
 
     # Should have applied mutation
     assert child.power == 3
