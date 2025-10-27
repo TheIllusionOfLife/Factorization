@@ -1,8 +1,10 @@
+import json
 import logging
 import math
 import random
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Callable, Dict, List, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
@@ -11,6 +13,27 @@ logger = logging.getLogger(__name__)
 # Strategy representation
 # ------------------------------------------------------------------------------
 SMALL_PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
+
+
+@dataclass
+class EvaluationMetrics:
+    """Detailed metrics from strategy evaluation."""
+
+    candidate_count: int
+    smoothness_scores: List[float] = field(default_factory=list)
+    timing_breakdown: Dict[str, float] = field(default_factory=dict)
+    rejection_stats: Dict[str, int] = field(default_factory=dict)
+    example_candidates: List[int] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        """Convert metrics to dictionary for JSON export."""
+        return {
+            "candidate_count": self.candidate_count,
+            "smoothness_scores": self.smoothness_scores,
+            "timing_breakdown": self.timing_breakdown,
+            "rejection_stats": self.rejection_stats,
+            "example_candidates": self.example_candidates,
+        }
 
 
 @dataclass
@@ -180,6 +203,90 @@ class FactorizationCrucible:
                 pass
         return score
 
+    def evaluate_strategy_detailed(
+        self, strategy: Strategy, duration_seconds: float
+    ) -> EvaluationMetrics:
+        """
+        Evaluate strategy with detailed instrumentation.
+
+        Returns comprehensive metrics including:
+        - Candidate count
+        - Smoothness scores
+        - Timing breakdown by phase
+        - Rejection statistics
+        - Example smooth candidates found
+        """
+        candidates_found = []
+        smoothness_scores = []
+        rejections = {"modulus_filter": 0, "min_hits": 0, "passed": 0}
+
+        timing = {
+            "candidate_generation": 0.0,
+            "modulus_filtering": 0.0,
+            "smoothness_check": 0.0,
+        }
+
+        search_radius = self.search_space_root * 2
+        start_time = time.perf_counter()
+        end_time = start_time + duration_seconds
+
+        while time.perf_counter() < end_time:
+            # Time candidate generation
+            gen_start = time.perf_counter()
+            x = self.search_space_root + random.randint(1, 1000)
+            candidate = abs(pow(x, strategy.power) - self.N)
+            timing["candidate_generation"] += time.perf_counter() - gen_start
+
+            if candidate == 0:
+                continue
+
+            # Time modulus filtering
+            filter_start = time.perf_counter()
+            passes_filter = True
+            for modulus, residues in strategy.modulus_filters:
+                if candidate % modulus not in residues:
+                    passes_filter = False
+                    rejections["modulus_filter"] += 1
+                    break
+            timing["modulus_filtering"] += time.perf_counter() - filter_start
+
+            if not passes_filter:
+                continue
+
+            # Time smoothness check
+            smooth_start = time.perf_counter()
+            hits = strategy._count_small_prime_hits(candidate)
+            timing["smoothness_check"] += time.perf_counter() - smooth_start
+
+            if hits >= strategy.min_small_prime_hits:
+                rejections["passed"] += 1
+                candidates_found.append(candidate)
+
+                # Calculate smoothness score (how smooth is this candidate?)
+                prime_product = 1
+                temp = candidate
+                for prime in SMALL_PRIMES:
+                    if prime > strategy.smoothness_bound:
+                        break
+                    while temp % prime == 0:
+                        temp //= prime
+                        prime_product *= prime
+
+                # Smoothness: ratio of candidate to smooth part
+                # Lower = smoother (more factors removed)
+                smoothness = candidate / prime_product if prime_product > 1 else float("inf")
+                smoothness_scores.append(smoothness)
+            else:
+                rejections["min_hits"] += 1
+
+        return EvaluationMetrics(
+            candidate_count=len(candidates_found),
+            smoothness_scores=smoothness_scores[:10],  # Keep first 10
+            timing_breakdown=timing,
+            rejection_stats=rejections,
+            example_candidates=candidates_found[:5],  # Keep first 5
+        )
+
 
 # ------------------------------------------------------------------------------
 # 進化的エンジン - 文明を進化させる淘汰圧
@@ -330,6 +437,7 @@ class EvolutionaryEngine:
         self.evaluation_duration = evaluation_duration
         self.civilizations: Dict[str, Dict] = {}
         self.generation = 0
+        self.metrics_history: List[List[EvaluationMetrics]] = []
 
         # LLM統合版または従来版のジェネレータを選択
         if llm_provider:
@@ -350,17 +458,49 @@ class EvolutionaryEngine:
         """1世代分の進化（評価、選択、繁殖）を実行する"""
         print(f"\n===== Generation {self.generation}: Evaluating Strategies =====")
 
-        # 評価: 全ての文明の戦略を評価する
+        generation_metrics = []
+
+        # 評価: 全ての文明の戦略を詳細評価する
         for civ_id, civ_data in self.civilizations.items():
             strategy = civ_data["strategy"]
-            fitness = self.crucible.evaluate_strategy(
+
+            # Get detailed metrics
+            metrics = self.crucible.evaluate_strategy_detailed(
                 strategy, duration_seconds=self.evaluation_duration
             )
-            civ_data["fitness"] = fitness
+
+            civ_data["fitness"] = metrics.candidate_count
+            civ_data["metrics"] = metrics
+            generation_metrics.append(metrics)
+
+            # Calculate timing percentages
+            total_time = sum(metrics.timing_breakdown.values())
+            if total_time > 0:
+                filter_pct = (
+                    metrics.timing_breakdown["modulus_filtering"] / total_time
+                ) * 100
+                smooth_pct = (
+                    metrics.timing_breakdown["smoothness_check"] / total_time
+                ) * 100
+            else:
+                filter_pct = smooth_pct = 0
 
             print(
-                f"  Civilization {civ_id}: Fitness = {fitness:<5} | Strategy: {strategy.describe()}"
+                f"  Civilization {civ_id}: Fitness = {metrics.candidate_count:<5} | Strategy: {strategy.describe()}"
             )
+            print(
+                f"    ⏱️  Timing: Filter {filter_pct:.0f}%, Smooth {smooth_pct:.0f}%"
+            )
+
+            # Show smoothness quality
+            if metrics.smoothness_scores:
+                avg_smoothness = sum(metrics.smoothness_scores) / len(
+                    metrics.smoothness_scores
+                )
+                print(f"    📊 Avg smoothness ratio: {avg_smoothness:.2f}")
+
+        # Store metrics history
+        self.metrics_history.append(generation_metrics)
 
         # 選択: フィットネスが高い上位20%の文明を選択
         sorted_civs = sorted(
@@ -407,6 +547,27 @@ class EvolutionaryEngine:
         self.civilizations = next_generation_civs
         self.generation += 1
 
+    def export_metrics(self, output_path: str) -> None:
+        """Export metrics history to JSON file."""
+        data = {
+            "target_number": self.crucible.N,
+            "generation_count": self.generation,
+            "population_size": self.population_size,
+            "evaluation_duration": self.evaluation_duration,
+            "metrics_history": [
+                [metrics.to_dict() for metrics in generation]
+                for generation in self.metrics_history
+            ],
+        }
+
+        output_file = Path(output_path)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_file, "w") as f:
+            json.dump(data, f, indent=2)
+
+        print(f"📁 Metrics exported to: {output_path}")
+
 
 # ------------------------------------------------------------------------------
 # メイン実行ブロック
@@ -445,6 +606,12 @@ if __name__ == "__main__":
         "--llm",
         action="store_true",
         help="Enable LLM-guided mutations (requires GEMINI_API_KEY in .env)",
+    )
+    parser.add_argument(
+        "--export-metrics",
+        type=str,
+        metavar="PATH",
+        help="Export detailed metrics to JSON file (e.g., metrics/run_001.json)",
     )
 
     args = parser.parse_args()
@@ -498,3 +665,8 @@ if __name__ == "__main__":
             f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
         )
         print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
+
+    # Export metrics if requested
+    if args.export_metrics:
+        print()
+        engine.export_metrics(args.export_metrics)
