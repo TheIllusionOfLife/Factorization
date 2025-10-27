@@ -70,7 +70,8 @@ python prototype.py --llm --generations 5 --population 10
 ```text
 usage: prototype.py [-h] [--number NUMBER] [--generations GENERATIONS]
                     [--population POPULATION] [--duration DURATION] [--llm]
-                    [--export-metrics PATH]
+                    [--export-metrics PATH] [--crossover-rate RATE]
+                    [--mutation-rate RATE]
 
 options:
   --number NUMBER         Number to factor (default: 961730063)
@@ -79,6 +80,8 @@ options:
   --duration SECS         Evaluation duration in seconds (default: 0.1)
   --llm                   Enable LLM-guided mutations
   --export-metrics PATH   Export detailed metrics to JSON file
+  --crossover-rate RATE   Crossover rate: offspring from two parents (default: 0.3)
+  --mutation-rate RATE    Mutation rate: offspring from single parent (default: 0.5)
 ```
 
 ### Example Usage
@@ -101,6 +104,11 @@ python prototype.py --llm --number 12345678901 --generations 5
 **Export metrics for analysis**:
 ```bash
 python prototype.py --generations 5 --population 10 --export-metrics metrics/run_001.json
+```
+
+**Custom reproduction rates** (more crossover, less mutation):
+```bash
+python prototype.py --crossover-rate 0.6 --mutation-rate 0.2 --generations 5 --population 10
 ```
 
 ### Detailed Metrics & Visualization
@@ -236,11 +244,15 @@ Factorization/
 2. **Evaluation (Crucible)**: Strategies are evaluated by counting how many "smooth" candidates they find in a fixed time window.
 
 3. **Evolution**:
-   - **Selection**: Top 20% of strategies become parents
-   - **Mutation**:
-     - **Rule-based**: Random parameter tweaks
-     - **LLM-guided**: Gemini proposes mutations based on fitness trends
-   - **Reproduction**: Create new generation from mutated parents
+   - **Selection**: Top 20% of strategies become parents (elite selection)
+   - **Reproduction** (three methods, configurable rates):
+     - **Crossover** (default 30%): Combine two elite parents via uniform crossover
+       - Each gene has 50% chance from either parent
+       - Modulus filters are blended (union of residues for same modulus)
+     - **Mutation** (default 50%): Modify single elite parent
+       - **Rule-based**: Random parameter tweaks
+       - **LLM-guided**: Gemini proposes mutations based on fitness trends
+     - **Random newcomers** (default 20%): Fresh random strategies for diversity
 
 4. **LLM Integration**: When enabled, Gemini 2.5 Flash Lite analyzes:
    - Current strategy parameters

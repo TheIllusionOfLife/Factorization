@@ -99,7 +99,10 @@ cp .env.example .env
 2. **EvolutionaryEngine**: Orchestrates the evolutionary process
    - Manages population of strategies across generations
    - Selection: Top 20% become parents (elite selection)
-   - Mutation: 80% mutated from parents, 20% random newcomers
+   - Reproduction (configurable rates via CLI):
+     - Crossover (default 30%): Combine two elite parents via `crossover_strategies()`
+     - Mutation (default 50%): Mutate single elite parent via LLM or rule-based
+     - Random newcomers (default 20%): Fresh strategies for diversity
    - Uses LLMStrategyGenerator if LLM mode enabled, else basic StrategyGenerator
 
 3. **Strategy**: Dataclass representing optimization heuristics
@@ -108,7 +111,19 @@ cp .env.example .env
    - `smoothness_bound`: Maximum prime factor to check (from SMALL_PRIMES)
    - `min_small_prime_hits`: Required count of small prime factors
 
-4. **EvaluationMetrics**: Detailed metrics tracking (NEW in PR #8)
+4. **Crossover Operators** (NEW - genetic recombination):
+   - `crossover_strategies(parent1, parent2)`: Uniform crossover combining two parents
+     - Discrete params (power, smoothness_bound, min_hits): Random choice from either parent
+     - Modulus filters: Blended via `blend_modulus_filters()`
+     - Result auto-normalized via Strategy.__post_init__
+   - `blend_modulus_filters(filters1, filters2)`: Intelligent filter merging
+     - Merges filters with same modulus (union of residues)
+     - Keeps unique filters from each parent
+     - Prioritizes smaller moduli (better filtering efficiency)
+     - Limits to max 4 filters
+   - Fallback logic: If only one elite exists, falls back to mutation
+
+5. **EvaluationMetrics**: Detailed metrics tracking (NEW in PR #8)
    - `candidate_count`: Total smooth candidates found
    - `smoothness_scores`: Quality metrics (lower = smoother)
    - `timing_breakdown`: Time spent in each evaluation phase
