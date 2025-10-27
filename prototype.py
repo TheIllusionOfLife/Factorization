@@ -2,6 +2,7 @@ import json
 import logging
 import math
 import random
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -130,13 +131,13 @@ def blend_modulus_filters(
     Returns:
         Blended list of (modulus, residues) tuples
     """
-    # Merge filters by modulus
+    # Merge filters by modulus using set operations for efficiency
     filter_dict = {}
 
     for modulus, residues in filters1 + filters2:
         if modulus in filter_dict:
-            # Merge residues for same modulus
-            filter_dict[modulus] = sorted(set(filter_dict[modulus] + residues))
+            # Merge residues for same modulus using set union
+            filter_dict[modulus] = sorted(set(filter_dict[modulus]) | set(residues))
         else:
             filter_dict[modulus] = sorted(set(residues))
 
@@ -623,8 +624,8 @@ class EvolutionaryEngine:
             if rand < self.crossover_rate:
                 # Crossover: Combine two elite parents
                 if len(elites) >= 2:
-                    parent1_civ = random.choice(elites)
-                    parent2_civ = random.choice(elites)
+                    # Ensure two distinct parents for true crossover
+                    parent1_civ, parent2_civ = random.sample(elites, 2)
                     parent1_strategy = parent1_civ[1]["strategy"]
                     parent2_strategy = parent2_civ[1]["strategy"]
                     new_strategy = crossover_strategies(
@@ -760,18 +761,18 @@ if __name__ == "__main__":
         print(
             f"❌ ERROR: crossover-rate must be between 0 and 1 (got {args.crossover_rate})"
         )
-        exit(1)
+        sys.exit(1)
     if args.mutation_rate < 0 or args.mutation_rate > 1:
         print(
             f"❌ ERROR: mutation-rate must be between 0 and 1 (got {args.mutation_rate})"
         )
-        exit(1)
+        sys.exit(1)
     if args.crossover_rate + args.mutation_rate > 1.0:
         print("❌ ERROR: crossover-rate + mutation-rate must be <= 1.0")
         print(
             f"   (got {args.crossover_rate} + {args.mutation_rate} = {args.crossover_rate + args.mutation_rate})"
         )
-        exit(1)
+        sys.exit(1)
 
     # Initialize LLM provider if requested
     llm_provider = None
@@ -784,7 +785,7 @@ if __name__ == "__main__":
             if not config.api_key:
                 print("❌ ERROR: GEMINI_API_KEY not set in .env file")
                 print("Please create .env file with your API key (see .env.example)")
-                exit(1)
+                sys.exit(1)
 
             llm_provider = GeminiProvider(config.api_key, config)
             print("✅ LLM mode enabled (Gemini 2.5 Flash Lite)")
@@ -792,7 +793,7 @@ if __name__ == "__main__":
         except ImportError as e:
             print(f"❌ ERROR: Missing dependencies for LLM mode: {e}")
             print("Please run: pip install -r requirements.txt")
-            exit(1)
+            sys.exit(1)
     else:
         print("📊 Rule-based mode (no LLM)")
 

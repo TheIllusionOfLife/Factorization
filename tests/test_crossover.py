@@ -1,6 +1,9 @@
 """Tests for genetic crossover operators."""
 
+import random
+
 from prototype import (
+    FactorizationCrucible,
     Strategy,
     blend_modulus_filters,
     crossover_strategies,
@@ -38,6 +41,7 @@ class TestCrossoverStrategies:
 
     def test_crossover_combines_both_parents(self):
         """Test that child has traits from both parents."""
+        random.seed(42)  # Seed for deterministic test
         parent1 = Strategy(
             power=2,
             modulus_filters=[(3, [0])],
@@ -101,6 +105,7 @@ class TestCrossoverStrategies:
 
     def test_crossover_probability_distribution(self):
         """Test that each parent contributes roughly equally."""
+        random.seed(42)  # Seed for deterministic test
         parent1 = Strategy(
             power=2,
             modulus_filters=[(3, [0])],
@@ -245,8 +250,6 @@ class TestCrossoverIntegration:
 
     def test_crossover_maintains_fitness_capability(self):
         """Test that crossed strategies can still evaluate fitness."""
-        from prototype import FactorizationCrucible
-
         crucible = FactorizationCrucible(961730063)
 
         parent1 = Strategy(
@@ -271,6 +274,7 @@ class TestCrossoverIntegration:
 
     def test_multiple_crossovers_create_diversity(self):
         """Test that repeated crossovers create diverse offspring."""
+        random.seed(42)  # Seed for deterministic test
         parent1 = Strategy(
             power=2,
             modulus_filters=[(3, [0, 1])],
