@@ -1,7 +1,5 @@
 """Tests for genetic crossover operators."""
 
-import random
-
 from prototype import (
     Strategy,
     blend_modulus_filters,

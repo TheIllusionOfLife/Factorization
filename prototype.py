@@ -759,7 +759,7 @@ if __name__ == "__main__":
         print(f"❌ ERROR: mutation-rate must be between 0 and 1 (got {args.mutation_rate})")
         exit(1)
     if args.crossover_rate + args.mutation_rate > 1.0:
-        print(f"❌ ERROR: crossover-rate + mutation-rate must be <= 1.0")
+        print("❌ ERROR: crossover-rate + mutation-rate must be <= 1.0")
         print(f"   (got {args.crossover_rate} + {args.mutation_rate} = {args.crossover_rate + args.mutation_rate})")
         exit(1)
 
