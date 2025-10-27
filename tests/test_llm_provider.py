@@ -1,6 +1,8 @@
 """Tests for LLM provider classes"""
-import pytest
+
 import os
+
+import pytest
 
 
 def test_config_loading():
@@ -24,7 +26,7 @@ def test_llm_response_dataclass():
         reasoning="Test reasoning",
         cost=0.001,
         input_tokens=100,
-        output_tokens=50
+        output_tokens=50,
     )
     assert response.success is True
     assert response.mutation_params["mutation_type"] == "power"
@@ -36,11 +38,7 @@ def test_llm_response_with_error():
     """Test LLMResponse with error"""
     from src.llm.base import LLMResponse
 
-    response = LLMResponse(
-        success=False,
-        mutation_params={},
-        error="API call failed"
-    )
+    response = LLMResponse(success=False, mutation_params={}, error="API call failed")
     assert response.success is False
     assert response.error == "API call failed"
 
@@ -99,7 +97,7 @@ def test_convert_response_power():
     mutation_data = {
         "mutation_type": "power",
         "power_params": {"new_power": 3},
-        "reasoning": "Test"
+        "reasoning": "Test",
     }
 
     result = provider._convert_response(mutation_data)
@@ -118,7 +116,7 @@ def test_convert_response_add_filter():
     mutation_data = {
         "mutation_type": "add_filter",
         "add_filter_params": {"modulus": 5, "residues": [0, 1]},
-        "reasoning": "Test"
+        "reasoning": "Test",
     }
 
     result = provider._convert_response(mutation_data)
@@ -137,7 +135,7 @@ def test_convert_response_missing_params():
 
     mutation_data = {
         "mutation_type": "power",
-        "reasoning": "Test"
+        "reasoning": "Test",
         # No power_params provided
     }
 
@@ -154,7 +152,12 @@ def test_api_call_limit():
     config = Config(api_key="test", max_llm_calls=0)
     provider = GeminiProvider("test", config)
 
-    parent = {"power": 2, "modulus_filters": [], "smoothness_bound": 13, "min_small_prime_hits": 2}
+    parent = {
+        "power": 2,
+        "modulus_filters": [],
+        "smoothness_bound": 13,
+        "min_small_prime_hits": 2,
+    }
     response = provider.propose_mutation(parent, 50, 0, [])
 
     assert response.success is False
@@ -163,7 +166,8 @@ def test_api_call_limit():
 
 def test_api_call_count_increments_on_failure():
     """Test that API call count increments even when API call fails"""
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
+
     from src.config import Config
     from src.llm.gemini import GeminiProvider
 
@@ -172,11 +176,20 @@ def test_api_call_count_increments_on_failure():
 
     assert provider.call_count == 0
 
-    parent = {"power": 2, "modulus_filters": [(3, [0, 1])], "smoothness_bound": 13, "min_small_prime_hits": 2}
+    parent = {
+        "power": 2,
+        "modulus_filters": [(3, [0, 1])],
+        "smoothness_bound": 13,
+        "min_small_prime_hits": 2,
+    }
 
     # Mock the API call to raise an exception
-    with patch.object(provider.client.models, 'generate_content', side_effect=Exception("API Error")):
-        response = provider.propose_mutation(parent, fitness=50, generation=0, fitness_history=[])
+    with patch.object(
+        provider.client.models, "generate_content", side_effect=Exception("API Error")
+    ):
+        response = provider.propose_mutation(
+            parent, fitness=50, generation=0, fitness_history=[]
+        )
 
         # Should return error response
         assert response.success is False
@@ -187,8 +200,7 @@ def test_api_call_count_increments_on_failure():
 
 
 @pytest.mark.skipif(
-    not os.getenv("GEMINI_API_KEY"),
-    reason="No GEMINI_API_KEY environment variable"
+    not os.getenv("GEMINI_API_KEY"), reason="No GEMINI_API_KEY environment variable"
 )
 def test_real_gemini_call():
     """Integration test with real Gemini API (requires GEMINI_API_KEY)"""
@@ -202,7 +214,7 @@ def test_real_gemini_call():
         "power": 2,
         "modulus_filters": [(3, [0, 1]), (5, [0])],
         "smoothness_bound": 13,
-        "min_small_prime_hits": 2
+        "min_small_prime_hits": 2,
     }
 
     response = provider.propose_mutation(parent, 45, 3, [30, 35, 40, 42, 45])
@@ -213,7 +225,7 @@ def test_real_gemini_call():
     assert response.reasoning is not None
     assert len(response.reasoning) > 10  # Non-trivial reasoning
 
-    print(f"\n[Real API Test Results]")
+    print("\n[Real API Test Results]")
     print(f"  Mutation type: {response.mutation_params['mutation_type']}")
     print(f"  Reasoning: {response.reasoning}")
     print(f"  Cost: ${response.cost:.6f}")

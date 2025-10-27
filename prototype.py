@@ -1,7 +1,7 @@
+import logging
+import math
 import random
 import time
-import math
-import logging
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Sequence, Tuple
 
@@ -26,15 +26,20 @@ class Strategy:
     def copy(self) -> "Strategy":
         return Strategy(
             power=self.power,
-            modulus_filters=[(mod, residues[:]) for mod, residues in self.modulus_filters],
+            modulus_filters=[
+                (mod, residues[:]) for mod, residues in self.modulus_filters
+            ],
             smoothness_bound=self.smoothness_bound,
             min_small_prime_hits=self.min_small_prime_hits,
         )
 
     def describe(self) -> str:
-        filters = ", ".join(
-            f"%{mod} in {tuple(residues)}" for mod, residues in self.modulus_filters
-        ) or "<none>"
+        filters = (
+            ", ".join(
+                f"%{mod} in {tuple(residues)}" for mod, residues in self.modulus_filters
+            )
+            or "<none>"
+        )
         return (
             f"power={self.power}, filters=[{filters}],"
             f" bound<={self.smoothness_bound}, hits>={self.min_small_prime_hits}"
@@ -125,7 +130,9 @@ class StrategyGenerator:
         else:
             adjustment = random.choice([-2, -1, 1, 2])
             child.smoothness_bound = child.smoothness_bound + adjustment
-            child.min_small_prime_hits = max(1, child.min_small_prime_hits + random.choice([-1, 0, 1]))
+            child.min_small_prime_hits = max(
+                1, child.min_small_prime_hits + random.choice([-1, 0, 1])
+            )
 
         if random.random() < 0.15 and len(child.modulus_filters) < 4:
             modulus = random.choice(self.primes)
@@ -137,6 +144,7 @@ class StrategyGenerator:
         child._normalize()
         return child
 
+
 # ------------------------------------------------------------------------------
 # るつぼ (Crucible) - AI文明が挑戦する環境
 # ------------------------------------------------------------------------------
@@ -145,11 +153,14 @@ class FactorizationCrucible:
     素因数分解の「ふるい分け」ステップを模倣した環境。
     文明が提案した戦略の有効性をテストする。
     """
+
     def __init__(self, number_to_factor: int):
         self.N = number_to_factor
         self.search_space_root = int(math.sqrt(self.N))
 
-    def evaluate_strategy(self, strategy: Callable[[int, int], bool], duration_seconds: float) -> int:
+    def evaluate_strategy(
+        self, strategy: Callable[[int, int], bool], duration_seconds: float
+    ) -> int:
         """
         指定された戦略を一定時間実行し、どれだけ「スムーズな数」に近い候補を見つけられたかを評価する。
         ここでは「スコア」として、候補を発見した回数を返す。
@@ -159,7 +170,7 @@ class FactorizationCrucible:
         while time.time() - start_time < duration_seconds:
             # 探索空間からランダムに候補を選択
             x = self.search_space_root + random.randint(1, 1000)
-            
+
             # AI文明が生成した戦略（ヒューリスティック）を実行
             try:
                 if strategy(x, self.N):
@@ -169,6 +180,7 @@ class FactorizationCrucible:
                 pass
         return score
 
+
 # ------------------------------------------------------------------------------
 # 進化的エンジン - 文明を進化させる淘汰圧
 # ------------------------------------------------------------------------------
@@ -177,6 +189,7 @@ class LLMStrategyGenerator(StrategyGenerator):
     LLM統合版の戦略生成器。
     LLMによる戦略提案を試み、失敗時は従来のルールベース手法にフォールバックする。
     """
+
     def __init__(self, llm_provider=None, primes=SMALL_PRIMES):
         if not primes:
             raise ValueError("primes list cannot be empty")
@@ -193,8 +206,6 @@ class LLMStrategyGenerator(StrategyGenerator):
         """
         # LLMが利用可能な場合は提案を試みる
         if self.llm_provider:
-            from src.llm.base import LLMResponse
-
             response = self.llm_provider.propose_mutation(
                 parent_strategy={
                     "power": parent.power,
@@ -233,7 +244,9 @@ class LLMStrategyGenerator(StrategyGenerator):
             if len(new_filters) < 4:  # 最大4フィルタまで
                 new_filters.append((params["modulus"], params["residues"]))
             else:
-                logger.warning(f"Cannot add filter: maximum limit (4) reached, keeping parent strategy")
+                logger.warning(
+                    "Cannot add filter: maximum limit (4) reached, keeping parent strategy"
+                )
             return Strategy(
                 power=parent.power,
                 modulus_filters=new_filters,
@@ -247,7 +260,9 @@ class LLMStrategyGenerator(StrategyGenerator):
             if 0 <= idx < len(new_filters):
                 new_filters[idx] = (params["modulus"], params["residues"])
             else:
-                logger.warning(f"Invalid filter index {idx} (valid range: 0-{len(new_filters)-1}), keeping parent strategy")
+                logger.warning(
+                    f"Invalid filter index {idx} (valid range: 0-{len(new_filters) - 1}), keeping parent strategy"
+                )
             return Strategy(
                 power=parent.power,
                 modulus_filters=new_filters,
@@ -262,9 +277,13 @@ class LLMStrategyGenerator(StrategyGenerator):
                 del new_filters[idx]
             else:
                 if len(new_filters) <= 1:
-                    logger.warning(f"Cannot remove filter: minimum 1 filter required, keeping parent strategy")
+                    logger.warning(
+                        "Cannot remove filter: minimum 1 filter required, keeping parent strategy"
+                    )
                 else:
-                    logger.warning(f"Invalid filter index {idx} (valid range: 0-{len(new_filters)-1}), keeping parent strategy")
+                    logger.warning(
+                        f"Invalid filter index {idx} (valid range: 0-{len(new_filters) - 1}), keeping parent strategy"
+                    )
             return Strategy(
                 power=parent.power,
                 modulus_filters=new_filters,
@@ -298,6 +317,7 @@ class EvolutionaryEngine:
     """
     文明の世代交代を司る。優れた戦略を選択し、次世代の戦略を生み出す。
     """
+
     def __init__(
         self,
         crucible: FactorizationCrucible,
@@ -315,7 +335,9 @@ class EvolutionaryEngine:
         if llm_provider:
             self.generator = LLMStrategyGenerator(llm_provider=llm_provider)
         else:
-            self.generator = LLMStrategyGenerator()  # llm_provider=None で従来と同じ動作
+            self.generator = (
+                LLMStrategyGenerator()
+            )  # llm_provider=None で従来と同じ動作
 
     def initialize_population(self):
         """最初の文明（戦略）群を生成する"""
@@ -342,7 +364,9 @@ class EvolutionaryEngine:
 
         # 選択: フィットネスが高い上位20%の文明を選択
         sorted_civs = sorted(
-            self.civilizations.items(), key=lambda item: item[1]["fitness"], reverse=True
+            self.civilizations.items(),
+            key=lambda item: item[1]["fitness"],
+            reverse=True,
         )
         num_elites = max(1, int(self.population_size * 0.2))
         elites = sorted_civs[:num_elites]
@@ -382,6 +406,7 @@ class EvolutionaryEngine:
 
         self.civilizations = next_generation_civs
         self.generation += 1
+
 
 # ------------------------------------------------------------------------------
 # メイン実行ブロック
@@ -438,7 +463,7 @@ if __name__ == "__main__":
                 exit(1)
 
             llm_provider = GeminiProvider(config.api_key, config)
-            print(f"✅ LLM mode enabled (Gemini 2.5 Flash Lite)")
+            print("✅ LLM mode enabled (Gemini 2.5 Flash Lite)")
             print(f"   Max API calls: {config.max_llm_calls}")
         except ImportError as e:
             print(f"❌ ERROR: Missing dependencies for LLM mode: {e}")
@@ -469,5 +494,7 @@ if __name__ == "__main__":
     if llm_provider:
         print("\n💰 LLM Cost Summary:")
         print(f"   Total API calls: {llm_provider.call_count}")
-        print(f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out")
+        print(
+            f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
+        )
         print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")

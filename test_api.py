@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Quick API verification script for Gemini 2.5 Flash Lite"""
+
 import os
 import sys
 
 # Load .env file first
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     print("❌ ERROR: python-dotenv package not installed")
@@ -38,22 +40,23 @@ print(f"   API Key: {api_key[:20]}...{api_key[-4:]}")
 try:
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
-        contents="Say 'API works!' if you can read this."
+        model="gemini-2.5-flash-lite", contents="Say 'API works!' if you can read this."
     )
 
     print("✅ SUCCESS: API connection verified!")
     print(f"   Response: {response.text.strip()}")
 
     # Check token usage if available
-    if hasattr(response, 'usage_metadata'):
-        print(f"   Tokens: {response.usage_metadata.prompt_token_count} in, "
-              f"{response.usage_metadata.candidates_token_count} out")
+    if hasattr(response, "usage_metadata"):
+        print(
+            f"   Tokens: {response.usage_metadata.prompt_token_count} in, "
+            f"{response.usage_metadata.candidates_token_count} out"
+        )
 
     print("\n✓ Ready to proceed with LLM integration")
 
 except Exception as e:
-    print(f"❌ ERROR: API test failed")
+    print("❌ ERROR: API test failed")
     print(f"   {type(e).__name__}: {e}")
     print("\nPlease check:")
     print("  - API key is valid (https://aistudio.google.com/app/apikey)")

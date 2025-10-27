@@ -1,4 +1,5 @@
 """Base classes for LLM providers"""
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
@@ -7,6 +8,7 @@ from typing import Optional
 @dataclass
 class LLMResponse:
     """Response from LLM mutation proposal"""
+
     success: bool
     mutation_params: dict
     reasoning: Optional[str] = None
@@ -25,7 +27,7 @@ class LLMProvider(ABC):
         parent_strategy: dict,
         fitness: int,
         generation: int,
-        fitness_history: list
+        fitness_history: list,
     ) -> LLMResponse:
         """
         Propose a mutation to improve the given strategy.

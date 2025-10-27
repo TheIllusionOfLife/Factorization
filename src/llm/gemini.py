@@ -1,9 +1,11 @@
 """Gemini API provider with structured output"""
+
 import json
 import logging
+
 from google import genai
 from google.genai import types
-from typing import Optional
+
 from .base import LLMProvider, LLMResponse
 from .schemas import MutationResponse
 
@@ -26,17 +28,17 @@ class GeminiProvider(LLMProvider):
         parent_strategy: dict,
         fitness: int,
         generation: int,
-        fitness_history: list
+        fitness_history: list,
     ) -> LLMResponse:
         """Propose a mutation using Gemini API with structured output"""
         if self._call_count >= self.config.max_llm_calls:
             return LLMResponse(
-                success=False,
-                mutation_params={},
-                error="API call limit reached"
+                success=False, mutation_params={}, error="API call limit reached"
             )
 
-        prompt = self._build_prompt(parent_strategy, fitness, generation, fitness_history)
+        prompt = self._build_prompt(
+            parent_strategy, fitness, generation, fitness_history
+        )
         temperature = self._calculate_temperature(generation)
 
         try:
@@ -47,8 +49,8 @@ class GeminiProvider(LLMProvider):
                     temperature=temperature,
                     max_output_tokens=self.config.max_tokens,
                     response_mime_type="application/json",
-                    response_schema=MutationResponse
-                )
+                    response_schema=MutationResponse,
+                ),
             )
 
             # Parse structured JSON response
@@ -56,10 +58,10 @@ class GeminiProvider(LLMProvider):
 
             # Track token usage with defensive access
             try:
-                usage = getattr(response, 'usage_metadata', None)
+                usage = getattr(response, "usage_metadata", None)
                 if usage:
-                    input_tokens = getattr(usage, 'prompt_token_count', 0)
-                    output_tokens = getattr(usage, 'candidates_token_count', 0)
+                    input_tokens = getattr(usage, "prompt_token_count", 0)
+                    output_tokens = getattr(usage, "candidates_token_count", 0)
                     self._input_tokens += input_tokens
                     self._output_tokens += output_tokens
                     cost = self._calculate_cost(input_tokens, output_tokens)
@@ -82,7 +84,7 @@ class GeminiProvider(LLMProvider):
                 reasoning=mutation_data.get("reasoning", ""),
                 cost=cost,
                 input_tokens=input_tokens,
-                output_tokens=output_tokens
+                output_tokens=output_tokens,
             )
 
         except json.JSONDecodeError as e:
@@ -90,22 +92,20 @@ class GeminiProvider(LLMProvider):
             return LLMResponse(
                 success=False,
                 mutation_params={},
-                error=f"Invalid JSON response: {str(e)}"
+                error=f"Invalid JSON response: {str(e)}",
             )
         except (ValueError, KeyError) as e:
             logger.error(f"Invalid LLM response structure: {e}")
             return LLMResponse(
                 success=False,
                 mutation_params={},
-                error=f"Invalid response structure: {str(e)}"
+                error=f"Invalid response structure: {str(e)}",
             )
         except Exception as e:
             # Catch unexpected errors with full logging
             logger.exception(f"Unexpected error in LLM API call: {e}")
             return LLMResponse(
-                success=False,
-                mutation_params={},
-                error=f"API error: {str(e)}"
+                success=False, mutation_params={}, error=f"API error: {str(e)}"
             )
         finally:
             # Increment call count regardless of success/failure to prevent infinite retries
@@ -116,7 +116,7 @@ class GeminiProvider(LLMProvider):
         parent_strategy: dict,
         fitness: int,
         generation: int,
-        fitness_history: list
+        fitness_history: list,
     ) -> str:
         """Build prompt for mutation proposal"""
         recent_history = fitness_history[-5:] if len(fitness_history) > 0 else []
@@ -132,20 +132,20 @@ Propose a mutation to improve a strategy that identifies "smooth numbers" (numbe
 - Recent fitness trend: {recent_history}
 
 ## Current Strategy Parameters
-- **Power**: {parent_strategy['power']} (range: 2-5)
+- **Power**: {parent_strategy["power"]} (range: 2-5)
   - Determines the polynomial: x^power - N
   - Lower powers (2-3) are faster, higher powers (4-5) may find better candidates
 
-- **Modulus filters**: {parent_strategy['modulus_filters']}
+- **Modulus filters**: {parent_strategy["modulus_filters"]}
   - Format: [(modulus, [allowed_residues]), ...]
   - Example: [(3, [0, 1])] means "candidate % 3 must be 0 or 1"
   - These quickly reject non-smooth candidates
 
-- **Smoothness bound**: {parent_strategy['smoothness_bound']}
+- **Smoothness bound**: {parent_strategy["smoothness_bound"]}
   - Maximum prime to check for divisibility
   - Available primes: 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37
 
-- **Min small prime hits**: {parent_strategy['min_small_prime_hits']}
+- **Min small prime hits**: {parent_strategy["min_small_prime_hits"]}
   - Minimum count of small prime factors required
   - Higher = more selective, lower = more permissive
 
@@ -186,9 +186,10 @@ Consider: What mathematical properties make numbers smooth? How can modular arit
         """Scale temperature: early gens explore (high temp), later exploit (low temp)"""
         progress = min(generation / self.config.temperature_scaling_generations, 1.0)
         # Start high (max) for exploration, decrease to low (base) for exploitation
-        return self.config.temperature_max - (
-            self.config.temperature_max - self.config.temperature_base
-        ) * progress
+        return (
+            self.config.temperature_max
+            - (self.config.temperature_max - self.config.temperature_base) * progress
+        )
 
     def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
         """
@@ -206,10 +207,7 @@ Consider: What mathematical properties make numbers smooth? How can modular arit
         """Convert structured response to mutation parameters"""
         mutation_type = mutation_data["mutation_type"]
 
-        result = {
-            "mutation_type": mutation_type,
-            "parameters": {}
-        }
+        result = {"mutation_type": mutation_type, "parameters": {}}
 
         # Map mutation type to corresponding params key
         params_key = f"{mutation_type}_params"

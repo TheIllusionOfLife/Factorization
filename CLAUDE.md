@@ -44,6 +44,33 @@ pytest tests/test_integration.py -v
 GEMINI_API_KEY=your_key pytest tests/test_llm_provider.py::test_real_gemini_call -v
 ```
 
+### Continuous Integration
+
+**CI Workflow** runs automatically on PRs:
+```bash
+# What CI checks
+- pytest: All unit and integration tests (Python 3.9, 3.10, 3.11)
+- ruff check: Linting (replaces Flake8, isort, pyupgrade)
+- ruff format --check: Code formatting (replaces Black)
+- mypy: Type checking (optional, may have false positives)
+```
+
+**Local CI simulation**:
+```bash
+# Run all checks locally before pushing
+pytest tests/ -v
+ruff check .
+ruff format --check .
+mypy src/ --ignore-missing-imports
+```
+
+**Auto-fix issues**:
+```bash
+# Fix linting and formatting issues automatically
+ruff check . --fix
+ruff format .
+```
+
 ### Setup
 
 **Install dependencies**:
