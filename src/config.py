@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+import logging
 import os
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Config:
@@ -17,7 +20,8 @@ def load_config() -> Config:
     # Load and validate max_llm_calls
     try:
         max_llm_calls = int(os.getenv("MAX_LLM_CALLS_PER_RUN", "100"))
-    except ValueError:
+    except (ValueError, TypeError):
+        logger.warning("Invalid MAX_LLM_CALLS_PER_RUN value, using default 100")
         max_llm_calls = 100
 
     return Config(

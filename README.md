@@ -40,7 +40,7 @@ AI文明がどのようにして人間を超える解法を発見しうるか、
    # Edit .env and add your Gemini API key
    ```
 
-   Get your free API key from [Google AI Studio](https://ai.google.dev/)
+   Get your free API key from [Google AI Studio](https://aistudio.google.com/)
 
 ### Running the Prototype
 
