@@ -70,6 +70,7 @@ python prototype.py --llm --generations 5 --population 10
 ```text
 usage: prototype.py [-h] [--number NUMBER] [--generations GENERATIONS]
                     [--population POPULATION] [--duration DURATION] [--llm]
+                    [--export-metrics PATH]
 
 options:
   --number NUMBER         Number to factor (default: 961730063)
@@ -77,6 +78,7 @@ options:
   --population POP        Population size per generation (default: 10)
   --duration SECS         Evaluation duration in seconds (default: 0.1)
   --llm                   Enable LLM-guided mutations
+  --export-metrics PATH   Export detailed metrics to JSON file
 ```
 
 ### Example Usage
@@ -95,6 +97,49 @@ python prototype.py --generations 10 --population 20 --duration 0.2
 ```bash
 python prototype.py --llm --number 12345678901 --generations 5
 ```
+
+**Export metrics for analysis**:
+```bash
+python prototype.py --generations 5 --population 10 --export-metrics metrics/run_001.json
+```
+
+### Detailed Metrics & Visualization
+
+The system now tracks comprehensive metrics for each strategy evaluation:
+
+- **Fitness metrics**: Candidate count, smoothness scores
+- **Timing breakdown**: Time spent on generation, filtering, and smoothness checks
+- **Rejection statistics**: Why candidates fail (modulus filter vs min hits)
+- **Example candidates**: Sample smooth numbers found
+
+#### Viewing Metrics
+
+Metrics are displayed in real-time during evolution:
+
+```
+Civilization civ_0_1: Fitness = 3616  | Strategy: power=3, filters=[%31 in (0, 12, 14)], bound<=13, hits>=2
+  ⏱️  Timing: Filter 27%, Smooth 6%
+  📊 Avg smoothness ratio: 680164778412.80
+```
+
+#### Exporting and Visualizing Metrics
+
+1. **Run with metrics export**:
+   ```bash
+   python prototype.py --generations 5 --population 10 --export-metrics metrics/run.json
+   ```
+
+2. **Visualize in Jupyter notebook**:
+   ```bash
+   jupyter notebook analysis/visualize_metrics.ipynb
+   ```
+
+The notebook provides:
+- Fitness evolution over generations
+- Timing breakdown analysis
+- Rejection statistics
+- Smoothness quality trends
+- Best strategy analysis
 
 ### Expected Output
 

@@ -1,0 +1,89 @@
+{
+  "target_number": 961730063,
+  "generation_count": 2,
+  "population_size": 2,
+  "evaluation_duration": 0.05,
+  "metrics_history": [
+    [
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.02685301983729005,
+          "modulus_filtering": 0.011280888225883245,
+          "smoothness_check": 0.0
+        },
+        "rejection_stats": {
+          "modulus_filter": 64280,
+          "min_hits": 0,
+          "passed": 0
+        },
+        "example_candidates": []
+      },
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.02651237160898745,
+          "modulus_filtering": 0.011693084379658103,
+          "smoothness_check": 0.0
+        },
+        "rejection_stats": {
+          "modulus_filter": 63856,
+          "min_hits": 0,
+          "passed": 0
+        },
+        "example_candidates": []
+      }
+    ],
+    [
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.027007805183529854,
+          "modulus_filtering": 0.011244113091379404,
+          "smoothness_check": 0.0
+        },
+        "rejection_stats": {
+          "modulus_filter": 39534,
+          "min_hits": 0,
+          "passed": 0
+        },
+        "example_candidates": []
+      },
+      {
+        "candidate_count": 1228,
+        "smoothness_scores": [
+          7.513976193855449e+20,
+          7.521880742976989e+19,
+          7.72726236937821e+19,
+          2.4728165529991886e+20,
+          3.663473100063186e+20,
+          3.6091969736389775e+20,
+          7.72726236937821e+19,
+          5.5322067886930546e+20,
+          4.8047099358635616e+20,
+          7.521880742976989e+19
+        ],
+        "timing_breakdown": {
+          "candidate_generation": 0.02402053354308009,
+          "modulus_filtering": 0.009260004153475165,
+          "smoothness_check": 0.004620982334017754
+        },
+        "rejection_stats": {
+          "modulus_filter": 39615,
+          "min_hits": 6403,
+          "passed": 1228
+        },
+        "example_candidates": [
+          30055904775421797246680,
+          28884022053031638429312,
+          33381773435713866494544,
+          29673798635990264702280,
+          30773174040530759452188
+        ]
+      }
+    ]
+  ]
+}
