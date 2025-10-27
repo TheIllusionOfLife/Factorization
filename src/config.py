@@ -25,8 +25,19 @@ def load_config() -> Config:
         logger.warning("Invalid MAX_LLM_CALLS_PER_RUN value, using default 100")
         max_llm_calls = 100
 
+    # Load LLM settings
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    llm_enabled = os.getenv("LLM_ENABLED", "true").lower() == "true"
+
+    # Validate API key if LLM is enabled
+    if llm_enabled and not api_key:
+        raise ValueError(
+            "LLM is enabled but GEMINI_API_KEY is not set. "
+            "Either set GEMINI_API_KEY in .env or disable LLM with LLM_ENABLED=false"
+        )
+
     return Config(
-        api_key=os.getenv("GEMINI_API_KEY", ""),
+        api_key=api_key,
         max_llm_calls=max_llm_calls,
-        llm_enabled=os.getenv("LLM_ENABLED", "true").lower() == "true"
+        llm_enabled=llm_enabled
     )

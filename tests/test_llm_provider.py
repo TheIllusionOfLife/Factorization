@@ -58,7 +58,7 @@ def test_gemini_provider_init():
 
 
 def test_temperature_scaling():
-    """Test temperature increases with generation"""
+    """Test temperature decreases with generation (exploration → exploitation)"""
     from src.config import Config
     from src.llm.gemini import GeminiProvider
 
@@ -69,9 +69,9 @@ def test_temperature_scaling():
     temp_gen_5 = provider._calculate_temperature(5)
     temp_gen_10 = provider._calculate_temperature(10)
 
-    assert temp_gen_0 == 0.8  # Start at base
+    assert temp_gen_0 == 1.2  # Start high for exploration
     assert 0.8 < temp_gen_5 < 1.2  # Mid-range
-    assert temp_gen_10 == 1.2  # Max at gen 10+
+    assert temp_gen_10 == 0.8  # End low for exploitation
 
 
 def test_cost_calculation():

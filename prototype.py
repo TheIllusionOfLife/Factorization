@@ -355,6 +355,9 @@ class EvolutionaryEngine:
         # フィットネス履歴を更新（LLM用）
         if isinstance(self.generator, LLMStrategyGenerator):
             self.generator.fitness_history.append(elites[0][1]["fitness"])
+            # Keep only last 5 entries to prevent unbounded growth
+            if len(self.generator.fitness_history) > 5:
+                self.generator.fitness_history = self.generator.fitness_history[-5:]
 
         # 繁殖: エリート戦略を基に、次世代の文明（戦略）を生成
         next_generation_civs = {}

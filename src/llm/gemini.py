@@ -1,10 +1,13 @@
 """Gemini API provider with structured output"""
 import json
+import logging
 from google import genai
 from google.genai import types
 from typing import Optional
 from .base import LLMProvider, LLMResponse
 from .schemas import MutationResponse
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiProvider(LLMProvider):
@@ -64,7 +67,9 @@ class GeminiProvider(LLMProvider):
                 else:
                     input_tokens = output_tokens = 0
                     cost = 0.0
-            except Exception:
+            except (AttributeError, TypeError) as e:
+                # Expected if API response structure changes
+                logger.debug(f"Token tracking failed: {e}")
                 input_tokens = output_tokens = 0
                 cost = 0.0
 
@@ -80,7 +85,23 @@ class GeminiProvider(LLMProvider):
                 output_tokens=output_tokens
             )
 
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse LLM response as JSON: {e}")
+            return LLMResponse(
+                success=False,
+                mutation_params={},
+                error=f"Invalid JSON response: {str(e)}"
+            )
+        except (ValueError, KeyError) as e:
+            logger.error(f"Invalid LLM response structure: {e}")
+            return LLMResponse(
+                success=False,
+                mutation_params={},
+                error=f"Invalid response structure: {str(e)}"
+            )
         except Exception as e:
+            # Catch unexpected errors with full logging
+            logger.exception(f"Unexpected error in LLM API call: {e}")
             return LLMResponse(
                 success=False,
                 mutation_params={},
@@ -164,7 +185,8 @@ Consider: What mathematical properties make numbers smooth? How can modular arit
     def _calculate_temperature(self, generation: int) -> float:
         """Scale temperature: early gens explore (high temp), later exploit (low temp)"""
         progress = min(generation / self.config.temperature_scaling_generations, 1.0)
-        return self.config.temperature_base + (
+        # Start high (max) for exploration, decrease to low (base) for exploitation
+        return self.config.temperature_max - (
             self.config.temperature_max - self.config.temperature_base
         ) * progress
 
