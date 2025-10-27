@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------
 SMALL_PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
 
+# Metrics storage limits
+MAX_SMOOTHNESS_SCORES_TO_STORE = 10
+MAX_EXAMPLE_CANDIDATES_TO_STORE = 5
+
 
 @dataclass
 class EvaluationMetrics:
@@ -282,10 +286,10 @@ class FactorizationCrucible:
 
         return EvaluationMetrics(
             candidate_count=len(candidates_found),
-            smoothness_scores=smoothness_scores[:10],  # Keep first 10
+            smoothness_scores=smoothness_scores[:MAX_SMOOTHNESS_SCORES_TO_STORE],
             timing_breakdown=timing,
             rejection_stats=rejections,
-            example_candidates=candidates_found[:5],  # Keep first 5
+            example_candidates=candidates_found[:MAX_EXAMPLE_CANDIDATES_TO_STORE],
         )
 
 
@@ -496,7 +500,7 @@ class EvolutionaryEngine:
                 avg_smoothness = sum(metrics.smoothness_scores) / len(
                     metrics.smoothness_scores
                 )
-                print(f"    📊 Avg smoothness ratio: {avg_smoothness:.2f}")
+                print(f"    📊 Avg smoothness ratio: {avg_smoothness:.2e}")
 
         # Store metrics history
         self.metrics_history.append(generation_metrics)
