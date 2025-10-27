@@ -277,9 +277,8 @@ class FactorizationCrucible:
 
                 # Smoothness: ratio of candidate to smooth part
                 # Lower = smoother (more factors removed)
-                smoothness = (
-                    candidate / prime_product if prime_product > 1 else float("inf")
-                )
+                # Always finite since prime_product >= 1
+                smoothness = candidate / prime_product
                 smoothness_scores.append(smoothness)
             else:
                 rejections["min_hits"] += 1
