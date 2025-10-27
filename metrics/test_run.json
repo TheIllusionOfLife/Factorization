@@ -1,0 +1,119 @@
+{
+  "target_number": 961730063,
+  "generation_count": 2,
+  "population_size": 3,
+  "evaluation_duration": 0.05,
+  "metrics_history": [
+    [
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.02701514377258718,
+          "modulus_filtering": 0.010793265886604786,
+          "smoothness_check": 0.0
+        },
+        "rejection_stats": {
+          "modulus_filter": 67830,
+          "min_hits": 0,
+          "passed": 0
+        },
+        "example_candidates": []
+      },
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.02592253847979009,
+          "modulus_filtering": 0.011862905928865075,
+          "smoothness_check": 0.0009101624600589275
+        },
+        "rejection_stats": {
+          "modulus_filter": 60137,
+          "min_hits": 1660,
+          "passed": 0
+        },
+        "example_candidates": []
+      },
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.024253151146695018,
+          "modulus_filtering": 0.009607045445591211,
+          "smoothness_check": 0.004287562100216746
+        },
+        "rejection_stats": {
+          "modulus_filter": 53780,
+          "min_hits": 7248,
+          "passed": 0
+        },
+        "example_candidates": []
+      }
+    ],
+    [
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.026928277919068933,
+          "modulus_filtering": 0.010911626508459449,
+          "smoothness_check": 0.0
+        },
+        "rejection_stats": {
+          "modulus_filter": 67540,
+          "min_hits": 0,
+          "passed": 0
+        },
+        "example_candidates": []
+      },
+      {
+        "candidate_count": 55,
+        "smoothness_scores": [
+          3093126074504009.0,
+          3093126074504009.0,
+          3093126074504009.0,
+          3093126074504009.0,
+          3093126074504009.0,
+          3093126074504009.0,
+          3093126074504009.0,
+          3093126074504009.0,
+          3093126074504009.0,
+          3093126074504009.0
+        ],
+        "timing_breakdown": {
+          "candidate_generation": 0.024514287244528532,
+          "modulus_filtering": 0.010163443861529231,
+          "smoothness_check": 0.00403623771853745
+        },
+        "rejection_stats": {
+          "modulus_filter": 52059,
+          "min_hits": 6225,
+          "passed": 55
+        },
+        "example_candidates": [
+          995986595990290898,
+          995986595990290898,
+          995986595990290898,
+          995986595990290898,
+          995986595990290898
+        ]
+      },
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.027004485251381993,
+          "modulus_filtering": 0.011175191728398204,
+          "smoothness_check": 0.0
+        },
+        "rejection_stats": {
+          "modulus_filter": 64358,
+          "min_hits": 0,
+          "passed": 0
+        },
+        "example_candidates": []
+      }
+    ]
+  ]
+}
