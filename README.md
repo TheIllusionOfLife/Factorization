@@ -233,9 +233,17 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 
 ## Session Handover
 
-### Last Updated: October 27, 2025 01:03 PM JST
+### Last Updated: October 27, 2025 08:36 PM JST
 
 #### Recently Completed
+- ✅ [PR #6](https://github.com/TheIllusionOfLife/Factorization/pull/6): Reorganize CI/CD workflows and add Python CI
+  - Added Python CI workflow with pytest, Ruff, mypy
+  - Fixed Gemini review failures on docs-only PRs (path filters)
+  - Renamed 7 workflows with bot-* prefix for clarity
+  - Created comprehensive workflow documentation
+  - Addressed all review feedback (pinned dependencies, removed redundant config)
+  - All 36 tests passing, all CI checks green
+- ✅ [PR #5](https://github.com/TheIllusionOfLife/Factorization/pull/5): Added CLAUDE.md for future sessions
 - ✅ [PR #2](https://github.com/TheIllusionOfLife/Factorization/pull/2): Gemini LLM integration for strategy evolution
   - Added full LLM-guided evolutionary optimization with Gemini 2.5 Flash Lite
   - 22 new files, 3,785 lines of production-quality code
@@ -264,34 +272,32 @@ For production factorization, use established tools like [CADO-NFS](https://cado
    - Fixed in commit `94d17d0`
 
 #### Next Priority Tasks
-1. **Organize CI/CD Workflows**
-   - Source: PR #2 review feedback from claude[bot]
-   - Context: PR added 5 Gemini workflows (1,250+ lines) alongside core feature
-   - Approach: Create separate PR to organize linting, formatting, testing workflows
-   - Priority: Medium (improves maintainability, no blocking issues)
-
-2. **Add Production Logging Configuration**
-   - Source: Latest review (medium priority)
+1. **Add Production Logging Configuration** (Optional Enhancement)
+   - Source: PR #2 review feedback (low priority)
    - Context: Logger created but not configured with appropriate log levels
    - Approach: Add logging config with environment-based levels (DEBUG/INFO/WARNING)
    - Priority: Low (nice-to-have for production deployment)
 
-3. **Extract Magic Numbers to Config**
-   - Source: Latest review (low priority)
-   - Context: Hardcoded percentages (0.2 for elite selection, etc.)
+2. **Extract Magic Numbers to Config** (Optional Enhancement)
+   - Source: PR #2 review feedback (low priority)
+   - Context: Hardcoded percentages (0.2 for elite selection, 0.8/1.2 temperatures)
    - Approach: Move to configuration constants for tuneability
-   - Priority: Low (current values work well)
+   - Priority: Low (current values work well, optimization not critical)
 
 #### Known Issues / Blockers
 - None currently blocking development
 
 #### Session Learnings
+- **CI/CD Organization**: Path filters prevent unnecessary workflow runs (docs-only PRs skip Gemini review)
+- **Workflow Naming Convention**: Use prefixes (`ci-*`, `bot-*`) for clear categorization
+- **Pinned Dependencies**: Pin dev dependencies for reproducible CI builds (avoid version drift)
+- **GraphQL for PR Reviews**: Single query fetches all feedback sources (comments, reviews, line comments, CI annotations)
+- **Systematic Review Process**: Always verify feedback count matches what was actually READ
+- **Mypy Type Annotations**: Explicit type hints for multi-line returns prevent `no-any-return` errors
+- **Ruff Configuration**: Remove redundant ignore rules when rulesets not enabled (S101 when S not in select)
 - **Temperature Inversion**: Always verify exploration→exploitation patterns in evolutionary algorithms
 - **Finally Block Pattern**: Use `finally` for counters to prevent resource leaks on failures
-- **Early Validation**: Validate config (API keys, etc.) at load time with clear error messages
-- **Dataclass Equality**: Python's `@dataclass` auto-generates `__eq__` by default (no manual implementation needed)
-- **Review Process**: Multiple review rounds from different sources caught 4 critical bugs
-- **Specific Exception Handling**: Catch specific exceptions (JSONDecodeError, ValueError) rather than bare Exception
+- **Review Process**: Multiple review rounds from different sources caught 4 critical bugs (PR #2)
 
 ---
 
