@@ -109,6 +109,84 @@ class Strategy:
         return hits
 
 
+def blend_modulus_filters(
+    filters1: List[Tuple[int, List[int]]],
+    filters2: List[Tuple[int, List[int]]],
+    max_filters: int = 4,
+) -> List[Tuple[int, List[int]]]:
+    """
+    Blend modulus filters from two parents, prioritizing diversity.
+
+    Combines filters from both parents:
+    - Merges filters with same modulus (union of residues)
+    - Keeps unique filters from each parent
+    - Limits total to max_filters (prioritizes smaller moduli)
+
+    Args:
+        filters1: Modulus filters from parent 1
+        filters2: Modulus filters from parent 2
+        max_filters: Maximum number of filters to keep (default: 4)
+
+    Returns:
+        Blended list of (modulus, residues) tuples
+    """
+    # Merge filters by modulus
+    filter_dict = {}
+
+    for modulus, residues in filters1 + filters2:
+        if modulus in filter_dict:
+            # Merge residues for same modulus
+            filter_dict[modulus] = sorted(set(filter_dict[modulus] + residues))
+        else:
+            filter_dict[modulus] = sorted(set(residues))
+
+    # Convert back to list, sorted by modulus (prioritize smaller moduli)
+    blended = [(mod, res) for mod, res in sorted(filter_dict.items())]
+
+    # Limit to max_filters
+    return blended[:max_filters]
+
+
+def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
+    """
+    Uniform crossover: combine strategies from two parents.
+
+    Each component has 50% chance to come from either parent:
+    - power: Random choice from {parent1.power, parent2.power}
+    - modulus_filters: Blend filters from both parents
+    - smoothness_bound: Random choice from {parent1, parent2}.smoothness_bound
+    - min_small_prime_hits: Random choice from {parent1, parent2}.min_small_prime_hits
+
+    The resulting strategy is automatically normalized by Strategy.__post_init__.
+
+    Args:
+        parent1: First parent strategy
+        parent2: Second parent strategy
+
+    Returns:
+        New strategy combining traits from both parents
+    """
+    # Randomly select discrete parameters from either parent
+    power = random.choice([parent1.power, parent2.power])
+    smoothness_bound = random.choice([parent1.smoothness_bound, parent2.smoothness_bound])
+    min_small_prime_hits = random.choice(
+        [parent1.min_small_prime_hits, parent2.min_small_prime_hits]
+    )
+
+    # Blend modulus filters from both parents
+    modulus_filters = blend_modulus_filters(
+        parent1.modulus_filters, parent2.modulus_filters, max_filters=4
+    )
+
+    # Create new strategy (automatically normalized)
+    return Strategy(
+        power=power,
+        modulus_filters=modulus_filters,
+        smoothness_bound=smoothness_bound,
+        min_small_prime_hits=min_small_prime_hits,
+    )
+
+
 class StrategyGenerator:
     def __init__(self, primes: Sequence[int] = SMALL_PRIMES) -> None:
         self.primes = list(primes)
