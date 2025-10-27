@@ -42,6 +42,8 @@ AI文明がどのようにして人間を超える解法を発見しうるか、
 
    Get your free API key from [Google AI Studio](https://aistudio.google.com/)
 
+   ⚠️ **Security Note**: Never commit your `.env` file or share your API key publicly. The `.env` file is excluded from git via `.gitignore` to protect your credentials.
+
 ### Running the Prototype
 
 #### Rule-Based Mode (No LLM)

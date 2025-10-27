@@ -162,7 +162,7 @@ Consider: What mathematical properties make numbers smooth? How can modular arit
 
     def _calculate_temperature(self, generation: int) -> float:
         """Scale temperature: early gens explore (high temp), later exploit (low temp)"""
-        progress = min(generation / 10.0, 1.0)
+        progress = min(generation / self.config.temperature_scaling_generations, 1.0)
         return self.config.temperature_base + (
             self.config.temperature_max - self.config.temperature_base
         ) * progress

@@ -195,3 +195,43 @@ def test_apply_llm_mutation_adjust_smoothness():
     child = gen._apply_llm_mutation(parent, mutation_params)
     assert child.smoothness_bound == 14  # 13 + 1
     assert child.min_small_prime_hits == 1  # 2 - 1
+
+
+def test_first_generation_mutation_with_empty_history():
+    """Test LLM mutation works with no prior fitness history"""
+    from prototype import LLMStrategyGenerator, Strategy
+    from unittest.mock import MagicMock
+
+    # Create mock LLM provider that returns success
+    mock_provider = MagicMock()
+    mock_provider.propose_mutation.return_value = LLMResponse(
+        success=True,
+        mutation_params={
+            "mutation_type": "power",
+            "parameters": {"new_power": 3}
+        },
+        reasoning="Test reasoning for first generation"
+    )
+
+    gen = LLMStrategyGenerator(llm_provider=mock_provider)
+    parent = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
+
+    # First generation with empty fitness history
+    child = gen.mutate_strategy_with_context(parent, fitness=10, generation=0)
+
+    # Should have called LLM with empty fitness history
+    mock_provider.propose_mutation.assert_called_once()
+    call_args = mock_provider.propose_mutation.call_args
+    assert call_args[1]['fitness_history'] == []  # Empty list for first generation
+    assert call_args[1]['generation'] == 0
+
+    # Should have applied mutation
+    assert child.power == 3
+
+
+def test_llm_strategy_generator_empty_primes_validation():
+    """Test that LLMStrategyGenerator rejects empty primes list"""
+    from prototype import LLMStrategyGenerator
+
+    with pytest.raises(ValueError, match="primes list cannot be empty"):
+        LLMStrategyGenerator(llm_provider=None, primes=[])

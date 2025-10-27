@@ -175,6 +175,8 @@ class LLMStrategyGenerator(StrategyGenerator):
     LLMによる戦略提案を試み、失敗時は従来のルールベース手法にフォールバックする。
     """
     def __init__(self, llm_provider=None, primes=SMALL_PRIMES):
+        if not primes:
+            raise ValueError("primes list cannot be empty")
         super().__init__(primes)
         self.llm_provider = llm_provider
         self.fitness_history = []

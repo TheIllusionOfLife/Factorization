@@ -13,6 +13,7 @@ class Config:
     temperature_base: float = 0.8
     temperature_max: float = 1.2
     max_tokens: int = 1024
+    temperature_scaling_generations: int = 10  # Number of generations to scale temperature from base to max
 
 def load_config() -> Config:
     load_dotenv()
