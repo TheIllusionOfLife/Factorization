@@ -283,8 +283,7 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 #### Recently Completed
 - ✅ [PR #6](https://github.com/TheIllusionOfLife/Factorization/pull/6): Reorganize CI/CD workflows and add Python CI
   - Added Python CI workflow with pytest, Ruff, mypy
-  - Fixed Gemini review failures on docs-only PRs (path filters)
-  - Renamed 7 workflows with bot-* prefix for clarity
+  - Added bot workflow integrations (Claude, Gemini)
   - Created comprehensive workflow documentation
   - Addressed all review feedback (pinned dependencies, removed redundant config)
   - All 36 tests passing, all CI checks green
@@ -333,7 +332,7 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 - None currently blocking development
 
 #### Session Learnings
-- **CI/CD Organization**: Path filters prevent unnecessary workflow runs (docs-only PRs skip Gemini review)
+- **CI/CD Organization**: Path filters prevent unnecessary workflow runs on documentation changes
 - **Workflow Naming Convention**: Use prefixes (`ci-*`, `bot-*`) for clear categorization
 - **Pinned Dependencies**: Pin dev dependencies for reproducible CI builds (avoid version drift)
 - **GraphQL for PR Reviews**: Single query fetches all feedback sources (comments, reviews, line comments, CI annotations)
