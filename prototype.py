@@ -514,10 +514,15 @@ class EvolutionaryEngine:
         population_size: int = 10,
         llm_provider=None,
         evaluation_duration: float = 0.1,
+        crossover_rate: float = 0.3,
+        mutation_rate: float = 0.5,
     ):
         self.crucible = crucible
         self.population_size = population_size
         self.evaluation_duration = evaluation_duration
+        self.crossover_rate = crossover_rate
+        self.mutation_rate = mutation_rate
+        self.random_rate = 1.0 - crossover_rate - mutation_rate
         self.civilizations: Dict[str, Dict] = {}
         self.generation = 0
         self.metrics_history: List[List[EvaluationMetrics]] = []
@@ -605,13 +610,13 @@ class EvolutionaryEngine:
                 self.generator.fitness_history = self.generator.fitness_history[-5:]
 
         # 繁殖: エリート戦略を基に、次世代の文明（戦略）を生成
-        # 30% crossover, 50% mutation, 20% random newcomers
+        # Use configurable rates: crossover, mutation, random newcomers
         next_generation_civs = {}
         for i in range(self.population_size):
             new_civ_id = f"civ_{self.generation + 1}_{i}"
 
             rand = random.random()
-            if rand < 0.3:
+            if rand < self.crossover_rate:
                 # Crossover: Combine two elite parents
                 if len(elites) >= 2:
                     parent1_civ = random.choice(elites)
@@ -630,8 +635,8 @@ class EvolutionaryEngine:
                         )
                     else:
                         new_strategy = self.generator.mutate_strategy(parent_strategy)
-            elif rand < 0.8:
-                # Mutation: Mutate single elite parent (50% of population)
+            elif rand < self.crossover_rate + self.mutation_rate:
+                # Mutation: Mutate single elite parent
                 parent_civ = random.choice(elites)
                 parent_strategy = parent_civ[1]["strategy"]
                 parent_fitness = parent_civ[1]["fitness"]
@@ -643,7 +648,7 @@ class EvolutionaryEngine:
                 else:
                     new_strategy = self.generator.mutate_strategy(parent_strategy)
             else:
-                # Random newcomer: Introduce genetic diversity (20% of population)
+                # Random newcomer: Introduce genetic diversity
                 new_strategy = self.generator.random_strategy()
 
             next_generation_civs[new_civ_id] = {"strategy": new_strategy, "fitness": 0}
@@ -717,8 +722,34 @@ if __name__ == "__main__":
         metavar="PATH",
         help="Export detailed metrics to JSON file (e.g., metrics/run_001.json)",
     )
+    parser.add_argument(
+        "--crossover-rate",
+        type=float,
+        default=0.3,
+        metavar="RATE",
+        help="Crossover rate: fraction of offspring from two parents (default: 0.3)",
+    )
+    parser.add_argument(
+        "--mutation-rate",
+        type=float,
+        default=0.5,
+        metavar="RATE",
+        help="Mutation rate: fraction of offspring from single parent (default: 0.5)",
+    )
 
     args = parser.parse_args()
+
+    # Validate reproduction rates
+    if args.crossover_rate < 0 or args.crossover_rate > 1:
+        print(f"❌ ERROR: crossover-rate must be between 0 and 1 (got {args.crossover_rate})")
+        exit(1)
+    if args.mutation_rate < 0 or args.mutation_rate > 1:
+        print(f"❌ ERROR: mutation-rate must be between 0 and 1 (got {args.mutation_rate})")
+        exit(1)
+    if args.crossover_rate + args.mutation_rate > 1.0:
+        print(f"❌ ERROR: crossover-rate + mutation-rate must be <= 1.0")
+        print(f"   (got {args.crossover_rate} + {args.mutation_rate} = {args.crossover_rate + args.mutation_rate})")
+        exit(1)
 
     # Initialize LLM provider if requested
     llm_provider = None
@@ -750,11 +781,14 @@ if __name__ == "__main__":
         population_size=args.population,
         llm_provider=llm_provider,
         evaluation_duration=args.duration,
+        crossover_rate=args.crossover_rate,
+        mutation_rate=args.mutation_rate,
     )
 
     print(f"\n🎯 Target number: {args.number}")
     print(f"🧬 Generations: {args.generations}, Population: {args.population}")
-    print(f"⏱️  Evaluation duration: {args.duration}s per strategy\n")
+    print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
+    print(f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random\n")
 
     engine.initialize_population()
 
