@@ -168,7 +168,9 @@ def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
     """
     # Randomly select discrete parameters from either parent
     power = random.choice([parent1.power, parent2.power])
-    smoothness_bound = random.choice([parent1.smoothness_bound, parent2.smoothness_bound])
+    smoothness_bound = random.choice(
+        [parent1.smoothness_bound, parent2.smoothness_bound]
+    )
     min_small_prime_hits = random.choice(
         [parent1.min_small_prime_hits, parent2.min_small_prime_hits]
     )
@@ -625,7 +627,9 @@ class EvolutionaryEngine:
                     parent2_civ = random.choice(elites)
                     parent1_strategy = parent1_civ[1]["strategy"]
                     parent2_strategy = parent2_civ[1]["strategy"]
-                    new_strategy = crossover_strategies(parent1_strategy, parent2_strategy)
+                    new_strategy = crossover_strategies(
+                        parent1_strategy, parent2_strategy
+                    )
                     offspring_sources["crossover"] += 1
                 else:
                     # Fallback to mutation if only one elite
@@ -753,14 +757,20 @@ if __name__ == "__main__":
 
     # Validate reproduction rates
     if args.crossover_rate < 0 or args.crossover_rate > 1:
-        print(f"❌ ERROR: crossover-rate must be between 0 and 1 (got {args.crossover_rate})")
+        print(
+            f"❌ ERROR: crossover-rate must be between 0 and 1 (got {args.crossover_rate})"
+        )
         exit(1)
     if args.mutation_rate < 0 or args.mutation_rate > 1:
-        print(f"❌ ERROR: mutation-rate must be between 0 and 1 (got {args.mutation_rate})")
+        print(
+            f"❌ ERROR: mutation-rate must be between 0 and 1 (got {args.mutation_rate})"
+        )
         exit(1)
     if args.crossover_rate + args.mutation_rate > 1.0:
         print("❌ ERROR: crossover-rate + mutation-rate must be <= 1.0")
-        print(f"   (got {args.crossover_rate} + {args.mutation_rate} = {args.crossover_rate + args.mutation_rate})")
+        print(
+            f"   (got {args.crossover_rate} + {args.mutation_rate} = {args.crossover_rate + args.mutation_rate})"
+        )
         exit(1)
 
     # Initialize LLM provider if requested
@@ -800,7 +810,9 @@ if __name__ == "__main__":
     print(f"\n🎯 Target number: {args.number}")
     print(f"🧬 Generations: {args.generations}, Population: {args.population}")
     print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
-    print(f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random\n")
+    print(
+        f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random\n"
+    )
 
     engine.initialize_population()
 
