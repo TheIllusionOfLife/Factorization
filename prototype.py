@@ -612,6 +612,8 @@ class EvolutionaryEngine:
         # 繁殖: エリート戦略を基に、次世代の文明（戦略）を生成
         # Use configurable rates: crossover, mutation, random newcomers
         next_generation_civs = {}
+        offspring_sources = {"crossover": 0, "mutation": 0, "random": 0}
+
         for i in range(self.population_size):
             new_civ_id = f"civ_{self.generation + 1}_{i}"
 
@@ -624,6 +626,7 @@ class EvolutionaryEngine:
                     parent1_strategy = parent1_civ[1]["strategy"]
                     parent2_strategy = parent2_civ[1]["strategy"]
                     new_strategy = crossover_strategies(parent1_strategy, parent2_strategy)
+                    offspring_sources["crossover"] += 1
                 else:
                     # Fallback to mutation if only one elite
                     parent_civ = random.choice(elites)
@@ -635,6 +638,7 @@ class EvolutionaryEngine:
                         )
                     else:
                         new_strategy = self.generator.mutate_strategy(parent_strategy)
+                    offspring_sources["mutation"] += 1
             elif rand < self.crossover_rate + self.mutation_rate:
                 # Mutation: Mutate single elite parent
                 parent_civ = random.choice(elites)
@@ -647,11 +651,19 @@ class EvolutionaryEngine:
                     )
                 else:
                     new_strategy = self.generator.mutate_strategy(parent_strategy)
+                offspring_sources["mutation"] += 1
             else:
                 # Random newcomer: Introduce genetic diversity
                 new_strategy = self.generator.random_strategy()
+                offspring_sources["random"] += 1
 
             next_generation_civs[new_civ_id] = {"strategy": new_strategy, "fitness": 0}
+
+        print(
+            f"   Offspring: {offspring_sources['crossover']} crossover, "
+            f"{offspring_sources['mutation']} mutation, "
+            f"{offspring_sources['random']} random"
+        )
 
         self.civilizations = next_generation_civs
         self.generation += 1
