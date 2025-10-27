@@ -1,0 +1,170 @@
+{
+  "target_number": 961730063,
+  "generation_count": 2,
+  "population_size": 3,
+  "evaluation_duration": 0.05,
+  "metrics_history": [
+    [
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.026328907115384936,
+          "modulus_filtering": 0.010950686875730753,
+          "smoothness_check": 0.0003784110303968191
+        },
+        "rejection_stats": {
+          "modulus_filter": 65213,
+          "min_hits": 751,
+          "passed": 0
+        },
+        "example_candidates": []
+      },
+      {
+        "candidate_count": 0,
+        "smoothness_scores": [],
+        "timing_breakdown": {
+          "candidate_generation": 0.027120632119476795,
+          "modulus_filtering": 0.010638966923579574,
+          "smoothness_check": 0.0
+        },
+        "rejection_stats": {
+          "modulus_filter": 67315,
+          "min_hits": 0,
+          "passed": 0
+        },
+        "example_candidates": []
+      },
+      {
+        "candidate_count": 2160,
+        "smoothness_scores": [
+          3810550146857.0,
+          900247967009.0,
+          2520068819533.0,
+          4086287281789.0,
+          3531305994857.0,
+          3531305994857.0,
+          9453562109.0,
+          16274704924013.0,
+          96095708669.0,
+          724884518741.0
+        ],
+        "timing_breakdown": {
+          "candidate_generation": 0.025751994689926505,
+          "modulus_filtering": 0.010064253583550453,
+          "smoothness_check": 0.002399100922048092
+        },
+        "rejection_stats": {
+          "modulus_filter": 58515,
+          "min_hits": 426,
+          "passed": 2160
+        },
+        "example_candidates": [
+          30484401174856,
+          32408926812324,
+          32760894653929,
+          32690298254312,
+          31781753953713
+        ]
+      }
+    ],
+    [
+      {
+        "candidate_count": 2132,
+        "smoothness_scores": [
+          16274704924013.0,
+          19308398147.0,
+          1510792604173.0,
+          21309246809.0,
+          900247967009.0,
+          854292686323.0,
+          1510792604173.0,
+          546768478483.0,
+          1731262489147.0,
+          1510792604173.0
+        ],
+        "timing_breakdown": {
+          "candidate_generation": 0.025583327282220125,
+          "modulus_filtering": 0.010138822020962834,
+          "smoothness_check": 0.0023306882940232754
+        },
+        "rejection_stats": {
+          "modulus_filter": 58366,
+          "min_hits": 418,
+          "passed": 2132
+        },
+        "example_candidates": [
+          32549409848026,
+          32129174516608,
+          30215852083460,
+          31026263353904,
+          32408926812324
+        ]
+      },
+      {
+        "candidate_count": 4046,
+        "smoothness_scores": [
+          6122092485541.0,
+          6122092485541.0,
+          3226884856319.0,
+          1138729735907.0,
+          528931602889.0,
+          3851684025811.0,
+          26452401263.0,
+          266271905749.0,
+          21309246809.0,
+          2520068819533.0
+        ],
+        "timing_breakdown": {
+          "candidate_generation": 0.024333608336746693,
+          "modulus_filtering": 0.009678649483248591,
+          "smoothness_check": 0.004377964651212096
+        },
+        "rejection_stats": {
+          "modulus_filter": 53601,
+          "min_hits": 855,
+          "passed": 4046
+        },
+        "example_candidates": [
+          30610462427705,
+          30610462427705,
+          32268848563190,
+          30745702869489,
+          30678032967562
+        ]
+      },
+      {
+        "candidate_count": 2243,
+        "smoothness_scores": [
+          10688650813.0,
+          96095708669.0,
+          1885852287457.0,
+          612519936443.0,
+          2789713985459.0,
+          4086287281789.0,
+          108414010273.0,
+          9453562109.0,
+          612519936443.0,
+          1885852287457.0
+        ],
+        "timing_breakdown": {
+          "candidate_generation": 0.025664510438218713,
+          "modulus_filtering": 0.009931488893926144,
+          "smoothness_check": 0.0024464637972414494
+        },
+        "rejection_stats": {
+          "modulus_filter": 59355,
+          "min_hits": 453,
+          "passed": 2243
+        },
+        "example_candidates": [
+          30890200849570,
+          31231105317425,
+          32059488886769,
+          31851036695036,
+          30686853840049
+        ]
+      }
+    ]
+  ]
+}

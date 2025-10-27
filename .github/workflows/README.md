@@ -15,7 +15,7 @@ This directory contains all CI/CD workflows for the Factorization project.
 - **`bot-claude.yml`**: Claude Code bot integration
 - **`bot-claude-review.yml`**: Automated Claude PR reviews
 
-**Note**: Code reviews are also automatically provided by the Gemini Code Assist GitHub App.
+**Note**: Code reviews are also automatically provided by the [Gemini Code Assist GitHub App](https://github.com/marketplace/gemini-code-assist).
 
 ## Local Development
 
