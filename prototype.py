@@ -253,6 +253,102 @@ class StrategyGenerator:
         return child
 
 
+class BaselineStrategyGenerator:
+    """
+    Generates classical GNFS-inspired baseline strategies for comparison.
+
+    These strategies represent "what a human would design" based on
+    number theory principles, not evolved solutions.
+
+    Provides three baseline approaches:
+    - Conservative: Strict filtering, high smoothness requirements
+    - Balanced: Typical quadratic sieve parameters
+    - Aggressive: Permissive filtering for high throughput
+    """
+
+    def __init__(self):
+        self.primes = SMALL_PRIMES
+
+    def get_baseline_strategies(self) -> Dict[str, Strategy]:
+        """
+        Return dict of named baseline strategies.
+
+        Returns:
+            Dict mapping strategy name to Strategy object
+        """
+        return {
+            "conservative": self._conservative_strategy(),
+            "balanced": self._balanced_strategy(),
+            "aggressive": self._aggressive_strategy(),
+        }
+
+    def _conservative_strategy(self) -> Strategy:
+        """
+        Conservative classical approach.
+
+        Characteristics:
+        - Low power (2) for stability
+        - Strict modulus filters (eliminate more candidates)
+        - High min hits requirement (strict smoothness)
+
+        This strategy casts a narrow net, accepting only candidates
+        that are very likely to be smooth.
+        """
+        return Strategy(
+            power=2,
+            modulus_filters=[
+                (2, [0]),  # Even numbers only
+                (3, [0]),  # Divisible by 3
+                (5, [0]),  # Divisible by 5
+            ],
+            smoothness_bound=13,
+            min_small_prime_hits=4,  # Strict: need many small factors
+        )
+
+    def _balanced_strategy(self) -> Strategy:
+        """
+        Balanced classical approach (typical quadratic sieve parameters).
+
+        Characteristics:
+        - Medium power (3) for balanced candidate generation
+        - Moderate modulus filters
+        - Reasonable smoothness requirements
+
+        This strategy represents a middle ground between strict and
+        permissive filtering.
+        """
+        return Strategy(
+            power=3,
+            modulus_filters=[
+                (2, [0, 1]),  # Allow both even and odd
+                (7, [0, 1, 2, 4]),  # Quadratic residues mod 7
+            ],
+            smoothness_bound=19,
+            min_small_prime_hits=2,
+        )
+
+    def _aggressive_strategy(self) -> Strategy:
+        """
+        Aggressive approach: Cast wide net, accept more candidates.
+
+        Characteristics:
+        - High power (4) for diverse candidate generation
+        - Minimal modulus filters
+        - Low smoothness requirement
+
+        This strategy prioritizes throughput over precision, accepting
+        many candidates that may not be smooth.
+        """
+        return Strategy(
+            power=4,
+            modulus_filters=[
+                (3, [0, 1, 2]),  # Allow all mod 3
+            ],
+            smoothness_bound=31,
+            min_small_prime_hits=1,  # Very permissive
+        )
+
+
 # ------------------------------------------------------------------------------
 # るつぼ (Crucible) - AI文明が挑戦する環境
 # ------------------------------------------------------------------------------
