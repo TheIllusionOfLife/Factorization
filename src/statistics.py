@@ -208,7 +208,7 @@ class StatisticalAnalyzer:
 
         # Degrees of freedom (Welch-Satterthwaite)
         if se1 == 0 and se2 == 0:
-            df = n1 + n2 - 2
+            df = float(n1 + n2 - 2)
         else:
             df = (se1**2 + se2**2) ** 2 / (
                 (se1**4 / (n1 - 1) if n1 > 1 else 0)
