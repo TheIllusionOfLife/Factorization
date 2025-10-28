@@ -810,11 +810,8 @@ if __name__ == "__main__":
     else:
         print("📊 Rule-based mode (no LLM)")
 
-    # Set random seed for reproducibility if provided
-    if args.seed is not None:
-        random.seed(args.seed)
-
     # Create and run evolutionary engine
+    # Note: Random seed is applied in EvolutionaryEngine.__init__ if provided
     crucible = FactorizationCrucible(args.number)
     engine = EvolutionaryEngine(
         crucible,

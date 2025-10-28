@@ -1,14 +1,12 @@
 """Tests for reproducible runs with RNG seeding."""
 
 import json
-import random
 
 from prototype import EvolutionaryEngine, FactorizationCrucible
 
 
 def test_same_seed_produces_identical_initial_population():
     """Verify same seed produces identical initial population."""
-    random.seed(42)
     crucible1 = FactorizationCrucible(961730063)
     engine1 = EvolutionaryEngine(
         crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
@@ -19,7 +17,6 @@ def test_same_seed_produces_identical_initial_population():
         for civ in engine1.civilizations.values()
     ]
 
-    random.seed(42)
     crucible2 = FactorizationCrucible(961730063)
     engine2 = EvolutionaryEngine(
         crucible2, population_size=5, evaluation_duration=0.05, random_seed=42
@@ -36,7 +33,6 @@ def test_same_seed_produces_identical_initial_population():
 
 def test_same_seed_produces_identical_fitness_scores():
     """Verify same seed produces identical fitness scores after one generation."""
-    random.seed(42)
     crucible1 = FactorizationCrucible(961730063)
     engine1 = EvolutionaryEngine(
         crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
@@ -47,7 +43,6 @@ def test_same_seed_produces_identical_fitness_scores():
         [civ["fitness"] for civ in engine1.civilizations.values()]
     )
 
-    random.seed(42)
     crucible2 = FactorizationCrucible(961730063)
     engine2 = EvolutionaryEngine(
         crucible2, population_size=5, evaluation_duration=0.05, random_seed=42
@@ -64,7 +59,6 @@ def test_same_seed_produces_identical_fitness_scores():
 
 def test_same_seed_multiple_generations_reproducible():
     """Verify same seed produces identical results across multiple generations."""
-    random.seed(42)
     crucible1 = FactorizationCrucible(961730063)
     engine1 = EvolutionaryEngine(
         crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
@@ -78,7 +72,6 @@ def test_same_seed_multiple_generations_reproducible():
             sorted([civ["fitness"] for civ in engine1.civilizations.values()])
         )
 
-    random.seed(42)
     crucible2 = FactorizationCrucible(961730063)
     engine2 = EvolutionaryEngine(
         crucible2, population_size=5, evaluation_duration=0.05, random_seed=42
@@ -98,7 +91,6 @@ def test_same_seed_multiple_generations_reproducible():
 
 def test_different_seeds_produce_different_results():
     """Verify different seeds produce different fitness scores."""
-    random.seed(42)
     crucible1 = FactorizationCrucible(961730063)
     engine1 = EvolutionaryEngine(
         crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
@@ -109,7 +101,6 @@ def test_different_seeds_produce_different_results():
         for civ in engine1.civilizations.values()
     ]
 
-    random.seed(99)
     crucible2 = FactorizationCrucible(961730063)
     engine2 = EvolutionaryEngine(
         crucible2, population_size=5, evaluation_duration=0.05, random_seed=99
@@ -142,7 +133,6 @@ def test_seed_none_by_default():
 
 def test_seed_included_in_metrics_export(tmp_path):
     """Verify seed is exported in metrics JSON."""
-    random.seed(42)
     crucible = FactorizationCrucible(961730063)
     engine = EvolutionaryEngine(
         crucible, population_size=5, evaluation_duration=0.05, random_seed=42
@@ -195,7 +185,6 @@ def test_crossover_reproducible_with_seed():
     - Exact fitness scores (timing variations in evaluation loop)
     - Evolutionary trajectory across generations (depends on fitness)
     """
-    random.seed(42)
     crucible1 = FactorizationCrucible(961730063)
     engine1 = EvolutionaryEngine(
         crucible1,
@@ -215,7 +204,6 @@ def test_crossover_reproducible_with_seed():
         for civ in engine1.civilizations.values()
     ]
 
-    random.seed(42)
     crucible2 = FactorizationCrucible(961730063)
     engine2 = EvolutionaryEngine(
         crucible2,
