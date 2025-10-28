@@ -798,6 +798,181 @@ class EvolutionaryEngine:
         print(f"📁 Metrics exported to: {output_path}")
 
 
+@dataclass
+class ComparisonRun:
+    """Results from a single comparison run."""
+
+    evolved_fitness: List[float]  # Fitness per generation
+    baseline_fitness: Dict[str, float]  # Fitness per baseline strategy
+    generations_to_convergence: Optional[int]
+    final_best_strategy: Strategy
+    random_seed: Optional[int]
+
+
+class ComparisonEngine:
+    """
+    Run evolutionary strategies against baseline strategies and compare.
+
+    Supports:
+    - Multiple independent runs for statistical rigor
+    - Convergence detection for early stopping
+    - Statistical significance testing
+    """
+
+    def __init__(
+        self,
+        crucible: FactorizationCrucible,
+        num_runs: int = 5,
+        max_generations: int = 10,
+        population_size: int = 10,
+        evaluation_duration: float = 0.1,
+        convergence_window: int = 5,
+        llm_provider=None,
+    ):
+        self.crucible = crucible
+        self.num_runs = num_runs
+        self.max_generations = max_generations
+        self.population_size = population_size
+        self.evaluation_duration = evaluation_duration
+        self.convergence_window = convergence_window
+        self.llm_provider = llm_provider
+
+        # Import here to avoid circular dependency issues
+        from src.statistics import ConvergenceDetector, StatisticalAnalyzer
+
+        self.baseline_generator = BaselineStrategyGenerator()
+        self.convergence_detector = ConvergenceDetector(window_size=convergence_window)
+        self.statistical_analyzer = StatisticalAnalyzer()
+
+    def run_comparison(self, base_seed: Optional[int] = None) -> List[ComparisonRun]:
+        """
+        Run multiple independent evolutionary runs and compare to baselines.
+
+        Args:
+            base_seed: If provided, runs use base_seed+i for reproducibility
+
+        Returns:
+            List of ComparisonRun objects (one per run)
+        """
+        runs = []
+
+        for run_idx in range(self.num_runs):
+            seed = base_seed + run_idx if base_seed is not None else None
+            print(f"\n{'=' * 60}")
+            print(f"COMPARISON RUN {run_idx + 1}/{self.num_runs}")
+            if seed is not None:
+                print(f"🎲 Random seed: {seed}")
+            print(f"{'=' * 60}")
+
+            run_result = self._run_single_comparison(seed)
+            runs.append(run_result)
+
+        return runs
+
+    def _run_single_comparison(self, seed: Optional[int]) -> ComparisonRun:
+        """Execute one complete evolutionary run vs baselines."""
+
+        # 1. Evaluate baseline strategies
+        baseline_fitness = self._evaluate_baselines()
+
+        # 2. Run evolutionary process with convergence detection
+        engine = EvolutionaryEngine(
+            crucible=self.crucible,
+            population_size=self.population_size,
+            evaluation_duration=self.evaluation_duration,
+            llm_provider=self.llm_provider,
+            random_seed=seed,
+        )
+
+        engine.initialize_population()
+        evolved_fitness_history = []
+        converged_at = None
+
+        for gen in range(self.max_generations):
+            engine.run_evolutionary_cycle()
+
+            # Track best fitness this generation
+            best_fitness = max(civ["fitness"] for civ in engine.civilizations.values())
+            evolved_fitness_history.append(best_fitness)
+
+            # Check convergence
+            if self.convergence_detector.has_converged(evolved_fitness_history):
+                converged_at = gen
+                print(f"\n✓ Converged at generation {gen}")
+                break
+
+            engine.generation += 1
+
+        # Get final best strategy
+        best_civ = max(engine.civilizations.items(), key=lambda x: x[1]["fitness"])
+        best_strategy = best_civ[1]["strategy"]
+
+        return ComparisonRun(
+            evolved_fitness=evolved_fitness_history,
+            baseline_fitness=baseline_fitness,
+            generations_to_convergence=converged_at,
+            final_best_strategy=best_strategy,
+            random_seed=seed,
+        )
+
+    def _evaluate_baselines(self) -> Dict[str, float]:
+        """Evaluate all baseline strategies once."""
+        baselines = self.baseline_generator.get_baseline_strategies()
+        results = {}
+
+        print("\n--- Evaluating Baseline Strategies ---")
+        for name, strategy in baselines.items():
+            metrics = self.crucible.evaluate_strategy_detailed(
+                strategy, self.evaluation_duration
+            )
+            results[name] = metrics.candidate_count
+            print(f"  {name:12s}: fitness = {metrics.candidate_count}")
+
+        return results
+
+    def analyze_results(self, runs: List[ComparisonRun]) -> Dict[str, any]:
+        """
+        Perform statistical analysis on comparison runs.
+
+        Returns dict with:
+        - comparison_results: Dict[baseline_name, ComparisonResult]
+        - convergence_stats: Mean/std generations to convergence
+        - num_runs: Number of runs analyzed
+        """
+        import numpy as np
+
+        # Extract final evolved fitness from each run
+        final_evolved = [run.evolved_fitness[-1] for run in runs]
+
+        # Compare against each baseline
+        comparison_results = {}
+        for baseline_name in runs[0].baseline_fitness.keys():
+            baseline_scores = [run.baseline_fitness[baseline_name] for run in runs]
+
+            result = self.statistical_analyzer.compare_fitness_distributions(
+                final_evolved, baseline_scores
+            )
+            comparison_results[baseline_name] = result
+
+        # Convergence statistics
+        convergence_gens = [
+            r.generations_to_convergence
+            for r in runs
+            if r.generations_to_convergence is not None
+        ]
+        convergence_stats = {
+            "mean": float(np.mean(convergence_gens)) if convergence_gens else None,
+            "std": float(np.std(convergence_gens)) if convergence_gens else None,
+            "convergence_rate": len(convergence_gens) / len(runs),
+        }
+
+        return {
+            "comparison_results": comparison_results,
+            "convergence_stats": convergence_stats,
+            "num_runs": len(runs),
+        }
+
+
 # ------------------------------------------------------------------------------
 # メイン実行ブロック
 # ------------------------------------------------------------------------------
