@@ -302,12 +302,19 @@ Typical prototype costs:
    - Solution: `parent1, parent2 = random.sample(elites, 2)` ensures distinct parents
    - Impact: Critical for genetic diversity, especially with small populations
 
-2. **Deterministic Testing with Random**: Always seed random number generators in probabilistic tests
-   - Issue: Tests relying on random choices can fail non-deterministically across platforms
-   - Solution: Add `random.seed(42)` at start of each probabilistic test
-   - Impact: Prevents flaky CI failures and ensures reproducible test results
+2. **RNG Seeding in Tests** (Updated from PR #12): Let components handle their own seeding
+   - Issue: External `random.seed()` in tests masks whether component's seeding works
+   - Wrong: `random.seed(42); engine = Engine(seed=42)` - test passes even if engine doesn't seed
+   - Correct: `engine = Engine(seed=42)` - test verifies engine actually applies seed
+   - Impact: Tests verify actual user experience, catch seeding bugs in components
 
-3. **Filter Merging Optimization**: Use set union operators instead of list concatenation + deduplication
+3. **Duplicate RNG Seeding Anti-Pattern** (From PR #12): Seed only in one place
+   - Issue: Seeding in main() and __init__() - second call overwrites first
+   - Wrong: `random.seed(args.seed)` in main(), then `random.seed(seed)` in __init__
+   - Correct: Seed only in __init__ where component uses randomness
+   - Impact: Eliminates confusion, ensures seeding happens correctly for all usage patterns
+
+4. **Filter Merging Optimization**: Use set union operators instead of list concatenation + deduplication
    - Before: `sorted(set(list1 + list2))`
    - After: `sorted(set(list1) | set(list2))`
    - Impact: More readable and slightly more efficient
