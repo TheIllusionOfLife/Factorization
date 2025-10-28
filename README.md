@@ -315,48 +315,42 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 
 ## Session Handover
 
-### Last Updated: October 28, 2025 10:37 AM JST
+### Last Updated: October 28, 2025 02:36 PM JST
 
 #### Recently Completed
+- ✅ [PR #12](https://github.com/TheIllusionOfLife/Factorization/pull/12): Add reproducible runs with RNG seed parameter
+  - Implemented `--seed` parameter for reproducible evolutionary runs
+  - Seed applied in EvolutionaryEngine.__init__ (single source of truth)
+  - 9 comprehensive reproducibility tests (initial population, fitness scores, multi-generation, export)
+  - Type-safe with `Optional[int]` annotation
+  - Comprehensive documentation of reproducibility scope and limitations
+  - Fixed 2 critical bugs from claude[bot] review (duplicate seeding, test redundancy)
+  - All 74 tests passing, all 7 CI checks green
 - ✅ [PR #10](https://github.com/TheIllusionOfLife/Factorization/pull/10): Add genetic crossover operators for enhanced evolution
   - Implemented uniform crossover combining two elite parents (30% of offspring)
   - Added intelligent filter blending with residue union for same modulus
   - Configurable reproduction rates: `--crossover-rate` and `--mutation-rate`
-  - Offspring source tracking shows parent lineage in output
-  - 14 new comprehensive tests (100% coverage for crossover logic)
   - Fixed critical parent selection bug (could duplicate same parent)
-  - All 65 tests passing, all 7 CI checks green
-- ✅ [PR #9](https://github.com/TheIllusionOfLife/Factorization/pull/9): Remove redundant Gemini workflow files
-  - Cleaned up 5 duplicate Gemini code review workflows (1,250+ lines removed)
-  - Consolidated to single optimized workflow
-- ✅ [PR #8](https://github.com/TheIllusionOfLife/Factorization/pull/8): Add comprehensive fitness instrumentation and metrics tracking
-  - Detailed timing breakdown (generation, filtering, smoothness checks)
-  - Rejection statistics (modulus filter vs min hits)
-  - Example smooth candidates with JSON export
-  - Visualization notebook for metrics analysis
-- ✅ [PR #6](https://github.com/TheIllusionOfLife/Factorization/pull/6): Reorganize CI/CD workflows and add Python CI
-  - Added Python CI workflow with pytest, Ruff, mypy
-  - Added bot workflow integrations (Claude, Gemini) for automated code review
-  - Created comprehensive workflow documentation
+  - 14 new comprehensive tests (100% coverage for crossover logic)
 
-#### Critical Bugs Fixed During PR #10 Review Process
-1. **Parent Selection Bug** (Critical - Genetic Algorithm Breaking)
-   - Issue: `random.choice(elites)` called twice could select same parent (asexual reproduction)
-   - Impact: Reduced genetic diversity, especially with small populations
-   - Fix: Changed to `random.sample(elites, 2)` to ensure distinct parents
-   - Fixed in commit `c158617`
+#### Critical Bugs Fixed During PR #12 Review Process
+1. **Duplicate RNG Seeding** (P0 - Critical)
+   - Issue: Seed applied twice (once in `main()` and again in `EvolutionaryEngine.__init__`) - second overwrites first
+   - Impact: First seed call ineffective, code confusing, suggests misunderstanding
+   - Fix: Removed seed call from main(), kept only in __init__
+   - Fixed in commit `a2fb36b`
 
-2. **Non-Deterministic Tests** (Test Reliability)
-   - Issue: Probabilistic tests relied on random choices without seeding
-   - Impact: Flaky test failures in CI, especially on different platforms
-   - Fix: Added `random.seed(42)` to all probabilistic tests
-   - Fixed in commit `c158617`
+2. **Test Redundancy** (P1 - High Priority)
+   - Issue: Tests called `random.seed(42)` externally before creating engines
+   - Impact: Tests relied on external seed, hiding whether engine's seeding works
+   - Fix: Removed all external `random.seed()` calls from 6 test functions
+   - Fixed in commit `a2fb36b`
 
-3. **Improper Exit Codes** (Code Quality)
-   - Issue: Using bare `exit(1)` instead of `sys.exit(1)`
-   - Impact: IDE warnings, potential issues in embedded contexts
-   - Fix: Added `import sys` and replaced all `exit()` calls
-   - Fixed in commit `c158617`
+3. **Type Annotation Error** (Type Safety)
+   - Issue: `random_seed: int = None` incorrect for optional parameter
+   - Impact: Type safety violation
+   - Fix: Changed to `Optional[int] = None`, added Optional import
+   - Fixed in commit `010fac1`
 
 #### Next Priority Tasks
 1. **Multi-Strategy Evaluation System** (High Priority - Week 5-6 Deliverable)
@@ -381,16 +375,15 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 - None currently blocking development
 
 #### Session Learnings
+- **Post-Commit Review Handling**: Reviews can arrive AFTER you push fixes - always check feedback timestamps vs commit time
+- **Duplicate RNG Seeding Anti-Pattern**: Seeding in main() and __init__() causes second to overwrite first - seed only where randomness is used
+- **Test Redundancy Anti-Pattern**: External `random.seed()` in tests masks component bugs - let component handle seeding, test verifies it works
 - **GraphQL for PR Reviews**: Single query fetches all feedback sources (comments, reviews, line comments, CI annotations)
 - **Systematic Review Process**: Always verify feedback count matches what was actually READ
 - **Parent Selection in Genetic Algorithms**: Use `random.sample(population, k)` not multiple `random.choice()` calls to ensure distinct parents
-- **Deterministic Testing**: Always seed random number generators in tests that depend on probabilistic behavior
 - **Filter Merging Optimization**: Use set union operator (`set(a) | set(b)`) instead of list concatenation + deduplication
-- **CI Monitoring Workflow**: Watch CI with `gh pr checks`, fix issues incrementally, verify all checks pass before merge
-- **Import Organization**: Move inline imports to top-level to avoid F401 linting errors and improve code clarity
 - **Temperature Inversion**: Always verify exploration→exploitation patterns in evolutionary algorithms
 - **Finally Block Pattern**: Use `finally` for counters to prevent resource leaks on failures
-- **Review Process**: Multiple review rounds from different sources caught 3 critical bugs (PR #10)
 
 ---
 
