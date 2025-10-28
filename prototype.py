@@ -1038,6 +1038,33 @@ if __name__ == "__main__":
         help="Random seed for reproducible runs (e.g., 42). Omit for non-deterministic behavior.",
     )
 
+    # Comparison mode arguments
+    parser.add_argument(
+        "--compare-baseline",
+        action="store_true",
+        help="Run comparison against baseline strategies with statistical analysis",
+    )
+    parser.add_argument(
+        "--num-comparison-runs",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Number of independent runs for comparison (default: 5)",
+    )
+    parser.add_argument(
+        "--convergence-window",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Generation window for convergence detection (default: 5)",
+    )
+    parser.add_argument(
+        "--export-comparison",
+        type=str,
+        metavar="PATH",
+        help="Export comparison results to JSON file",
+    )
+
     args = parser.parse_args()
 
     # Validate reproduction rates
@@ -1081,44 +1108,156 @@ if __name__ == "__main__":
     else:
         print("📊 Rule-based mode (no LLM)")
 
-    # Create and run evolutionary engine
-    # Note: Random seed is applied in EvolutionaryEngine.__init__ if provided
+    # Create crucible
     crucible = FactorizationCrucible(args.number)
-    engine = EvolutionaryEngine(
-        crucible,
-        population_size=args.population,
-        llm_provider=llm_provider,
-        evaluation_duration=args.duration,
-        crossover_rate=args.crossover_rate,
-        mutation_rate=args.mutation_rate,
-        random_seed=args.seed,
-    )
 
-    print(f"\n🎯 Target number: {args.number}")
-    print(f"🧬 Generations: {args.generations}, Population: {args.population}")
-    print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
-    print(
-        f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random"
-    )
-    if args.seed is not None:
-        print(f"🎲 Random seed: {args.seed} (reproducible run)")
-    print()
-
-    engine.initialize_population()
-
-    for _ in range(args.generations):
-        engine.run_evolutionary_cycle()
-
-    # Display LLM cost summary if used
-    if llm_provider:
-        print("\n💰 LLM Cost Summary:")
-        print(f"   Total API calls: {llm_provider.call_count}")
-        print(
-            f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
-        )
-        print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
-
-    # Export metrics if requested
-    if args.export_metrics:
+    # Comparison mode vs normal evolution mode
+    if args.compare_baseline:
+        # Comparison mode: Run vs baselines with statistical analysis
+        print(f"\n🎯 Target number: {args.number}")
+        print(f"🧬 Generations: {args.generations}, Population: {args.population}")
+        print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
+        print(f"📊 Comparison runs: {args.num_comparison_runs}")
+        print(f"🔍 Convergence window: {args.convergence_window} generations")
+        if args.seed is not None:
+            print(f"🎲 Base seed: {args.seed} (reproducible runs)")
         print()
-        engine.export_metrics(args.export_metrics)
+
+        comparison_engine = ComparisonEngine(
+            crucible=crucible,
+            num_runs=args.num_comparison_runs,
+            max_generations=args.generations,
+            population_size=args.population,
+            evaluation_duration=args.duration,
+            convergence_window=args.convergence_window,
+            llm_provider=llm_provider,
+        )
+
+        runs = comparison_engine.run_comparison(base_seed=args.seed)
+        analysis = comparison_engine.analyze_results(runs)
+
+        # Print results
+        print("\n" + "=" * 60)
+        print("STATISTICAL COMPARISON RESULTS")
+        print("=" * 60)
+
+        for baseline_name, result in analysis["comparison_results"].items():
+            improvement_pct = (
+                (result.evolved_mean / result.baseline_mean - 1) * 100
+                if result.baseline_mean > 0
+                else float("inf")
+            )
+            print(f"\n{baseline_name.upper()} BASELINE:")
+            print(f"  Evolved mean:  {result.evolved_mean:.1f}")
+            print(f"  Baseline mean: {result.baseline_mean:.1f}")
+            print(f"  Improvement:   {improvement_pct:+.1f}%")
+            print(
+                f"  p-value:       {result.p_value:.4f} {'***' if result.is_significant else '(not significant)'}"
+            )
+            print(f"  Effect size:   {result.effect_size:.2f} (Cohen's d)")
+            print(
+                f"  95% CI:        [{result.confidence_interval[0]:.1f}, {result.confidence_interval[1]:.1f}]"
+            )
+
+        # Convergence stats
+        conv_stats = analysis["convergence_stats"]
+        print(f"\nCONVERGENCE STATISTICS:")
+        print(
+            f"  Convergence rate: {conv_stats['convergence_rate']:.0%} ({int(conv_stats['convergence_rate'] * args.num_comparison_runs)}/{args.num_comparison_runs} runs)"
+        )
+        if conv_stats["mean"] is not None:
+            print(
+                f"  Mean generations: {conv_stats['mean']:.1f} ± {conv_stats['std']:.1f}"
+            )
+
+        # Export if requested
+        if args.export_comparison:
+            data = {
+                "target_number": args.number,
+                "num_runs": args.num_comparison_runs,
+                "max_generations": args.generations,
+                "population_size": args.population,
+                "evaluation_duration": args.duration,
+                "base_seed": args.seed,
+                "runs": [
+                    {
+                        "evolved_fitness": run.evolved_fitness,
+                        "baseline_fitness": run.baseline_fitness,
+                        "generations_to_convergence": run.generations_to_convergence,
+                        "random_seed": run.random_seed,
+                    }
+                    for run in runs
+                ],
+                "analysis": {
+                    "comparison_results": {
+                        name: {
+                            "evolved_mean": result.evolved_mean,
+                            "baseline_mean": result.baseline_mean,
+                            "p_value": result.p_value,
+                            "effect_size": result.effect_size,
+                            "is_significant": result.is_significant,
+                            "confidence_interval": result.confidence_interval,
+                        }
+                        for name, result in analysis["comparison_results"].items()
+                    },
+                    "convergence_stats": conv_stats,
+                },
+            }
+
+            output_file = Path(args.export_comparison)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_file, "w") as f:
+                json.dump(data, f, indent=2)
+
+            print(f"\n📁 Comparison results exported to: {args.export_comparison}")
+
+        # Display LLM cost summary if used
+        if llm_provider:
+            print("\n💰 LLM Cost Summary:")
+            print(f"   Total API calls: {llm_provider.call_count}")
+            print(
+                f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
+            )
+            print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
+
+    else:
+        # Normal evolution mode
+        engine = EvolutionaryEngine(
+            crucible,
+            population_size=args.population,
+            llm_provider=llm_provider,
+            evaluation_duration=args.duration,
+            crossover_rate=args.crossover_rate,
+            mutation_rate=args.mutation_rate,
+            random_seed=args.seed,
+        )
+
+        print(f"\n🎯 Target number: {args.number}")
+        print(f"🧬 Generations: {args.generations}, Population: {args.population}")
+        print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
+        print(
+            f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random"
+        )
+        if args.seed is not None:
+            print(f"🎲 Random seed: {args.seed} (reproducible run)")
+        print()
+
+        engine.initialize_population()
+
+        for _ in range(args.generations):
+            engine.run_evolutionary_cycle()
+
+        # Display LLM cost summary if used
+        if llm_provider:
+            print("\n💰 LLM Cost Summary:")
+            print(f"   Total API calls: {llm_provider.call_count}")
+            print(
+                f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
+            )
+            print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
+
+        # Export metrics if requested
+        if args.export_metrics:
+            print()
+            engine.export_metrics(args.export_metrics)
