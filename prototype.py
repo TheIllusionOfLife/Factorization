@@ -2,6 +2,7 @@ import json
 import logging
 import math
 import random
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -107,6 +108,86 @@ class Strategy:
                 if hits >= self.min_small_prime_hits:
                     return hits
         return hits
+
+
+def blend_modulus_filters(
+    filters1: List[Tuple[int, List[int]]],
+    filters2: List[Tuple[int, List[int]]],
+    max_filters: int = 4,
+) -> List[Tuple[int, List[int]]]:
+    """
+    Blend modulus filters from two parents, prioritizing diversity.
+
+    Combines filters from both parents:
+    - Merges filters with same modulus (union of residues)
+    - Keeps unique filters from each parent
+    - Limits total to max_filters (prioritizes smaller moduli)
+
+    Args:
+        filters1: Modulus filters from parent 1
+        filters2: Modulus filters from parent 2
+        max_filters: Maximum number of filters to keep (default: 4)
+
+    Returns:
+        Blended list of (modulus, residues) tuples
+    """
+    # Merge filters by modulus using set operations for efficiency
+    filter_dict = {}
+
+    for modulus, residues in filters1 + filters2:
+        if modulus in filter_dict:
+            # Merge residues for same modulus using set union
+            filter_dict[modulus] = sorted(set(filter_dict[modulus]) | set(residues))
+        else:
+            filter_dict[modulus] = sorted(set(residues))
+
+    # Convert back to list, sorted by modulus (prioritize smaller moduli)
+    blended = [(mod, res) for mod, res in sorted(filter_dict.items())]
+
+    # Limit to max_filters
+    return blended[:max_filters]
+
+
+def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
+    """
+    Uniform crossover: combine strategies from two parents.
+
+    Each component has 50% chance to come from either parent:
+    - power: Random choice from {parent1.power, parent2.power}
+    - modulus_filters: Blend filters from both parents
+    - smoothness_bound: Random choice from {parent1, parent2}.smoothness_bound
+    - min_small_prime_hits: Random choice from {parent1, parent2}.min_small_prime_hits
+
+    The resulting strategy is automatically normalized by Strategy.__post_init__.
+
+    Args:
+        parent1: First parent strategy
+        parent2: Second parent strategy
+
+    Returns:
+        New strategy combining traits from both parents
+    """
+    # Randomly select discrete parameters from either parent
+    power = random.choice([parent1.power, parent2.power])
+    smoothness_bound = random.choice(
+        [parent1.smoothness_bound, parent2.smoothness_bound]
+    )
+    min_small_prime_hits = random.choice(
+        [parent1.min_small_prime_hits, parent2.min_small_prime_hits]
+    )
+
+    # Blend modulus filters from both parents
+    modulus_filters = blend_modulus_filters(
+        parent1.modulus_filters, parent2.modulus_filters, max_filters=4
+    )
+
+    # Create new strategy (automatically normalized)
+    return Strategy(
+        power=power,
+        modulus_filters=modulus_filters,
+        smoothness_bound=smoothness_bound,
+        min_small_prime_hits=min_small_prime_hits,
+    )
 
 
 class StrategyGenerator:
@@ -436,10 +517,15 @@ class EvolutionaryEngine:
         population_size: int = 10,
         llm_provider=None,
         evaluation_duration: float = 0.1,
+        crossover_rate: float = 0.3,
+        mutation_rate: float = 0.5,
     ):
         self.crucible = crucible
         self.population_size = population_size
         self.evaluation_duration = evaluation_duration
+        self.crossover_rate = crossover_rate
+        self.mutation_rate = mutation_rate
+        self.random_rate = 1.0 - crossover_rate - mutation_rate
         self.civilizations: Dict[str, Dict] = {}
         self.generation = 0
         self.metrics_history: List[List[EvaluationMetrics]] = []
@@ -527,25 +613,62 @@ class EvolutionaryEngine:
                 self.generator.fitness_history = self.generator.fitness_history[-5:]
 
         # 繁殖: エリート戦略を基に、次世代の文明（戦略）を生成
+        # Use configurable rates: crossover, mutation, random newcomers
         next_generation_civs = {}
-        for i in range(self.population_size):
-            parent_civ = random.choice(elites)
-            parent_strategy = parent_civ[1]["strategy"]
-            parent_fitness = parent_civ[1]["fitness"]
+        offspring_sources = {"crossover": 0, "mutation": 0, "random": 0}
 
+        for i in range(self.population_size):
             new_civ_id = f"civ_{self.generation + 1}_{i}"
-            if random.random() < 0.2:
-                new_strategy = self.generator.random_strategy()
-            else:
-                # LLM統合版の場合は文脈を渡す
+
+            rand = random.random()
+            if rand < self.crossover_rate:
+                # Crossover: Combine two elite parents
+                if len(elites) >= 2:
+                    # Ensure two distinct parents for true crossover
+                    parent1_civ, parent2_civ = random.sample(elites, 2)
+                    parent1_strategy = parent1_civ[1]["strategy"]
+                    parent2_strategy = parent2_civ[1]["strategy"]
+                    new_strategy = crossover_strategies(
+                        parent1_strategy, parent2_strategy
+                    )
+                    offspring_sources["crossover"] += 1
+                else:
+                    # Fallback to mutation if only one elite
+                    parent_civ = random.choice(elites)
+                    parent_strategy = parent_civ[1]["strategy"]
+                    parent_fitness = parent_civ[1]["fitness"]
+                    if isinstance(self.generator, LLMStrategyGenerator):
+                        new_strategy = self.generator.mutate_strategy_with_context(
+                            parent_strategy, parent_fitness, self.generation
+                        )
+                    else:
+                        new_strategy = self.generator.mutate_strategy(parent_strategy)
+                    offspring_sources["mutation"] += 1
+            elif rand < self.crossover_rate + self.mutation_rate:
+                # Mutation: Mutate single elite parent
+                parent_civ = random.choice(elites)
+                parent_strategy = parent_civ[1]["strategy"]
+                parent_fitness = parent_civ[1]["fitness"]
+
                 if isinstance(self.generator, LLMStrategyGenerator):
                     new_strategy = self.generator.mutate_strategy_with_context(
                         parent_strategy, parent_fitness, self.generation
                     )
                 else:
                     new_strategy = self.generator.mutate_strategy(parent_strategy)
+                offspring_sources["mutation"] += 1
+            else:
+                # Random newcomer: Introduce genetic diversity
+                new_strategy = self.generator.random_strategy()
+                offspring_sources["random"] += 1
 
             next_generation_civs[new_civ_id] = {"strategy": new_strategy, "fitness": 0}
+
+        print(
+            f"   Offspring: {offspring_sources['crossover']} crossover, "
+            f"{offspring_sources['mutation']} mutation, "
+            f"{offspring_sources['random']} random"
+        )
 
         self.civilizations = next_generation_civs
         self.generation += 1
@@ -616,8 +739,40 @@ if __name__ == "__main__":
         metavar="PATH",
         help="Export detailed metrics to JSON file (e.g., metrics/run_001.json)",
     )
+    parser.add_argument(
+        "--crossover-rate",
+        type=float,
+        default=0.3,
+        metavar="RATE",
+        help="Crossover rate: fraction of offspring from two parents (default: 0.3)",
+    )
+    parser.add_argument(
+        "--mutation-rate",
+        type=float,
+        default=0.5,
+        metavar="RATE",
+        help="Mutation rate: fraction of offspring from single parent (default: 0.5)",
+    )
 
     args = parser.parse_args()
+
+    # Validate reproduction rates
+    if args.crossover_rate < 0 or args.crossover_rate > 1:
+        print(
+            f"❌ ERROR: crossover-rate must be between 0 and 1 (got {args.crossover_rate})"
+        )
+        sys.exit(1)
+    if args.mutation_rate < 0 or args.mutation_rate > 1:
+        print(
+            f"❌ ERROR: mutation-rate must be between 0 and 1 (got {args.mutation_rate})"
+        )
+        sys.exit(1)
+    if args.crossover_rate + args.mutation_rate > 1.0:
+        print("❌ ERROR: crossover-rate + mutation-rate must be <= 1.0")
+        print(
+            f"   (got {args.crossover_rate} + {args.mutation_rate} = {args.crossover_rate + args.mutation_rate})"
+        )
+        sys.exit(1)
 
     # Initialize LLM provider if requested
     llm_provider = None
@@ -630,7 +785,7 @@ if __name__ == "__main__":
             if not config.api_key:
                 print("❌ ERROR: GEMINI_API_KEY not set in .env file")
                 print("Please create .env file with your API key (see .env.example)")
-                exit(1)
+                sys.exit(1)
 
             llm_provider = GeminiProvider(config.api_key, config)
             print("✅ LLM mode enabled (Gemini 2.5 Flash Lite)")
@@ -638,7 +793,7 @@ if __name__ == "__main__":
         except ImportError as e:
             print(f"❌ ERROR: Missing dependencies for LLM mode: {e}")
             print("Please run: pip install -r requirements.txt")
-            exit(1)
+            sys.exit(1)
     else:
         print("📊 Rule-based mode (no LLM)")
 
@@ -649,11 +804,16 @@ if __name__ == "__main__":
         population_size=args.population,
         llm_provider=llm_provider,
         evaluation_duration=args.duration,
+        crossover_rate=args.crossover_rate,
+        mutation_rate=args.mutation_rate,
     )
 
     print(f"\n🎯 Target number: {args.number}")
     print(f"🧬 Generations: {args.generations}, Population: {args.population}")
-    print(f"⏱️  Evaluation duration: {args.duration}s per strategy\n")
+    print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
+    print(
+        f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random\n"
+    )
 
     engine.initialize_population()
 
