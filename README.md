@@ -290,51 +290,63 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 
 ## Session Handover
 
-### Last Updated: October 27, 2025 08:36 PM JST
+### Last Updated: October 28, 2025 10:37 AM JST
 
 #### Recently Completed
+- ✅ [PR #10](https://github.com/TheIllusionOfLife/Factorization/pull/10): Add genetic crossover operators for enhanced evolution
+  - Implemented uniform crossover combining two elite parents (30% of offspring)
+  - Added intelligent filter blending with residue union for same modulus
+  - Configurable reproduction rates: `--crossover-rate` and `--mutation-rate`
+  - Offspring source tracking shows parent lineage in output
+  - 14 new comprehensive tests (100% coverage for crossover logic)
+  - Fixed critical parent selection bug (could duplicate same parent)
+  - All 65 tests passing, all 7 CI checks green
+- ✅ [PR #9](https://github.com/TheIllusionOfLife/Factorization/pull/9): Remove redundant Gemini workflow files
+  - Cleaned up 5 duplicate Gemini code review workflows (1,250+ lines removed)
+  - Consolidated to single optimized workflow
+- ✅ [PR #8](https://github.com/TheIllusionOfLife/Factorization/pull/8): Add comprehensive fitness instrumentation and metrics tracking
+  - Detailed timing breakdown (generation, filtering, smoothness checks)
+  - Rejection statistics (modulus filter vs min hits)
+  - Example smooth candidates with JSON export
+  - Visualization notebook for metrics analysis
 - ✅ [PR #6](https://github.com/TheIllusionOfLife/Factorization/pull/6): Reorganize CI/CD workflows and add Python CI
   - Added Python CI workflow with pytest, Ruff, mypy
   - Added bot workflow integrations (Claude, Gemini) for automated code review
   - Created comprehensive workflow documentation
-  - Addressed all review feedback (pinned dependencies, removed redundant config)
-  - All 36 tests passing, all CI checks green
-- ✅ [PR #5](https://github.com/TheIllusionOfLife/Factorization/pull/5): Added CLAUDE.md for future sessions
-- ✅ [PR #2](https://github.com/TheIllusionOfLife/Factorization/pull/2): Gemini LLM integration for strategy evolution
-  - Added full LLM-guided evolutionary optimization with Gemini 2.5 Flash Lite
-  - 22 new files, 3,785 lines of production-quality code
-  - Comprehensive test suite (36 tests passing)
-  - Fixed multiple critical bugs discovered during review process
 
-#### Critical Bugs Fixed During PR #2 Review Process
-1. **Temperature Calculation Backwards** (Algorithm-Breaking)
-   - Issue: Temperature increased 0.8→1.2 instead of decreasing 1.2→0.8
-   - Impact: Inverted exploration-exploitation tradeoff fundamental to evolutionary algorithms
-   - Fixed in commit `94d17d0`
+#### Critical Bugs Fixed During PR #10 Review Process
+1. **Parent Selection Bug** (Critical - Genetic Algorithm Breaking)
+   - Issue: `random.choice(elites)` called twice could select same parent (asexual reproduction)
+   - Impact: Reduced genetic diversity, especially with small populations
+   - Fix: Changed to `random.sample(elites, 2)` to ensure distinct parents
+   - Fixed in commit `c158617`
 
-2. **API Call Counting Bug** (Resource Leak)
-   - Issue: Failed API calls didn't increment counter (only successful calls counted)
-   - Impact: Could allow infinite retries on errors → cost explosion
-   - Fixed in commit `f120779` using `finally` block pattern
+2. **Non-Deterministic Tests** (Test Reliability)
+   - Issue: Probabilistic tests relied on random choices without seeding
+   - Impact: Flaky test failures in CI, especially on different platforms
+   - Fix: Added `random.seed(42)` to all probabilistic tests
+   - Fixed in commit `c158617`
 
-3. **Smoothness Bound Calculation Error**
-   - Issue: Logic error always returned value of 2
-   - Impact: Prevented LLM from adjusting smoothness parameters
-   - Fixed in commit `c2aa212`
-
-4. **Fitness History Unbounded Growth** (Memory Leak)
-   - Issue: History list grew indefinitely, only last 5 entries used
-   - Impact: Memory leak over long evolutionary runs
-   - Fixed in commit `94d17d0`
+3. **Improper Exit Codes** (Code Quality)
+   - Issue: Using bare `exit(1)` instead of `sys.exit(1)`
+   - Impact: IDE warnings, potential issues in embedded contexts
+   - Fix: Added `import sys` and replaced all `exit()` calls
+   - Fixed in commit `c158617`
 
 #### Next Priority Tasks
-1. **Add Production Logging Configuration** (Optional Enhancement)
+1. **Multi-Strategy Evaluation System** (High Priority - Week 5-6 Deliverable)
+   - Source: `codex_improvement_plan.md` roadmap
+   - Context: Implement parallel evaluation of multiple strategies with statistical comparison
+   - Approach: Add batch evaluation mode, comparison metrics, visualization
+   - Priority: High (next major feature for production readiness)
+
+2. **Add Production Logging Configuration** (Optional Enhancement)
    - Source: PR #2 review feedback (low priority)
    - Context: Logger created but not configured with appropriate log levels
    - Approach: Add logging config with environment-based levels (DEBUG/INFO/WARNING)
    - Priority: Low (nice-to-have for production deployment)
 
-2. **Extract Magic Numbers to Config** (Optional Enhancement)
+3. **Extract Magic Numbers to Config** (Optional Enhancement)
    - Source: PR #2 review feedback (low priority)
    - Context: Hardcoded percentages (0.2 for elite selection, 0.8/1.2 temperatures)
    - Approach: Move to configuration constants for tuneability
@@ -344,16 +356,16 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 - None currently blocking development
 
 #### Session Learnings
-- **CI/CD Organization**: Path filters prevent unnecessary CI workflow runs on documentation-only changes
-- **Workflow Naming Convention**: Use prefixes (`ci-*`, `bot-*`) for clear categorization
-- **Pinned Dependencies**: Pin dev dependencies for reproducible CI builds (avoid version drift)
 - **GraphQL for PR Reviews**: Single query fetches all feedback sources (comments, reviews, line comments, CI annotations)
 - **Systematic Review Process**: Always verify feedback count matches what was actually READ
-- **Mypy Type Annotations**: Explicit type hints for multi-line returns prevent `no-any-return` errors
-- **Ruff Configuration**: Remove redundant ignore rules when rulesets not enabled (S101 when S not in select)
+- **Parent Selection in Genetic Algorithms**: Use `random.sample(population, k)` not multiple `random.choice()` calls to ensure distinct parents
+- **Deterministic Testing**: Always seed random number generators in tests that depend on probabilistic behavior
+- **Filter Merging Optimization**: Use set union operator (`set(a) | set(b)`) instead of list concatenation + deduplication
+- **CI Monitoring Workflow**: Watch CI with `gh pr checks`, fix issues incrementally, verify all checks pass before merge
+- **Import Organization**: Move inline imports to top-level to avoid F401 linting errors and improve code clarity
 - **Temperature Inversion**: Always verify exploration→exploitation patterns in evolutionary algorithms
 - **Finally Block Pattern**: Use `finally` for counters to prevent resource leaks on failures
-- **Review Process**: Multiple review rounds from different sources caught 4 critical bugs (PR #2)
+- **Review Process**: Multiple review rounds from different sources caught 3 critical bugs (PR #10)
 
 ---
 
