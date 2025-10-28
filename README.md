@@ -71,7 +71,7 @@ python prototype.py --llm --generations 5 --population 10
 usage: prototype.py [-h] [--number NUMBER] [--generations GENERATIONS]
                     [--population POPULATION] [--duration DURATION] [--llm]
                     [--export-metrics PATH] [--crossover-rate RATE]
-                    [--mutation-rate RATE]
+                    [--mutation-rate RATE] [--seed SEED]
 
 options:
   --number NUMBER         Number to factor (default: 961730063)
@@ -82,6 +82,7 @@ options:
   --export-metrics PATH   Export detailed metrics to JSON file
   --crossover-rate RATE   Crossover rate: offspring from two parents (default: 0.3)
   --mutation-rate RATE    Mutation rate: offspring from single parent (default: 0.5)
+  --seed SEED             Random seed for reproducible runs (e.g., 42)
 ```
 
 ### Example Usage
@@ -110,6 +111,30 @@ python prototype.py --generations 5 --population 10 --export-metrics metrics/run
 ```bash
 python prototype.py --crossover-rate 0.6 --mutation-rate 0.2 --generations 5 --population 10
 ```
+
+**Reproducible run for debugging/research**:
+```bash
+python prototype.py --seed 42 --generations 5 --population 10
+```
+
+### Reproducibility
+
+For scientific validation and debugging, use the `--seed` parameter to ensure reproducible runs:
+
+```bash
+# Same seed produces identical evolutionary paths
+python prototype.py --seed 42 --generations 3 --population 5 --duration 0.1
+python prototype.py --seed 42 --generations 3 --population 5 --duration 0.1
+# Both runs will have identical initial populations and mutation/selection decisions
+```
+
+**Benefits**:
+- ✅ Reproducible experiments for papers/reports
+- ✅ Easier debugging of specific evolutionary scenarios
+- ✅ Seed value automatically exported in metrics JSON
+- ✅ Compare different configurations fairly
+
+**Note**: Without `--seed`, runs use non-deterministic randomness (different results each time). Slight fitness variations may occur even with the same seed due to timing differences in evaluation, but the evolutionary decisions (initialization, mutation, selection) remain identical.
 
 ### Detailed Metrics & Visualization
 

@@ -6,7 +6,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -519,6 +519,7 @@ class EvolutionaryEngine:
         evaluation_duration: float = 0.1,
         crossover_rate: float = 0.3,
         mutation_rate: float = 0.5,
+        random_seed: Optional[int] = None,
     ):
         self.crucible = crucible
         self.population_size = population_size
@@ -526,6 +527,11 @@ class EvolutionaryEngine:
         self.crossover_rate = crossover_rate
         self.mutation_rate = mutation_rate
         self.random_rate = 1.0 - crossover_rate - mutation_rate
+
+        # Apply random seed for reproducibility
+        if random_seed is not None:
+            random.seed(random_seed)
+        self.random_seed = random_seed
         self.civilizations: Dict[str, Dict] = {}
         self.generation = 0
         self.metrics_history: List[List[EvaluationMetrics]] = []
@@ -680,6 +686,7 @@ class EvolutionaryEngine:
             "generation_count": self.generation,
             "population_size": self.population_size,
             "evaluation_duration": self.evaluation_duration,
+            "random_seed": self.random_seed,
             "metrics_history": [
                 [metrics.to_dict() for metrics in generation]
                 for generation in self.metrics_history
@@ -753,6 +760,12 @@ if __name__ == "__main__":
         metavar="RATE",
         help="Mutation rate: fraction of offspring from single parent (default: 0.5)",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        metavar="SEED",
+        help="Random seed for reproducible runs (e.g., 42). Omit for non-deterministic behavior.",
+    )
 
     args = parser.parse_args()
 
@@ -798,6 +811,7 @@ if __name__ == "__main__":
         print("📊 Rule-based mode (no LLM)")
 
     # Create and run evolutionary engine
+    # Note: Random seed is applied in EvolutionaryEngine.__init__ if provided
     crucible = FactorizationCrucible(args.number)
     engine = EvolutionaryEngine(
         crucible,
@@ -806,14 +820,18 @@ if __name__ == "__main__":
         evaluation_duration=args.duration,
         crossover_rate=args.crossover_rate,
         mutation_rate=args.mutation_rate,
+        random_seed=args.seed,
     )
 
     print(f"\n🎯 Target number: {args.number}")
     print(f"🧬 Generations: {args.generations}, Population: {args.population}")
     print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
     print(
-        f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random\n"
+        f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random"
     )
+    if args.seed is not None:
+        print(f"🎲 Random seed: {args.seed} (reproducible run)")
+    print()
 
     engine.initialize_population()
 
