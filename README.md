@@ -72,8 +72,10 @@ usage: prototype.py [-h] [--number NUMBER] [--generations GENERATIONS]
                     [--population POPULATION] [--duration DURATION] [--llm]
                     [--export-metrics PATH] [--crossover-rate RATE]
                     [--mutation-rate RATE] [--seed SEED]
+                    [--compare-baseline] [--num-comparison-runs N]
+                    [--convergence-window N] [--export-comparison PATH]
 
-options:
+Evolution Options:
   --number NUMBER         Number to factor (default: 961730063)
   --generations GENS      Number of generations to evolve (default: 5)
   --population POP        Population size per generation (default: 10)
@@ -83,6 +85,12 @@ options:
   --crossover-rate RATE   Crossover rate: offspring from two parents (default: 0.3)
   --mutation-rate RATE    Mutation rate: offspring from single parent (default: 0.5)
   --seed SEED             Random seed for reproducible runs (e.g., 42)
+
+Comparison Mode Options:
+  --compare-baseline           Run comparison against baseline strategies
+  --num-comparison-runs N      Number of independent runs (default: 5)
+  --convergence-window N       Generations for convergence detection (default: 5)
+  --export-comparison PATH     Export comparison results to JSON file
 ```
 
 ### Example Usage
@@ -116,6 +124,81 @@ python prototype.py --crossover-rate 0.6 --mutation-rate 0.2 --generations 5 --p
 ```bash
 python prototype.py --seed 42 --generations 5 --population 10
 ```
+
+**Compare evolved strategies against baselines with statistical analysis**:
+```bash
+# Run 5 independent comparisons with statistical validation
+python prototype.py --compare-baseline --num-comparison-runs 5 --generations 10 --population 10 --seed 42
+```
+
+**Export comparison results for further analysis**:
+```bash
+python prototype.py --compare-baseline --num-comparison-runs 10 --generations 15 \
+  --export-comparison results/comparison_run1.json --seed 42
+```
+
+### Multi-Strategy Evaluation System
+
+The comparison mode runs evolved strategies against three classical GNFS-inspired baselines with rigorous statistical analysis:
+
+**Three Baseline Strategies**:
+- **Conservative**: Low power (2), strict filters, high min hits (4) - Most selective
+- **Balanced**: Medium power (3), moderate filters, balanced hits (2) - Middle ground
+- **Aggressive**: High power (4), minimal filters, low hits (1) - Most permissive
+
+**Statistical Analysis** (powered by scipy):
+- **Welch's t-test**: Tests significance without assuming equal variances
+- **Cohen's d effect size**: Quantifies practical significance (small/medium/large)
+- **95% Confidence Intervals**: Shows range of true performance difference
+- **Convergence Detection**: Identifies when fitness plateaus (early stopping)
+
+**CLI Options**:
+```bash
+--compare-baseline              Enable comparison mode
+--num-comparison-runs N         Number of independent runs (default: 5)
+--convergence-window N          Generations for convergence check (default: 5)
+--export-comparison PATH        Export results to JSON file
+```
+
+**Example Output**:
+```
+CONSERVATIVE BASELINE:
+  Evolved mean:  46067.5
+  Baseline mean: 0.0
+  Improvement:   +inf%
+  p-value:       0.1182 (not significant)
+  Effect size:   5.33 (Cohen's d)
+  95% CI:        [-63834.8, 155969.8]
+
+BALANCED BASELINE:
+  Evolved mean:  46067.5
+  Baseline mean: 28744.5
+  Improvement:   +60.3%
+  p-value:       0.2948 (not significant)
+  Effect size:   2.00 (Cohen's d)
+  95% CI:        [-92516.7, 127162.7]
+
+CONVERGENCE STATISTICS:
+  Convergence rate: 33% (1/3 runs)
+  Mean generations: 4.0 ± 0.0
+```
+
+**Interpreting Results**:
+- **p-value < 0.05**: Statistically significant difference (marked with ***)
+- **Effect size (Cohen's d)**:
+  - d < 0.2: Negligible effect
+  - 0.2 ≤ d < 0.5: Small effect
+  - 0.5 ≤ d < 0.8: Medium effect
+  - d ≥ 0.8: Large effect
+- **Improvement %**: Percentage change from baseline (+ is better)
+- **95% CI**: Range likely containing true difference (excludes 0 = significant)
+
+**Use Cases**:
+- Validate that evolution actually improves over classical heuristics
+- Quantify how much better evolved strategies perform
+- Determine if differences are statistically meaningful or just noise
+- Compare different evolutionary configurations (crossover vs mutation rates)
+- Generate publication-ready statistical comparisons
 
 ### Reproducibility
 

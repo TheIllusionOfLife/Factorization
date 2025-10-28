@@ -20,6 +20,16 @@ python prototype.py --generations 5 --population 10
 python prototype.py --llm --generations 5 --population 10
 ```
 
+**Comparison mode** (statistical analysis against baselines):
+```bash
+# Rule-based comparison with 5 independent runs
+python prototype.py --compare-baseline --num-comparison-runs 5 --generations 10 --population 10 --seed 42
+
+# LLM-guided comparison with JSON export
+python prototype.py --llm --compare-baseline --num-comparison-runs 3 --generations 5 \
+  --export-comparison results/comparison.json --seed 100
+```
+
 **Common CLI options**:
 - `--number NUMBER`: Target number to factor (default: 961730063)
 - `--generations N`: Number of evolutionary generations (default: 5)
@@ -27,6 +37,10 @@ python prototype.py --llm --generations 5 --population 10
 - `--duration SECS`: Evaluation duration in seconds (default: 0.1)
 - `--llm`: Enable LLM-guided mutations using Gemini 2.5 Flash Lite
 - `--export-metrics PATH`: Export detailed metrics to JSON file for analysis
+- `--compare-baseline`: Run comparison against baseline strategies
+- `--num-comparison-runs N`: Number of independent comparison runs (default: 5)
+- `--convergence-window N`: Generation window for convergence detection (default: 5)
+- `--export-comparison PATH`: Export comparison results to JSON file
 
 ### Testing
 
@@ -129,6 +143,57 @@ cp .env.example .env
    - `timing_breakdown`: Time spent in each evaluation phase
    - `rejection_stats`: Counts of rejection reasons
    - `example_candidates`: Sample smooth numbers found
+
+6. **BaselineStrategyGenerator** (NEW - PR #14 Multi-Strategy Evaluation):
+   - Generates three classical GNFS-inspired baseline strategies
+   - **Conservative**: `power=2, strict filters (3), high min_hits=4` - Most selective
+   - **Balanced**: `power=3, moderate filters (2), min_hits=2` - Middle ground
+   - **Aggressive**: `power=4, minimal filters (1), min_hits=1` - Most permissive
+   - Deterministic generation (no randomness)
+   - All strategies pass validation and normalization
+
+7. **ComparisonEngine** (NEW - PR #14):
+   - Runs multiple independent evolutionary runs against baselines
+   - Each run gets unique seed: `base_seed + run_index`
+   - Tracks best fitness per generation (not final civilizations)
+   - Integrates ConvergenceDetector for early stopping
+   - Performs statistical analysis via StatisticalAnalyzer
+   - Returns ComparisonRun objects with:
+     - `evolved_fitness`: List[float] - Best fitness per generation
+     - `baseline_fitness`: Dict[str, float] - Baseline performance
+     - `generations_to_convergence`: Optional[int]
+     - `final_best_strategy`: Strategy
+     - `random_seed`: Optional[int]
+
+8. **ComparisonRun**: Dataclass for single comparison run results
+   - Stores complete fitness history and baseline performance
+   - Includes convergence detection results
+   - Serializable to JSON for analysis
+
+### Statistical Analysis (src/statistics.py)
+
+**StatisticalAnalyzer**:
+- **Welch's t-test**: Compares fitness distributions without assuming equal variances
+- **Cohen's d effect size**: Quantifies practical significance
+  - d < 0.2: Negligible
+  - 0.2 ≤ d < 0.5: Small
+  - 0.5 ≤ d < 0.8: Medium
+  - d ≥ 0.8: Large
+- **95% Confidence Intervals**: Uses Welch-Satterthwaite degrees of freedom
+- Returns ComparisonResult with all metrics
+
+**ConvergenceDetector**:
+- Detects fitness plateaus using rolling window variance
+- Algorithm: Relative variance = variance / mean² (coefficient of variation squared)
+- Configurable window size (default: 5 generations) and threshold (default: 0.05)
+- `has_converged(fitness_history)`: Returns bool
+- `generations_to_convergence(fitness_history)`: Returns generation index or None
+- Handles edge cases: near-zero mean, insufficient data
+
+**ComparisonResult**: Dataclass with interpretation
+- Contains all statistical metrics (means, p-value, effect size, CI, significance)
+- `interpret()`: Human-readable string explaining results
+- Automatically categorizes effect sizes and formats output
 
 ### Metrics & Instrumentation
 
