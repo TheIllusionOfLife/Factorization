@@ -294,3 +294,20 @@ Typical prototype costs:
 3. **Early Validation**: Validate config (API keys) at load time with clear error messages
 4. **Dataclass Equality**: Python's `@dataclass` auto-generates `__eq__` (no manual implementation needed)
 5. **Specific Exception Handling**: Catch specific exceptions (JSONDecodeError, ValueError) not bare Exception
+
+## Critical Learnings from PR #10
+
+1. **Parent Selection in Genetic Algorithms**: Use `random.sample(population, k)` not multiple `random.choice()` calls
+   - Issue: Calling `random.choice(elites)` twice can select the same parent (asexual reproduction)
+   - Solution: `parent1, parent2 = random.sample(elites, 2)` ensures distinct parents
+   - Impact: Critical for genetic diversity, especially with small populations
+
+2. **Deterministic Testing with Random**: Always seed random number generators in probabilistic tests
+   - Issue: Tests relying on random choices can fail non-deterministically across platforms
+   - Solution: Add `random.seed(42)` at start of each probabilistic test
+   - Impact: Prevents flaky CI failures and ensures reproducible test results
+
+3. **Filter Merging Optimization**: Use set union operators instead of list concatenation + deduplication
+   - Before: `sorted(set(list1 + list2))`
+   - After: `sorted(set(list1) | set(list2))`
+   - Impact: More readable and slightly more efficient
