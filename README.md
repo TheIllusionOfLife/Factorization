@@ -335,7 +335,7 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 
 #### Critical Bugs Fixed During PR #12 Review Process
 1. **Duplicate RNG Seeding** (P0 - Critical)
-   - Issue: Seed applied twice (main() line 815, __init__ line 533) - second overwrites first
+   - Issue: Seed applied twice (once in `main()` and again in `EvolutionaryEngine.__init__`) - second overwrites first
    - Impact: First seed call ineffective, code confusing, suggests misunderstanding
    - Fix: Removed seed call from main(), kept only in __init__
    - Fixed in commit `a2fb36b`
