@@ -43,7 +43,9 @@ def test_same_seed_produces_identical_fitness_scores():
     )
     engine1.initialize_population()
     engine1.run_evolutionary_cycle()
-    fitness_gen1_run1 = sorted([civ["fitness"] for civ in engine1.civilizations.values()])
+    fitness_gen1_run1 = sorted(
+        [civ["fitness"] for civ in engine1.civilizations.values()]
+    )
 
     random.seed(42)
     crucible2 = FactorizationCrucible(961730063)
@@ -52,7 +54,9 @@ def test_same_seed_produces_identical_fitness_scores():
     )
     engine2.initialize_population()
     engine2.run_evolutionary_cycle()
-    fitness_gen1_run2 = sorted([civ["fitness"] for civ in engine2.civilizations.values()])
+    fitness_gen1_run2 = sorted(
+        [civ["fitness"] for civ in engine2.civilizations.values()]
+    )
 
     # Should be identical
     assert fitness_gen1_run1 == fitness_gen1_run2
@@ -187,7 +191,11 @@ def test_crossover_reproducible_with_seed():
     )
     engine1.initialize_population()
     initial_strategies1 = [
-        (civ["strategy"].power, civ["strategy"].smoothness_bound, tuple(civ["strategy"].modulus_filters))
+        (
+            civ["strategy"].power,
+            civ["strategy"].smoothness_bound,
+            tuple(civ["strategy"].modulus_filters),
+        )
         for civ in engine1.civilizations.values()
     ]
 
@@ -203,7 +211,11 @@ def test_crossover_reproducible_with_seed():
     )
     engine2.initialize_population()
     initial_strategies2 = [
-        (civ["strategy"].power, civ["strategy"].smoothness_bound, tuple(civ["strategy"].modulus_filters))
+        (
+            civ["strategy"].power,
+            civ["strategy"].smoothness_bound,
+            tuple(civ["strategy"].modulus_filters),
+        )
         for civ in engine2.civilizations.values()
     ]
 
