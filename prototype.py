@@ -647,8 +647,13 @@ class EvolutionaryEngine:
             strategy = self.generator.random_strategy()
             self.civilizations[civ_id] = {"strategy": strategy, "fitness": 0}
 
-    def run_evolutionary_cycle(self):
-        """1世代分の進化（評価、選択、繁殖）を実行する"""
+    def run_evolutionary_cycle(self) -> float:
+        """
+        1世代分の進化（評価、選択、繁殖）を実行する
+
+        Returns:
+            Best fitness score from this generation (before creating next generation)
+        """
         print(f"\n===== Generation {self.generation}: Evaluating Strategies =====")
 
         generation_metrics = []
@@ -702,9 +707,12 @@ class EvolutionaryEngine:
         num_elites = max(1, int(self.population_size * 0.2))
         elites = sorted_civs[:num_elites]
 
+        # IMPORTANT: Capture best fitness BEFORE civilizations is replaced
+        best_fitness_this_gen = elites[0][1]["fitness"]
+
         print(
             f"\n--- Top performing civilization in Generation {self.generation}: "
-            f"{elites[0][0]} with fitness {elites[0][1]['fitness']} ---"
+            f"{elites[0][0]} with fitness {best_fitness_this_gen} ---"
         )
 
         # フィットネス履歴を更新（LLM用）
@@ -774,6 +782,8 @@ class EvolutionaryEngine:
 
         self.civilizations = next_generation_civs
         self.generation += 1
+
+        return best_fitness_this_gen
 
     def export_metrics(self, output_path: str) -> None:
         """Export metrics history to JSON file."""
@@ -889,10 +899,8 @@ class ComparisonEngine:
         converged_at = None
 
         for gen in range(self.max_generations):
-            engine.run_evolutionary_cycle()
-
-            # Track best fitness this generation
-            best_fitness = max(civ["fitness"] for civ in engine.civilizations.values())
+            # Run evolutionary cycle and get best fitness from evaluated generation
+            best_fitness = engine.run_evolutionary_cycle()
             evolved_fitness_history.append(best_fitness)
 
             # Check convergence
@@ -900,8 +908,6 @@ class ComparisonEngine:
                 converged_at = gen
                 print(f"\n✓ Converged at generation {gen}")
                 break
-
-            engine.generation += 1
 
         # Get final best strategy
         best_civ = max(engine.civilizations.items(), key=lambda x: x[1]["fitness"])
