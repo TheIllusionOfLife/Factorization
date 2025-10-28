@@ -1197,12 +1197,12 @@ if __name__ == "__main__":
                 "analysis": {
                     "comparison_results": {
                         name: {
-                            "evolved_mean": result.evolved_mean,
-                            "baseline_mean": result.baseline_mean,
-                            "p_value": result.p_value,
-                            "effect_size": result.effect_size,
-                            "is_significant": result.is_significant,
-                            "confidence_interval": result.confidence_interval,
+                            "evolved_mean": float(result.evolved_mean),
+                            "baseline_mean": float(result.baseline_mean),
+                            "p_value": float(result.p_value),
+                            "effect_size": float(result.effect_size),
+                            "is_significant": bool(result.is_significant),
+                            "confidence_interval": [float(result.confidence_interval[0]), float(result.confidence_interval[1])],
                         }
                         for name, result in analysis["comparison_results"].items()
                     },
