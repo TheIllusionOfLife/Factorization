@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
@@ -251,6 +253,102 @@ class StrategyGenerator:
 
         child._normalize()
         return child
+
+
+class BaselineStrategyGenerator:
+    """
+    Generates classical GNFS-inspired baseline strategies for comparison.
+
+    These strategies represent "what a human would design" based on
+    number theory principles, not evolved solutions.
+
+    Provides three baseline approaches:
+    - Conservative: Strict filtering, high smoothness requirements
+    - Balanced: Typical quadratic sieve parameters
+    - Aggressive: Permissive filtering for high throughput
+    """
+
+    def __init__(self):
+        self.primes = SMALL_PRIMES
+
+    def get_baseline_strategies(self) -> Dict[str, Strategy]:
+        """
+        Return dict of named baseline strategies.
+
+        Returns:
+            Dict mapping strategy name to Strategy object
+        """
+        return {
+            "conservative": self._conservative_strategy(),
+            "balanced": self._balanced_strategy(),
+            "aggressive": self._aggressive_strategy(),
+        }
+
+    def _conservative_strategy(self) -> Strategy:
+        """
+        Conservative classical approach.
+
+        Characteristics:
+        - Low power (2) for stability
+        - Strict modulus filters (eliminate more candidates)
+        - High min hits requirement (strict smoothness)
+
+        This strategy casts a narrow net, accepting only candidates
+        that are very likely to be smooth.
+        """
+        return Strategy(
+            power=2,
+            modulus_filters=[
+                (2, [0]),  # Even numbers only
+                (3, [0]),  # Divisible by 3
+                (5, [0]),  # Divisible by 5
+            ],
+            smoothness_bound=13,
+            min_small_prime_hits=4,  # Strict: need many small factors
+        )
+
+    def _balanced_strategy(self) -> Strategy:
+        """
+        Balanced classical approach (typical quadratic sieve parameters).
+
+        Characteristics:
+        - Medium power (3) for balanced candidate generation
+        - Moderate modulus filters
+        - Reasonable smoothness requirements
+
+        This strategy represents a middle ground between strict and
+        permissive filtering.
+        """
+        return Strategy(
+            power=3,
+            modulus_filters=[
+                (2, [0, 1]),  # Allow both even and odd
+                (7, [0, 1, 2, 4]),  # Quadratic residues mod 7
+            ],
+            smoothness_bound=19,
+            min_small_prime_hits=2,
+        )
+
+    def _aggressive_strategy(self) -> Strategy:
+        """
+        Aggressive approach: Cast wide net, accept more candidates.
+
+        Characteristics:
+        - High power (4) for diverse candidate generation
+        - Minimal modulus filters
+        - Low smoothness requirement
+
+        This strategy prioritizes throughput over precision, accepting
+        many candidates that may not be smooth.
+        """
+        return Strategy(
+            power=4,
+            modulus_filters=[
+                (3, [0, 1, 2]),  # Allow all mod 3
+            ],
+            smoothness_bound=31,
+            min_small_prime_hits=1,  # Very permissive
+        )
 
 
 # ------------------------------------------------------------------------------
@@ -551,8 +649,14 @@ class EvolutionaryEngine:
             strategy = self.generator.random_strategy()
             self.civilizations[civ_id] = {"strategy": strategy, "fitness": 0}
 
-    def run_evolutionary_cycle(self):
-        """1世代分の進化（評価、選択、繁殖）を実行する"""
+    def run_evolutionary_cycle(self) -> tuple[float, Strategy]:
+        """
+        1世代分の進化（評価、選択、繁殖）を実行する
+
+        Returns:
+            Tuple of (best fitness score, best strategy) from this generation
+            (before creating next generation)
+        """
         print(f"\n===== Generation {self.generation}: Evaluating Strategies =====")
 
         generation_metrics = []
@@ -606,9 +710,13 @@ class EvolutionaryEngine:
         num_elites = max(1, int(self.population_size * 0.2))
         elites = sorted_civs[:num_elites]
 
+        # IMPORTANT: Capture best fitness and strategy BEFORE civilizations is replaced
+        best_fitness_this_gen = elites[0][1]["fitness"]
+        best_strategy_this_gen = elites[0][1]["strategy"]
+
         print(
             f"\n--- Top performing civilization in Generation {self.generation}: "
-            f"{elites[0][0]} with fitness {elites[0][1]['fitness']} ---"
+            f"{elites[0][0]} with fitness {best_fitness_this_gen} ---"
         )
 
         # フィットネス履歴を更新（LLM用）
@@ -679,6 +787,8 @@ class EvolutionaryEngine:
         self.civilizations = next_generation_civs
         self.generation += 1
 
+        return best_fitness_this_gen, best_strategy_this_gen
+
     def export_metrics(self, output_path: str) -> None:
         """Export metrics history to JSON file."""
         data = {
@@ -700,6 +810,184 @@ class EvolutionaryEngine:
             json.dump(data, f, indent=2)
 
         print(f"📁 Metrics exported to: {output_path}")
+
+
+@dataclass
+class ComparisonRun:
+    """Results from a single comparison run."""
+
+    evolved_fitness: List[float]  # Fitness per generation
+    baseline_fitness: Dict[str, float]  # Fitness per baseline strategy
+    generations_to_convergence: Optional[int]
+    final_best_strategy: Strategy
+    random_seed: Optional[int]
+
+
+class ComparisonEngine:
+    """
+    Run evolutionary strategies against baseline strategies and compare.
+
+    Supports:
+    - Multiple independent runs for statistical rigor
+    - Convergence detection for early stopping
+    - Statistical significance testing
+    """
+
+    def __init__(
+        self,
+        crucible: FactorizationCrucible,
+        num_runs: int = 5,
+        max_generations: int = 10,
+        population_size: int = 10,
+        evaluation_duration: float = 0.1,
+        convergence_window: int = 5,
+        llm_provider=None,
+    ):
+        self.crucible = crucible
+        self.num_runs = num_runs
+        self.max_generations = max_generations
+        self.population_size = population_size
+        self.evaluation_duration = evaluation_duration
+        self.convergence_window = convergence_window
+        self.llm_provider = llm_provider
+
+        # Import here to avoid circular dependency issues
+        from src.statistics import ConvergenceDetector, StatisticalAnalyzer
+
+        self.baseline_generator = BaselineStrategyGenerator()
+        self.convergence_detector = ConvergenceDetector(window_size=convergence_window)
+        self.statistical_analyzer = StatisticalAnalyzer()
+
+    def run_comparison(self, base_seed: Optional[int] = None) -> List[ComparisonRun]:
+        """
+        Run multiple independent evolutionary runs and compare to baselines.
+
+        Args:
+            base_seed: If provided, runs use base_seed+i for reproducibility
+
+        Returns:
+            List of ComparisonRun objects (one per run)
+        """
+        runs = []
+
+        for run_idx in range(self.num_runs):
+            seed = base_seed + run_idx if base_seed is not None else None
+            print(f"\n{'=' * 60}")
+            print(f"COMPARISON RUN {run_idx + 1}/{self.num_runs}")
+            if seed is not None:
+                print(f"🎲 Random seed: {seed}")
+            print(f"{'=' * 60}")
+
+            run_result = self._run_single_comparison(seed)
+            runs.append(run_result)
+
+        return runs
+
+    def _run_single_comparison(self, seed: Optional[int]) -> ComparisonRun:
+        """Execute one complete evolutionary run vs baselines."""
+
+        # 1. Evaluate baseline strategies
+        baseline_fitness = self._evaluate_baselines()
+
+        # 2. Run evolutionary process with convergence detection
+        engine = EvolutionaryEngine(
+            crucible=self.crucible,
+            population_size=self.population_size,
+            evaluation_duration=self.evaluation_duration,
+            llm_provider=self.llm_provider,
+            random_seed=seed,
+        )
+
+        engine.initialize_population()
+        evolved_fitness_history = []
+        converged_at = None
+
+        # Track best strategy seen across all generations
+        best_strategy = None
+
+        for gen in range(self.max_generations):
+            # Run evolutionary cycle and get best fitness & strategy from evaluated generation
+            best_fitness, best_strategy = engine.run_evolutionary_cycle()
+            evolved_fitness_history.append(best_fitness)
+
+            # Check convergence
+            if self.convergence_detector.has_converged(evolved_fitness_history):
+                converged_at = gen
+                print(f"\n✓ Converged at generation {gen}")
+                break
+
+        return ComparisonRun(
+            evolved_fitness=evolved_fitness_history,
+            baseline_fitness=baseline_fitness,
+            generations_to_convergence=converged_at,
+            final_best_strategy=best_strategy,
+            random_seed=seed,
+        )
+
+    def _evaluate_baselines(self) -> Dict[str, float]:
+        """Evaluate all baseline strategies once."""
+        baselines = self.baseline_generator.get_baseline_strategies()
+        results = {}
+
+        print("\n--- Evaluating Baseline Strategies ---")
+        for name, strategy in baselines.items():
+            metrics = self.crucible.evaluate_strategy_detailed(
+                strategy, self.evaluation_duration
+            )
+            results[name] = metrics.candidate_count
+            print(f"  {name:12s}: fitness = {metrics.candidate_count}")
+
+        return results
+
+    def analyze_results(self, runs: List[ComparisonRun]) -> Dict[str, any]:
+        """
+        Perform statistical analysis on comparison runs.
+
+        Returns dict with:
+        - comparison_results: Dict[baseline_name, ComparisonResult]
+        - convergence_stats: Mean/std generations to convergence
+        - num_runs: Number of runs analyzed
+        """
+        # Extract final evolved fitness from each run
+        final_evolved = [run.evolved_fitness[-1] for run in runs]
+
+        # Compare against each baseline
+        comparison_results = {}
+        for baseline_name in runs[0].baseline_fitness:
+            baseline_scores = [run.baseline_fitness[baseline_name] for run in runs]
+
+            result = self.statistical_analyzer.compare_fitness_distributions(
+                final_evolved, baseline_scores
+            )
+            comparison_results[baseline_name] = result
+
+        # Convergence statistics
+        convergence_gens = [
+            r.generations_to_convergence
+            for r in runs
+            if r.generations_to_convergence is not None
+        ]
+        convergence_stats = {
+            "mean": float(np.mean(convergence_gens)) if convergence_gens else None,
+            "std": float(np.std(convergence_gens)) if convergence_gens else None,
+            "convergence_rate": len(convergence_gens) / len(runs),
+        }
+
+        return {
+            "comparison_results": comparison_results,
+            "convergence_stats": convergence_stats,
+            "num_runs": len(runs),
+        }
+
+
+def print_llm_summary(llm_provider) -> None:
+    """Print LLM cost summary to console."""
+    print("\n💰 LLM Cost Summary:")
+    print(f"   Total API calls: {llm_provider.call_count}")
+    print(
+        f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
+    )
+    print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
 
 
 # ------------------------------------------------------------------------------
@@ -767,6 +1055,33 @@ if __name__ == "__main__":
         help="Random seed for reproducible runs (e.g., 42). Omit for non-deterministic behavior.",
     )
 
+    # Comparison mode arguments
+    parser.add_argument(
+        "--compare-baseline",
+        action="store_true",
+        help="Run comparison against baseline strategies with statistical analysis",
+    )
+    parser.add_argument(
+        "--num-comparison-runs",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Number of independent runs for comparison (default: 5)",
+    )
+    parser.add_argument(
+        "--convergence-window",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Generation window for convergence detection (default: 5)",
+    )
+    parser.add_argument(
+        "--export-comparison",
+        type=str,
+        metavar="PATH",
+        help="Export comparison results to JSON file",
+    )
+
     args = parser.parse_args()
 
     # Validate reproduction rates
@@ -810,44 +1125,149 @@ if __name__ == "__main__":
     else:
         print("📊 Rule-based mode (no LLM)")
 
-    # Create and run evolutionary engine
-    # Note: Random seed is applied in EvolutionaryEngine.__init__ if provided
+    # Create crucible
     crucible = FactorizationCrucible(args.number)
-    engine = EvolutionaryEngine(
-        crucible,
-        population_size=args.population,
-        llm_provider=llm_provider,
-        evaluation_duration=args.duration,
-        crossover_rate=args.crossover_rate,
-        mutation_rate=args.mutation_rate,
-        random_seed=args.seed,
-    )
 
-    print(f"\n🎯 Target number: {args.number}")
-    print(f"🧬 Generations: {args.generations}, Population: {args.population}")
-    print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
-    print(
-        f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random"
-    )
-    if args.seed is not None:
-        print(f"🎲 Random seed: {args.seed} (reproducible run)")
-    print()
-
-    engine.initialize_population()
-
-    for _ in range(args.generations):
-        engine.run_evolutionary_cycle()
-
-    # Display LLM cost summary if used
-    if llm_provider:
-        print("\n💰 LLM Cost Summary:")
-        print(f"   Total API calls: {llm_provider.call_count}")
-        print(
-            f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
-        )
-        print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
-
-    # Export metrics if requested
-    if args.export_metrics:
+    # Comparison mode vs normal evolution mode
+    if args.compare_baseline:
+        # Comparison mode: Run vs baselines with statistical analysis
+        print(f"\n🎯 Target number: {args.number}")
+        print(f"🧬 Generations: {args.generations}, Population: {args.population}")
+        print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
+        print(f"📊 Comparison runs: {args.num_comparison_runs}")
+        print(f"🔍 Convergence window: {args.convergence_window} generations")
+        if args.seed is not None:
+            print(f"🎲 Base seed: {args.seed} (reproducible runs)")
         print()
-        engine.export_metrics(args.export_metrics)
+
+        comparison_engine = ComparisonEngine(
+            crucible=crucible,
+            num_runs=args.num_comparison_runs,
+            max_generations=args.generations,
+            population_size=args.population,
+            evaluation_duration=args.duration,
+            convergence_window=args.convergence_window,
+            llm_provider=llm_provider,
+        )
+
+        runs = comparison_engine.run_comparison(base_seed=args.seed)
+        analysis = comparison_engine.analyze_results(runs)
+
+        # Print results
+        print("\n" + "=" * 60)
+        print("STATISTICAL COMPARISON RESULTS")
+        print("=" * 60)
+
+        for baseline_name, result in analysis["comparison_results"].items():
+            improvement_pct = (
+                (result.evolved_mean / result.baseline_mean - 1) * 100
+                if result.baseline_mean > 0
+                else float("inf")
+            )
+            print(f"\n{baseline_name.upper()} BASELINE:")
+            print(f"  Evolved mean:  {result.evolved_mean:.1f}")
+            print(f"  Baseline mean: {result.baseline_mean:.1f}")
+            print(f"  Improvement:   {improvement_pct:+.1f}%")
+            print(
+                f"  p-value:       {result.p_value:.4f} {'***' if result.is_significant else '(not significant)'}"
+            )
+            print(f"  Effect size:   {result.effect_size:.2f} (Cohen's d)")
+            print(
+                f"  95% CI:        [{result.confidence_interval[0]:.1f}, {result.confidence_interval[1]:.1f}]"
+            )
+
+        # Convergence stats
+        conv_stats = analysis["convergence_stats"]
+        print("\nCONVERGENCE STATISTICS:")
+        print(
+            f"  Convergence rate: {conv_stats['convergence_rate']:.0%} ({int(conv_stats['convergence_rate'] * args.num_comparison_runs)}/{args.num_comparison_runs} runs)"
+        )
+        if conv_stats["mean"] is not None:
+            print(
+                f"  Mean generations: {conv_stats['mean']:.1f} ± {conv_stats['std']:.1f}"
+            )
+
+        # Export if requested
+        if args.export_comparison:
+            data = {
+                "target_number": args.number,
+                "num_runs": args.num_comparison_runs,
+                "max_generations": args.generations,
+                "population_size": args.population,
+                "evaluation_duration": args.duration,
+                "base_seed": args.seed,
+                "runs": [
+                    {
+                        "evolved_fitness": run.evolved_fitness,
+                        "baseline_fitness": run.baseline_fitness,
+                        "generations_to_convergence": run.generations_to_convergence,
+                        "random_seed": run.random_seed,
+                    }
+                    for run in runs
+                ],
+                "analysis": {
+                    "comparison_results": {
+                        name: {
+                            "evolved_mean": float(result.evolved_mean),
+                            "baseline_mean": float(result.baseline_mean),
+                            "p_value": float(result.p_value),
+                            "effect_size": float(result.effect_size),
+                            "is_significant": bool(result.is_significant),
+                            "confidence_interval": [
+                                float(result.confidence_interval[0]),
+                                float(result.confidence_interval[1]),
+                            ],
+                        }
+                        for name, result in analysis["comparison_results"].items()
+                    },
+                    "convergence_stats": conv_stats,
+                },
+            }
+
+            output_file = Path(args.export_comparison)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_file, "w") as f:
+                json.dump(data, f, indent=2)
+
+            print(f"\n📁 Comparison results exported to: {args.export_comparison}")
+
+        # Display LLM cost summary if used
+        if llm_provider:
+            print_llm_summary(llm_provider)
+
+    else:
+        # Normal evolution mode
+        engine = EvolutionaryEngine(
+            crucible,
+            population_size=args.population,
+            llm_provider=llm_provider,
+            evaluation_duration=args.duration,
+            crossover_rate=args.crossover_rate,
+            mutation_rate=args.mutation_rate,
+            random_seed=args.seed,
+        )
+
+        print(f"\n🎯 Target number: {args.number}")
+        print(f"🧬 Generations: {args.generations}, Population: {args.population}")
+        print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
+        print(
+            f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random"
+        )
+        if args.seed is not None:
+            print(f"🎲 Random seed: {args.seed} (reproducible run)")
+        print()
+
+        engine.initialize_population()
+
+        for _ in range(args.generations):
+            _best_fitness, _best_strategy = engine.run_evolutionary_cycle()
+
+        # Display LLM cost summary if used
+        if llm_provider:
+            print_llm_summary(llm_provider)
+
+        # Export metrics if requested
+        if args.export_metrics:
+            print()
+            engine.export_metrics(args.export_metrics)
