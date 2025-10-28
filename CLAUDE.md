@@ -385,3 +385,39 @@ Typical prototype costs:
    - Wrong: `random.seed(args.seed)` in main(), then `random.seed(seed)` in __init__
    - Correct: Seed only in __init__ where component uses randomness
    - Impact: Eliminates confusion, ensures seeding happens correctly for all usage patterns
+
+## Critical Learnings from PR #14
+
+1. **Systematic Multi-Issue PR Review Handling**: Fix all issues in priority order
+   - Received 7 code review issues from gemini-code-assist and chatgpt-codex-connector
+   - Prioritized: 2 HIGH (ZeroDivisionError fixes), 1 CRITICAL (final_best_strategy bug), 4 MEDIUM (code quality)
+   - Fixed all in single commit with comprehensive testing
+   - Pattern: Discover → Prioritize → Fix by priority → Extract duplicates → Verify
+   - Success: 126 tests passing, all CI green
+
+2. **Critical Bug: Returning Unevaluated Strategy**: Capture state BEFORE mutation
+   - Issue: `final_best_strategy` selected from `engine.civilizations` AFTER `run_evolutionary_cycle()` completed
+   - Root cause: `run_evolutionary_cycle()` replaces civilizations with next generation (fitness=0, unevaluated)
+   - Wrong: `max(engine.civilizations.items(), key=lambda x: x[1]["fitness"])` after cycle → random unevaluated strategy
+   - Correct: Return `(best_fitness, best_strategy)` tuple BEFORE replacing civilizations
+   - Impact: Fixed major bug where exported ComparisonRun had wrong strategy; updated 8 call sites
+
+3. **Edge Case Handling: ZeroDivisionError in Statistical Analysis**
+   - Issue 1: `improvement_pct = ((evolved_mean / baseline_mean) - 1) * 100` when baseline_mean=0 (conservative finds no candidates)
+   - Fix: `improvement_pct = ... if baseline_mean > 0 else float("inf")`
+   - Issue 2: Welch-Satterthwaite df calculation when both variances zero: `df = num / den` when den=0
+   - Fix: `df = num / den if den > 0 else float(n1 + n2 - 2)`
+   - Test: Added `test_comparison_result_interpret_zero_baseline()` to prevent regression
+
+4. **DRY Principle Application**: Extract duplicate code immediately when spotted
+   - Duplicate 1: LLM cost summary (6 lines × 2 occurrences) → `print_llm_summary(llm_provider)` helper
+   - Duplicate 2: Convergence logic (20+ lines in 2 methods) → `_is_window_converged(window)` private method
+   - Impact: Reduces maintenance burden, single source of truth
+   - Timing: Fix during PR review, not "later"
+
+5. **Function Signature Evolution**: Update ALL call sites when changing return type
+   - Changed: `def run_evolutionary_cycle() -> float` → `-> tuple[float, Strategy]`
+   - Required: Update 8 call sites (main() + 4 test files)
+   - Method: `grep -r "run_evolutionary_cycle()"` to find all occurrences
+   - Pattern: `best_fitness, best_strategy = engine.run_evolutionary_cycle()`
+   - Why: Better to break at compile time than silently use wrong value
