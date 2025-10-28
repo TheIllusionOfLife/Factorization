@@ -952,7 +952,7 @@ class ComparisonEngine:
 
         # Compare against each baseline
         comparison_results = {}
-        for baseline_name in runs[0].baseline_fitness.keys():
+        for baseline_name in runs[0].baseline_fitness:
             baseline_scores = [run.baseline_fitness[baseline_name] for run in runs]
 
             result = self.statistical_analyzer.compare_fitness_distributions(
@@ -1167,7 +1167,7 @@ if __name__ == "__main__":
 
         # Convergence stats
         conv_stats = analysis["convergence_stats"]
-        print(f"\nCONVERGENCE STATISTICS:")
+        print("\nCONVERGENCE STATISTICS:")
         print(
             f"  Convergence rate: {conv_stats['convergence_rate']:.0%} ({int(conv_stats['convergence_rate'] * args.num_comparison_runs)}/{args.num_comparison_runs} runs)"
         )
@@ -1202,7 +1202,10 @@ if __name__ == "__main__":
                             "p_value": float(result.p_value),
                             "effect_size": float(result.effect_size),
                             "is_significant": bool(result.is_significant),
-                            "confidence_interval": [float(result.confidence_interval[0]), float(result.confidence_interval[1])],
+                            "confidence_interval": [
+                                float(result.confidence_interval[0]),
+                                float(result.confidence_interval[1]),
+                            ],
                         }
                         for name, result in analysis["comparison_results"].items()
                     },

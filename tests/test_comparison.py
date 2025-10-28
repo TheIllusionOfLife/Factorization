@@ -5,12 +5,11 @@ Following TDD: These tests are written BEFORE implementation.
 All tests should FAIL initially (RED phase).
 """
 
-import pytest
 from prototype import (
+    BaselineStrategyGenerator,
     ComparisonEngine,
     ComparisonRun,
     FactorizationCrucible,
-    BaselineStrategyGenerator,
 )
 
 
@@ -135,8 +134,12 @@ class TestComparisonEngine:
         baseline_aggressive = [run.baseline_fitness["aggressive"] for run in runs]
 
         # Balanced and aggressive should find candidates (conservative may be too strict)
-        assert all(f > 0 for f in baseline_balanced), "Balanced baseline should find candidates"
-        assert all(f > 0 for f in baseline_aggressive), "Aggressive baseline should find candidates"
+        assert all(f > 0 for f in baseline_balanced), (
+            "Balanced baseline should find candidates"
+        )
+        assert all(f > 0 for f in baseline_aggressive), (
+            "Aggressive baseline should find candidates"
+        )
 
     def test_convergence_detection_triggers_early_stop(self):
         """Test that convergence detection can stop before max generations."""
@@ -176,7 +179,9 @@ class TestComparisonEngine:
         assert len(run.evolved_fitness) >= 1
         assert len(run.evolved_fitness) <= 3
         # Fitness values should be non-negative
-        assert all(f >= 0 for f in run.evolved_fitness), "Fitness should be non-negative"
+        assert all(f >= 0 for f in run.evolved_fitness), (
+            "Fitness should be non-negative"
+        )
 
     def test_analyze_results_returns_comparison(self):
         """Test that analyze_results returns proper structure."""
@@ -219,7 +224,7 @@ class TestComparisonEngine:
         assert "aggressive" in comparison_results
 
         # Each comparison should have statistical data
-        for baseline_name, result in comparison_results.items():
+        for _baseline_name, result in comparison_results.items():
             assert hasattr(result, "p_value")
             assert hasattr(result, "effect_size")
             assert hasattr(result, "is_significant")

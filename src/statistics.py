@@ -279,9 +279,7 @@ class ConvergenceDetector:
 
         return bool(relative_var < self.threshold)
 
-    def generations_to_convergence(
-        self, fitness_history: List[float]
-    ) -> Optional[int]:
+    def generations_to_convergence(self, fitness_history: List[float]) -> Optional[int]:
         """
         Find the generation where convergence first occurred.
 

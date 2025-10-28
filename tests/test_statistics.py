@@ -6,11 +6,11 @@ All tests should FAIL initially (RED phase).
 """
 
 import pytest
-import numpy as np
+
 from src.statistics import (
     ComparisonResult,
-    StatisticalAnalyzer,
     ConvergenceDetector,
+    StatisticalAnalyzer,
 )
 
 
@@ -35,7 +35,9 @@ class TestStatisticalAnalyzer:
 
         result = analyzer.compare_fitness_distributions(scores1, scores2)
 
-        assert result.p_value > 0.05, "Identical distributions should not be significant"
+        assert result.p_value > 0.05, (
+            "Identical distributions should not be significant"
+        )
         assert not result.is_significant
         assert abs(result.evolved_mean - result.baseline_mean) < 0.1
         assert abs(result.effect_size) < 0.2  # Very small effect
@@ -197,7 +199,9 @@ class TestConvergenceDetector:
 
     def test_not_converged_with_large_variance(self):
         """Test that large variance prevents convergence."""
-        detector = ConvergenceDetector(window_size=3, threshold=0.001)  # Very strict threshold
+        detector = ConvergenceDetector(
+            window_size=3, threshold=0.001
+        )  # Very strict threshold
         # High variance in recent generations
         fitness_history = [100, 200, 500, 450, 550, 480, 520]
 
@@ -235,7 +239,7 @@ class TestConvergenceDetector:
         # Should handle gracefully (not crash)
         result = detector.has_converged(fitness_history)
         # Python bool, not numpy bool
-        assert type(result) == bool
+        assert isinstance(result, bool)
 
     def test_convergence_custom_threshold(self):
         """Test that threshold affects convergence detection."""
