@@ -6,7 +6,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -519,7 +519,7 @@ class EvolutionaryEngine:
         evaluation_duration: float = 0.1,
         crossover_rate: float = 0.3,
         mutation_rate: float = 0.5,
-        random_seed: int = None,
+        random_seed: Optional[int] = None,
     ):
         self.crucible = crucible
         self.population_size = population_size
@@ -527,6 +527,10 @@ class EvolutionaryEngine:
         self.crossover_rate = crossover_rate
         self.mutation_rate = mutation_rate
         self.random_rate = 1.0 - crossover_rate - mutation_rate
+
+        # Apply random seed for reproducibility
+        if random_seed is not None:
+            random.seed(random_seed)
         self.random_seed = random_seed
         self.civilizations: Dict[str, Dict] = {}
         self.generation = 0

@@ -178,7 +178,23 @@ def test_seed_none_exported_when_not_set(tmp_path):
 
 
 def test_crossover_reproducible_with_seed():
-    """Verify crossover operations are reproducible with seed."""
+    """Verify that random decisions (init, crossover, mutation) use the seed.
+
+    NOTE: This test verifies initial population reproducibility when crossover
+    is enabled. Full evolutionary reproducibility (across generations) is not
+    achievable due to time-based fitness evaluation causing slight variations
+    in candidate counts, which affects elite selection and subsequent breeding.
+
+    What IS reproducible with seed:
+    - Initial population generation
+    - Parent selection (given identical fitness scores)
+    - Crossover operations (combining parents)
+    - Mutation operations (strategy modifications)
+
+    What is NOT fully reproducible:
+    - Exact fitness scores (timing variations in evaluation loop)
+    - Evolutionary trajectory across generations (depends on fitness)
+    """
     random.seed(42)
     crucible1 = FactorizationCrucible(961730063)
     engine1 = EvolutionaryEngine(
@@ -219,5 +235,5 @@ def test_crossover_reproducible_with_seed():
         for civ in engine2.civilizations.values()
     ]
 
-    # Initial populations should be identical with same seed
+    # Initial populations should be identical with same seed (even with crossover enabled)
     assert initial_strategies1 == initial_strategies2
