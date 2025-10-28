@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
@@ -647,12 +649,13 @@ class EvolutionaryEngine:
             strategy = self.generator.random_strategy()
             self.civilizations[civ_id] = {"strategy": strategy, "fitness": 0}
 
-    def run_evolutionary_cycle(self) -> float:
+    def run_evolutionary_cycle(self) -> tuple[float, Strategy]:
         """
         1世代分の進化（評価、選択、繁殖）を実行する
 
         Returns:
-            Best fitness score from this generation (before creating next generation)
+            Tuple of (best fitness score, best strategy) from this generation
+            (before creating next generation)
         """
         print(f"\n===== Generation {self.generation}: Evaluating Strategies =====")
 
@@ -707,8 +710,9 @@ class EvolutionaryEngine:
         num_elites = max(1, int(self.population_size * 0.2))
         elites = sorted_civs[:num_elites]
 
-        # IMPORTANT: Capture best fitness BEFORE civilizations is replaced
+        # IMPORTANT: Capture best fitness and strategy BEFORE civilizations is replaced
         best_fitness_this_gen = elites[0][1]["fitness"]
+        best_strategy_this_gen = elites[0][1]["strategy"]
 
         print(
             f"\n--- Top performing civilization in Generation {self.generation}: "
@@ -783,7 +787,7 @@ class EvolutionaryEngine:
         self.civilizations = next_generation_civs
         self.generation += 1
 
-        return best_fitness_this_gen
+        return best_fitness_this_gen, best_strategy_this_gen
 
     def export_metrics(self, output_path: str) -> None:
         """Export metrics history to JSON file."""
@@ -898,9 +902,12 @@ class ComparisonEngine:
         evolved_fitness_history = []
         converged_at = None
 
+        # Track best strategy seen across all generations
+        best_strategy = None
+
         for gen in range(self.max_generations):
-            # Run evolutionary cycle and get best fitness from evaluated generation
-            best_fitness = engine.run_evolutionary_cycle()
+            # Run evolutionary cycle and get best fitness & strategy from evaluated generation
+            best_fitness, best_strategy = engine.run_evolutionary_cycle()
             evolved_fitness_history.append(best_fitness)
 
             # Check convergence
@@ -908,10 +915,6 @@ class ComparisonEngine:
                 converged_at = gen
                 print(f"\n✓ Converged at generation {gen}")
                 break
-
-        # Get final best strategy
-        best_civ = max(engine.civilizations.items(), key=lambda x: x[1]["fitness"])
-        best_strategy = best_civ[1]["strategy"]
 
         return ComparisonRun(
             evolved_fitness=evolved_fitness_history,
@@ -945,8 +948,6 @@ class ComparisonEngine:
         - convergence_stats: Mean/std generations to convergence
         - num_runs: Number of runs analyzed
         """
-        import numpy as np
-
         # Extract final evolved fitness from each run
         final_evolved = [run.evolved_fitness[-1] for run in runs]
 
@@ -977,6 +978,16 @@ class ComparisonEngine:
             "convergence_stats": convergence_stats,
             "num_runs": len(runs),
         }
+
+
+def print_llm_summary(llm_provider) -> None:
+    """Print LLM cost summary to console."""
+    print("\n💰 LLM Cost Summary:")
+    print(f"   Total API calls: {llm_provider.call_count}")
+    print(
+        f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
+    )
+    print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
 
 
 # ------------------------------------------------------------------------------
@@ -1223,12 +1234,7 @@ if __name__ == "__main__":
 
         # Display LLM cost summary if used
         if llm_provider:
-            print("\n💰 LLM Cost Summary:")
-            print(f"   Total API calls: {llm_provider.call_count}")
-            print(
-                f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
-            )
-            print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
+            print_llm_summary(llm_provider)
 
     else:
         # Normal evolution mode
@@ -1255,16 +1261,11 @@ if __name__ == "__main__":
         engine.initialize_population()
 
         for _ in range(args.generations):
-            engine.run_evolutionary_cycle()
+            _best_fitness, _best_strategy = engine.run_evolutionary_cycle()
 
         # Display LLM cost summary if used
         if llm_provider:
-            print("\n💰 LLM Cost Summary:")
-            print(f"   Total API calls: {llm_provider.call_count}")
-            print(
-                f"   Total tokens: {llm_provider.input_tokens} in, {llm_provider.output_tokens} out"
-            )
-            print(f"   Estimated cost: ${llm_provider.total_cost:.6f}")
+            print_llm_summary(llm_provider)
 
         # Export metrics if requested
         if args.export_metrics:

@@ -326,3 +326,22 @@ class TestComparisonResult:
         # Should be able to calculate 50% improvement
         improvement_pct = ((result.evolved_mean / result.baseline_mean) - 1) * 100
         assert abs(improvement_pct - 50.0) < 0.1
+
+    def test_comparison_result_interpret_zero_baseline(self):
+        """Test interpretation when baseline mean is zero."""
+        result = ComparisonResult(
+            evolved_mean=105.0,
+            baseline_mean=0.0,
+            t_statistic=0.8,
+            p_value=0.4,
+            effect_size=float("inf"),
+            is_significant=False,
+            confidence_interval=(-10.0, 220.0),
+        )
+
+        # Should handle zero baseline gracefully (no ZeroDivisionError)
+        interpretation = result.interpret()
+        assert isinstance(interpretation, str)
+        assert len(interpretation) > 20  # Meaningful description
+        # Should mention infinite improvement
+        assert "inf" in interpretation.lower()

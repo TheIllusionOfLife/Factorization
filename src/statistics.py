@@ -36,7 +36,11 @@ class ComparisonResult:
         - Direction and magnitude of improvement
         - Effect size interpretation
         """
-        improvement_pct = ((self.evolved_mean / self.baseline_mean) - 1) * 100
+        improvement_pct = (
+            ((self.evolved_mean / self.baseline_mean) - 1) * 100
+            if self.baseline_mean > 0
+            else float("inf")
+        )
 
         # Effect size interpretation (Cohen's d)
         if abs(self.effect_size) < 0.2:
@@ -210,10 +214,11 @@ class StatisticalAnalyzer:
         if se1 == 0 and se2 == 0:
             df = float(n1 + n2 - 2)
         else:
-            df = (se1**2 + se2**2) ** 2 / (
-                (se1**4 / (n1 - 1) if n1 > 1 else 0)
-                + (se2**4 / (n2 - 1) if n2 > 1 else 0)
+            df_num = (se1**2 + se2**2) ** 2
+            df_den = (se1**4 / (n1 - 1) if n1 > 1 else 0) + (
+                se2**4 / (n2 - 1) if n2 > 1 else 0
             )
+            df = df_num / df_den if df_den > 0 else float(n1 + n2 - 2)
 
         # t-critical value
         alpha = 1 - confidence
@@ -245,6 +250,27 @@ class ConvergenceDetector:
         self.window_size = window_size
         self.threshold = threshold
 
+    def _is_window_converged(self, window: List[float]) -> bool:
+        """
+        Check if a window of fitness scores has converged.
+
+        Args:
+            window: List of fitness scores to check
+
+        Returns:
+            True if window has converged, False otherwise
+        """
+        mean = np.mean(window)
+        variance = np.var(window)
+
+        # Handle edge case: mean near zero
+        if abs(mean) < 1e-10:
+            return bool(variance < 1e-6)
+
+        # Relative variance (coefficient of variation squared)
+        relative_var = variance / (mean**2)
+        return bool(relative_var < self.threshold)
+
     def has_converged(self, fitness_history: List[float]) -> bool:
         """
         Detect if fitness has plateaued (converged).
@@ -266,18 +292,7 @@ class ConvergenceDetector:
         # Get recent window
         recent = fitness_history[-self.window_size :]
 
-        mean = float(np.mean(recent))
-        variance = float(np.var(recent))
-
-        # Handle edge case: mean near zero
-        if abs(mean) < 1e-10:
-            # If fitness is near zero, check absolute variance
-            return bool(variance < 1e-6)
-
-        # Relative variance (coefficient of variation squared)
-        relative_var = variance / (mean**2)
-
-        return bool(relative_var < self.threshold)
+        return bool(self._is_window_converged(recent))
 
     def generations_to_convergence(self, fitness_history: List[float]) -> Optional[int]:
         """
@@ -298,16 +313,7 @@ class ConvergenceDetector:
         for i in range(self.window_size - 1, len(fitness_history)):
             window = fitness_history[i - self.window_size + 1 : i + 1]
 
-            mean = np.mean(window)
-            variance = np.var(window)
-
-            # Check convergence for this window
-            if abs(mean) < 1e-10:
-                if variance < 1e-6:
-                    return i
-            else:
-                relative_var = variance / (mean**2)
-                if relative_var < self.threshold:
-                    return i
+            if self._is_window_converged(window):
+                return i
 
         return None

@@ -38,7 +38,7 @@ def test_same_seed_produces_identical_fitness_scores():
         crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
     )
     engine1.initialize_population()
-    engine1.run_evolutionary_cycle()
+    _best_fitness, _best_strategy = engine1.run_evolutionary_cycle()
     fitness_gen1_run1 = sorted(
         [civ["fitness"] for civ in engine1.civilizations.values()]
     )
@@ -48,7 +48,7 @@ def test_same_seed_produces_identical_fitness_scores():
         crucible2, population_size=5, evaluation_duration=0.05, random_seed=42
     )
     engine2.initialize_population()
-    engine2.run_evolutionary_cycle()
+    _best_fitness2, _best_strategy2 = engine2.run_evolutionary_cycle()
     fitness_gen1_run2 = sorted(
         [civ["fitness"] for civ in engine2.civilizations.values()]
     )
@@ -67,7 +67,7 @@ def test_same_seed_multiple_generations_reproducible():
 
     fitness_history1 = []
     for _ in range(3):
-        engine1.run_evolutionary_cycle()
+        _best_fitness, _best_strategy = engine1.run_evolutionary_cycle()
         fitness_history1.append(
             sorted([civ["fitness"] for civ in engine1.civilizations.values()])
         )
@@ -80,7 +80,7 @@ def test_same_seed_multiple_generations_reproducible():
 
     fitness_history2 = []
     for _ in range(3):
-        engine2.run_evolutionary_cycle()
+        _best_fitness2, _best_strategy2 = engine2.run_evolutionary_cycle()
         fitness_history2.append(
             sorted([civ["fitness"] for civ in engine2.civilizations.values()])
         )

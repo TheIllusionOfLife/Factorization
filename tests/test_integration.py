@@ -158,7 +158,7 @@ def test_evolutionary_engine_evaluation_duration():
     engine.initialize_population()
 
     # Run one cycle - this evaluates current gen and creates next gen
-    engine.run_evolutionary_cycle()
+    _best_fitness, _best_strategy = engine.run_evolutionary_cycle()
 
     # After run_evolutionary_cycle, civilizations contains NEXT generation (fitness=0)
     # But we can verify the cycle completed quickly (thanks to short duration)

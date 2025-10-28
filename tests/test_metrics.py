@@ -185,7 +185,7 @@ class TestMetricsHistoryTracking:
         )
 
         engine.initialize_population()
-        engine.run_evolutionary_cycle()
+        _best_fitness, _best_strategy = engine.run_evolutionary_cycle()
 
         # Should have metrics for one generation
         assert len(engine.metrics_history) == 1
@@ -209,7 +209,7 @@ class TestMetricsHistoryTracking:
 
         # Run 3 generations
         for _ in range(3):
-            engine.run_evolutionary_cycle()
+            _best_fitness, _best_strategy = engine.run_evolutionary_cycle()
 
         # Should have metrics for 3 generations
         assert len(engine.metrics_history) == 3
@@ -230,7 +230,7 @@ class TestMetricsExport:
         )
 
         engine.initialize_population()
-        engine.run_evolutionary_cycle()
+        _best_fitness, _best_strategy = engine.run_evolutionary_cycle()
 
         # Export to temporary file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -267,7 +267,7 @@ class TestMetricsExport:
         )
 
         engine.initialize_population()
-        engine.run_evolutionary_cycle()
+        _best_fitness, _best_strategy = engine.run_evolutionary_cycle()
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             temp_path = f.name
@@ -320,14 +320,14 @@ class TestIntegrationWithExistingCode:
         engine.initialize_population()
 
         # Run first generation evaluation
-        engine.run_evolutionary_cycle()
+        _best_fitness, _best_strategy = engine.run_evolutionary_cycle()
 
         # Verify metrics were collected for generation 0
         assert len(engine.metrics_history) == 1
         assert all(isinstance(m, EvaluationMetrics) for m in engine.metrics_history[0])
 
         # Run second generation to verify metrics are stored for evaluated civs
-        engine.run_evolutionary_cycle()
+        _best_fitness, _best_strategy = engine.run_evolutionary_cycle()
 
         # Verify metrics for generation 1
         assert len(engine.metrics_history) == 2
