@@ -557,3 +557,35 @@ Typical prototype costs:
    - Fix: `return self.current_stats.copy()` prevents callers from modifying internal state
    - Why: Defensive programming - internal state should be immutable from outside
    - Impact: Eliminated subtle mutation bugs
+
+## Critical Learnings from PR #21
+
+1. **Modular Refactoring with Zero Breaking Changes**: Bottom-up extraction + compatibility shim
+   - Pattern: Foundation modules (no deps) → Dependent modules → High-level modules → Shim
+   - Example: Split prototype.py (1449 lines) → 6 modules (metrics, strategy, crucible, evolution, comparison, main)
+   - Shim: Re-export all from old file for backward compatibility: `from src.X import Y`
+   - Impact: All 164 tests passing, zero breaking changes, improved code organization
+
+2. **Conditional Dependency Imports**: Import heavy dependencies only when features are used
+   - Issue: Importing ComparisonEngine at module level required scipy for all users
+   - Solution: Move import inside `if args.compare_baseline:` block
+   - Pattern: `if feature_enabled: from heavy_module import FeatureClass`
+   - Impact: Basic mode works without scipy; comparison mode imports only when needed
+
+3. **CLI Validation for Core Parameters**: Prevent crashes with clear error messages
+   - Issue: `generations=0`, `population=0`, `num_comparison_runs=0` caused crashes (assertion, IndexError, division by zero)
+   - Solution: Add validation after argument parsing with descriptive errors
+   - Pattern: `if args.param < 1: sys.exit("❌ ERROR: param must be >= 1")`
+   - Impact: User-friendly errors instead of cryptic tracebacks
+
+4. **ValueError Handling in Config Loading**: Catch all config-related exceptions
+   - Issue: `load_config()` raises ValueError when GEMINI_API_KEY missing, only ImportError was caught
+   - Solution: Add `except ValueError as e:` with hint about setting environment variable
+   - Pattern: Catch specific config errors (ValueError, KeyError) before generic ImportError
+   - Impact: Friendly error message instead of crash
+
+5. **Semantic Consistency Across Evaluation Paths**: Same edge cases must behave identically
+   - Issue: `Strategy.__call__` returned True for candidate==0, but `evaluate_strategy_detailed` skipped it
+   - Solution: Both paths now return False for candidate==0
+   - Why: Inconsistent semantics make simple vs detailed evaluation incomparable
+   - Impact: Consistent behavior enables reliable benchmarking
