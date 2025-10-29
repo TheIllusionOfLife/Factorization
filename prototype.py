@@ -650,7 +650,6 @@ class EvolutionaryEngine:
         # Meta-learning for adaptive operator selection
         if enable_meta_learning:
             from src.adaptive_engine import MetaLearningEngine
-            from src.meta_learning import OperatorMetadata
 
             self.meta_learner = MetaLearningEngine(adaptation_window=adaptation_window)
             self.rate_history: List[Dict[str, float]] = []
