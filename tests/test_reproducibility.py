@@ -2,8 +2,8 @@
 
 import json
 
-from src.config import Config
 from prototype import EvolutionaryEngine, FactorizationCrucible
+from src.config import Config
 
 
 def test_same_seed_produces_identical_initial_population():

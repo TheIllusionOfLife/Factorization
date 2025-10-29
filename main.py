@@ -222,11 +222,7 @@ def main():
     from src.config import Config, load_config
     try:
         # Load base config from environment (.env file)
-        if args.llm:
-            config = load_config()
-        else:
-            # Non-LLM mode: create minimal config
-            config = Config(api_key="", llm_enabled=False)
+        config = load_config() if args.llm else Config(api_key="", llm_enabled=False)
 
         # Override with CLI arguments (only if provided)
         if args.duration is not None:

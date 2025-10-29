@@ -1,6 +1,7 @@
 """Tests for centralized configuration management system."""
 
 import pytest
+
 from src.config import Config
 
 

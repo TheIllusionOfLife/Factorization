@@ -1,6 +1,7 @@
 """Shared test fixtures for all test files."""
 
 import pytest
+
 from src.config import Config
 
 
