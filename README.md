@@ -257,6 +257,45 @@ The notebook provides:
 - Smoothness quality trends
 - Best strategy analysis
 
+#### Visualizing Comparison Results
+
+After running comparison mode with `--export-comparison`, visualize the statistical analysis:
+
+1. **Create results directory** (if it doesn't exist):
+   ```bash
+   mkdir -p results
+   ```
+
+2. **Run comparison with export**:
+   ```bash
+   python prototype.py --compare-baseline --num-comparison-runs 5 \
+     --generations 10 --population 10 --seed 42 \
+     --export-comparison results/comparison_20251029.json
+   ```
+
+3. **Visualize in Jupyter notebook**:
+   ```bash
+   jupyter notebook analysis/visualize_comparison.ipynb
+   ```
+
+4. **Update the comparison file path** in Cell 2:
+   ```python
+   comparison_file = "../results/comparison_20251029.json"
+   ```
+
+The visualization notebook provides:
+- **Fitness evolution curves**: Evolved strategies vs 3 baselines over generations
+- **Statistical comparison**: Bar charts with p-values, effect sizes, confidence intervals
+- **Effect size analysis**: Cohen's d interpretation (small/medium/large improvements)
+- **Convergence analysis**: When and how often fitness plateaus
+- **Improvement consistency**: Box plots showing variance across runs
+- **Summary statistics**: Complete statistical report with interpretations
+
+**Example insights**:
+- "Evolution beats Balanced baseline by 45% with large effect size (d=1.2, p<0.001)"
+- "80% of runs converged within 6 generations (efficient optimization)"
+- "Conservative baseline too strict (fitness=0) - evolved strategies 10x better"
+
 ### Expected Output
 
 #### Rule-Based Mode
