@@ -3,7 +3,7 @@
 import json
 import random
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from src.crucible import FactorizationCrucible
 from src.metrics import EvaluationMetrics
@@ -59,14 +59,15 @@ class EvolutionaryEngine:
             )  # llm_provider=None で従来と同じ動作
 
         # Meta-learning for adaptive operator selection
+        self.rate_history: List[Dict[str, float]] = []
         if enable_meta_learning:
             from src.adaptive_engine import MetaLearningEngine
 
-            self.meta_learner = MetaLearningEngine(adaptation_window=adaptation_window)
-            self.rate_history: List[Dict[str, float]] = []
+            self.meta_learner: Optional["MetaLearningEngine"] = MetaLearningEngine(
+                adaptation_window=adaptation_window
+            )
         else:
             self.meta_learner = None
-            self.rate_history = []
 
     def initialize_population(self):
         """最初の文明（戦略）群を生成する"""
@@ -324,7 +325,7 @@ class EvolutionaryEngine:
 
     def export_metrics(self, output_path: str) -> None:
         """Export metrics history to JSON file."""
-        data = {
+        data: Dict[str, Any] = {
             "target_number": self.crucible.N,
             "generation_count": self.generation,
             "population_size": self.population_size,
@@ -338,7 +339,7 @@ class EvolutionaryEngine:
 
         # Add operator history if meta-learning was enabled
         if self.meta_learner:
-            operator_history = []
+            operator_history: List[Dict[str, Any]] = []
             for gen, gen_stats in enumerate(self.meta_learner.operator_history):
                 # operator_history[i] contains stats from generation i+1
                 # rate_history[i+1] contains the rates that created generation i+1

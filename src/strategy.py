@@ -3,7 +3,7 @@
 import logging
 import random
 from dataclasses import dataclass
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ def blend_modulus_filters(
         Blended list of (modulus, residues) tuples
     """
     # Merge filters by modulus using set operations for efficiency
-    filter_dict = {}
+    filter_dict: dict[int, List[int]] = {}
 
     for modulus, residues in filters1 + filters2:
         if modulus in filter_dict:

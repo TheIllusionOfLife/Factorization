@@ -1,7 +1,7 @@
 """Comparison engine and baseline strategies."""
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -195,7 +195,7 @@ class ComparisonEngine:
         converged_at = None
 
         # Track best strategy seen across all generations
-        best_strategy = None
+        best_strategy: Optional[Strategy] = None
 
         for gen in range(self.max_generations):
             # Run evolutionary cycle and get best fitness & strategy from evaluated generation
@@ -208,6 +208,9 @@ class ComparisonEngine:
                 print(f"\n✓ Converged at generation {gen}")
                 break
 
+        # At least one generation must have run, so best_strategy is not None
+        assert best_strategy is not None, "No generations completed"
+
         return ComparisonRun(
             evolved_fitness=evolved_fitness_history,
             baseline_fitness=baseline_fitness,
@@ -219,19 +222,19 @@ class ComparisonEngine:
     def _evaluate_baselines(self) -> Dict[str, float]:
         """Evaluate all baseline strategies once."""
         baselines = self.baseline_generator.get_baseline_strategies()
-        results = {}
+        results: Dict[str, float] = {}
 
         print("\n--- Evaluating Baseline Strategies ---")
         for name, strategy in baselines.items():
             metrics = self.crucible.evaluate_strategy_detailed(
                 strategy, self.evaluation_duration
             )
-            results[name] = metrics.candidate_count
+            results[name] = float(metrics.candidate_count)
             print(f"  {name:12s}: fitness = {metrics.candidate_count}")
 
         return results
 
-    def analyze_results(self, runs: List[ComparisonRun]) -> Dict[str, any]:
+    def analyze_results(self, runs: List[ComparisonRun]) -> Dict[str, Any]:
         """
         Perform statistical analysis on comparison runs.
 

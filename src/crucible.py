@@ -6,9 +6,9 @@ import time
 from typing import Callable
 
 from src.metrics import (
-    EvaluationMetrics,
     MAX_EXAMPLE_CANDIDATES_TO_STORE,
     MAX_SMOOTHNESS_SCORES_TO_STORE,
+    EvaluationMetrics,
 )
 from src.strategy import SMALL_PRIMES, Strategy
 
