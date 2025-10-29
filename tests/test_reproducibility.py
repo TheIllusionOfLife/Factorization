@@ -2,14 +2,16 @@
 
 import json
 
+from src.config import Config
 from prototype import EvolutionaryEngine, FactorizationCrucible
 
 
 def test_same_seed_produces_identical_initial_population():
     """Verify same seed produces identical initial population."""
+    config = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     crucible1 = FactorizationCrucible(961730063)
     engine1 = EvolutionaryEngine(
-        crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible1, population_size=5, config=config, random_seed=42
     )
     engine1.initialize_population()
     strategies1 = [
