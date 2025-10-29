@@ -35,7 +35,7 @@ def main():
         "--duration",
         type=float,
         metavar="SECS",
-        help="Evaluation duration in seconds (default: from config, usually 0.1)",
+        help="Evaluation duration in seconds (default: 0.1, overrides config if provided)",
     )
     parser.add_argument(
         "--llm",

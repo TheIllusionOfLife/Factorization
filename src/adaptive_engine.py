@@ -73,6 +73,8 @@ class MetaLearningEngine:
             raise ValueError(
                 f"fallback rates must be in [0,1], got inf={fallback_inf_rate}, finite={fallback_finite_rate}"
             )
+        # Use tight epsilon (1e-9) for exact equality check - these must sum to exactly 1.0
+        # (unlike Config which uses 0.01 for edge cases like 3*0.33 = 0.99)
         if not abs(fallback_inf_rate + fallback_finite_rate - 1.0) < 1e-9:
             raise ValueError(
                 f"fallback_inf_rate + fallback_finite_rate must equal 1.0, got "

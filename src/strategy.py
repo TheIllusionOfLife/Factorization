@@ -19,7 +19,7 @@ class Strategy:
     modulus_filters: List[Tuple[int, List[int]]]
     smoothness_bound: int
     min_small_prime_hits: int
-    _config: Optional[object] = None  # Store config for normalization
+    _config: Optional[Config] = None  # Store config for normalization
 
     def __post_init__(self) -> None:
         self._normalize(self._config)

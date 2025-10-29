@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import asdict, dataclass
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 
 from dotenv import load_dotenv
 
@@ -14,7 +14,14 @@ class Config:
 
     This dataclass holds ALL tunable parameters for the system,
     providing a single source of truth for configuration.
+
+    All parameters are validated in __post_init__() and will raise
+    ValueError if constraints are violated.
     """
+
+    # Epsilon tolerance for floating point comparisons (1% tolerance)
+    # Accounts for edge cases like 3 * 0.33 = 0.99 (should pass 1.0 check)
+    EPSILON: ClassVar[float] = 0.01
 
     # ===== LLM Configuration (existing) =====
     api_key: str
@@ -76,7 +83,7 @@ class Config:
                 f"mutation_rate must be in [0, 1], got {self.mutation_rate}"
             )
 
-        if self.crossover_rate + self.mutation_rate > 1.0 + 1e-9:
+        if self.crossover_rate + self.mutation_rate > 1.0 + self.EPSILON:
             raise ValueError(
                 f"Sum of crossover_rate + mutation_rate must be <= 1.0, "
                 f"got {self.crossover_rate} + {self.mutation_rate} = "
@@ -98,16 +105,13 @@ class Config:
                 f"got min={self.meta_learning_min_rate}, max={self.meta_learning_max_rate}"
             )
 
-        # Use larger epsilon for floating point comparisons (0.01 = 1%)
-        epsilon = 0.01
-
-        if 3 * self.meta_learning_min_rate > 1.0 + epsilon:
+        if 3 * self.meta_learning_min_rate > 1.0 + self.EPSILON:
             raise ValueError(
                 f"Infeasible bounds: 3 * min_rate > 1.0, "
                 f"got 3 * {self.meta_learning_min_rate} = {3 * self.meta_learning_min_rate}"
             )
 
-        if 3 * self.meta_learning_max_rate < 1.0 - epsilon:
+        if 3 * self.meta_learning_max_rate < 1.0 - self.EPSILON:
             raise ValueError(
                 f"Infeasible bounds: 3 * max_rate < 1.0, "
                 f"got 3 * {self.meta_learning_max_rate} = {3 * self.meta_learning_max_rate}"
