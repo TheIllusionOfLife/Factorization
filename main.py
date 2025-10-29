@@ -5,7 +5,6 @@ import json
 import sys
 from pathlib import Path
 
-from src.comparison import ComparisonEngine, print_llm_summary
 from src.crucible import FactorizationCrucible
 from src.evolution import EvolutionaryEngine
 
@@ -131,10 +130,24 @@ def main():
         )
         sys.exit(1)
 
+    # Validate core loop sizes
+    if args.generations < 1:
+        print(f"❌ ERROR: generations must be >= 1 (got {args.generations})")
+        sys.exit(1)
+    if args.population < 1:
+        print(f"❌ ERROR: population must be >= 1 (got {args.population})")
+        sys.exit(1)
+    if args.compare_baseline and args.num_comparison_runs < 1:
+        print(
+            f"❌ ERROR: num-comparison-runs must be >= 1 (got {args.num_comparison_runs})"
+        )
+        sys.exit(1)
+
     # Initialize LLM provider if requested
     llm_provider = None
     if args.llm:
         try:
+            from src.comparison import print_llm_summary
             from src.config import load_config
             from src.llm.gemini import GeminiProvider
 
@@ -147,6 +160,10 @@ def main():
             llm_provider = GeminiProvider(config.api_key, config)
             print("✅ LLM mode enabled (Gemini 2.5 Flash Lite)")
             print(f"   Max API calls: {config.max_llm_calls}")
+        except ValueError as e:
+            print(f"❌ ERROR: {e}")
+            print("Hint: set GEMINI_API_KEY in .env or run without --llm")
+            sys.exit(1)
         except ImportError as e:
             print(f"❌ ERROR: Missing dependencies for LLM mode: {e}")
             print("Please run: pip install -r requirements.txt")
@@ -159,6 +176,9 @@ def main():
 
     # Comparison mode vs normal evolution mode
     if args.compare_baseline:
+        # Import optional comparison dependencies only when needed
+        from src.comparison import ComparisonEngine
+
         # Comparison mode: Run vs baselines with statistical analysis
         print(f"\n🎯 Target number: {args.number}")
         print(f"🧬 Generations: {args.generations}, Population: {args.population}")

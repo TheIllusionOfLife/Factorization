@@ -45,8 +45,9 @@ class Strategy:
 
     def __call__(self, x: int, n: int) -> bool:
         candidate = abs(pow(x, self.power) - n)
+        # Skip zero candidates (consistent with evaluate_strategy_detailed)
         if candidate == 0:
-            return True
+            return False
 
         for modulus, residues in self.modulus_filters:
             if candidate % modulus not in residues:
