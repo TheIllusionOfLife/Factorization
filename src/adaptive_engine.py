@@ -309,7 +309,9 @@ class MetaLearningEngine:
             Constrained rates that sum to 1.0
         """
         operators = list(rates.keys())
-        result = {op: max(self.min_rate, min(self.max_rate, rates[op])) for op in operators}
+        result = {
+            op: max(self.min_rate, min(self.max_rate, rates[op])) for op in operators
+        }
 
         # Iteratively adjust to sum to 1.0 while respecting bounds
         for _ in range(20):  # Max iterations to prevent infinite loop

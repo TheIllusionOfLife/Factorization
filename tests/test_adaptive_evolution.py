@@ -204,7 +204,9 @@ class TestMetaLearningEngineIntegration:
             engine.run_evolutionary_cycle()
 
             # Check rates sum to 1.0 after each generation
-            total_rate = engine.crossover_rate + engine.mutation_rate + engine.random_rate
+            total_rate = (
+                engine.crossover_rate + engine.mutation_rate + engine.random_rate
+            )
             assert abs(total_rate - 1.0) < 1e-6
 
     def test_operator_history_exported(self):
