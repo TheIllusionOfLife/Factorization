@@ -38,7 +38,29 @@ class MetaLearningEngine:
             adaptation_window: Generations to consider for adaptation (default: 5)
             min_rate: Minimum rate for any operator (default: 0.1)
             max_rate: Maximum rate for any operator (default: 0.7)
+
+        Raises:
+            ValueError: If rate bounds are invalid or infeasible
         """
+        # Validate rate bounds
+        if not (0.0 <= min_rate <= max_rate <= 1.0):
+            raise ValueError(
+                f"Rate bounds must satisfy 0 ≤ min_rate ≤ max_rate ≤ 1, "
+                f"got min_rate={min_rate}, max_rate={max_rate}"
+            )
+
+        # Check feasibility: 3 operators must fit within constraints
+        if 3 * min_rate > 1.0 + 1e-9:
+            raise ValueError(
+                f"Infeasible bounds: 3 * min_rate ({3 * min_rate:.3f}) > 1.0. "
+                f"Cannot satisfy min_rate={min_rate} for all 3 operators."
+            )
+        if 3 * max_rate < 1.0 - 1e-9:
+            raise ValueError(
+                f"Infeasible bounds: 3 * max_rate ({3 * max_rate:.3f}) < 1.0. "
+                f"Cannot distribute rates with max_rate={max_rate} for all 3 operators."
+            )
+
         self.adaptation_window = adaptation_window
         self.min_rate = min_rate
         self.max_rate = max_rate
@@ -234,16 +256,22 @@ class MetaLearningEngine:
         # Handle infinite scores (untried operators)
         has_inf = any(math.isinf(score) for score in ucb_scores.values())
         if has_inf:
-            # Give equal high rate to all infinite-score operators
             inf_count = sum(1 for score in ucb_scores.values() if math.isinf(score))
-            finite_count = 3 - inf_count
-            inf_rate = 0.8 / inf_count if inf_count > 0 else 0
-            finite_rate = 0.2 / finite_count if finite_count > 0 else 0
+            if inf_count == 3:
+                # All operators untried - use uniform distribution
+                return {"crossover": 1 / 3, "mutation": 1 / 3, "random": 1 / 3}
 
-            rates = {}
-            for operator, score in ucb_scores.items():
-                rates[operator] = inf_rate if math.isinf(score) else finite_rate
-            return rates
+            # Some operators untried - give them priority (80% total)
+            finite_count = 3 - inf_count
+            inf_rate = 0.8 / inf_count
+            finite_rate = 0.2 / finite_count
+
+            rates = {
+                operator: inf_rate if math.isinf(score) else finite_rate
+                for operator, score in ucb_scores.items()
+            }
+            # Enforce bounds and renormalize
+            return self._enforce_rate_bounds(rates)
 
         # Normalize scores to [0, 1] range
         min_score = min(ucb_scores.values())
@@ -272,6 +300,7 @@ class MetaLearningEngine:
         """Enforce min/max rate constraints.
 
         Ensures all rates are within [min_rate, max_rate] and sum to 1.0.
+        Uses iterative adjustment to satisfy both constraints simultaneously.
 
         Args:
             rates: Unconstrained rates
@@ -279,14 +308,34 @@ class MetaLearningEngine:
         Returns:
             Constrained rates that sum to 1.0
         """
-        # Clip to bounds
-        clipped = {
-            op: max(self.min_rate, min(self.max_rate, rate))
-            for op, rate in rates.items()
-        }
+        operators = list(rates.keys())
+        result = {op: max(self.min_rate, min(self.max_rate, rates[op])) for op in operators}
 
-        # Renormalize to sum to 1.0
-        total = sum(clipped.values())
-        normalized = {op: rate / total for op, rate in clipped.items()}
+        # Iteratively adjust to sum to 1.0 while respecting bounds
+        for _ in range(20):  # Max iterations to prevent infinite loop
+            total = sum(result.values())
+            if abs(total - 1.0) < 1e-9:
+                break
 
-        return normalized
+            # Find operators that can be adjusted (not at bounds)
+            adjustable = [
+                op
+                for op in operators
+                if (total > 1.0 and result[op] > self.min_rate)
+                or (total < 1.0 and result[op] < self.max_rate)
+            ]
+
+            if not adjustable:
+                # Can't adjust further - normalize what we have
+                # This handles infeasible constraint cases
+                result = {op: v / total for op, v in result.items()}
+                break
+
+            # Distribute surplus/deficit equally among adjustable operators
+            adjustment = (1.0 - total) / len(adjustable)
+            for op in adjustable:
+                new_val = result[op] + adjustment
+                # Clip to bounds
+                result[op] = max(self.min_rate, min(self.max_rate, new_val))
+
+        return result

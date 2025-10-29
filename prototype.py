@@ -659,6 +659,16 @@ class EvolutionaryEngine:
 
     def initialize_population(self):
         """最初の文明（戦略）群を生成する"""
+        # Store initial rates for generation 0 if meta-learning enabled
+        if self.meta_learner:
+            self.rate_history.append(
+                {
+                    "crossover": self.crossover_rate,
+                    "mutation": self.mutation_rate,
+                    "random": self.random_rate,
+                }
+            )
+
         for i in range(self.population_size):
             civ_id = f"civ_{self.generation}_{i}"
             strategy = self.generator.random_strategy()
@@ -760,10 +770,14 @@ class EvolutionaryEngine:
                 metadata = civ_data["operator_metadata"]
                 fitness = civ_data["fitness"]
 
-                # Calculate fitness improvement over parent
-                parent_fitness = (
-                    metadata.parent_fitness[0] if metadata.parent_fitness else 0
-                )
+                # Calculate fitness improvement over parent(s)
+                # For crossover (2 parents), use average; for mutation (1 parent), use that parent
+                if metadata.parent_fitness:
+                    parent_fitness = sum(metadata.parent_fitness) / len(
+                        metadata.parent_fitness
+                    )
+                else:
+                    parent_fitness = 0
                 improvement = fitness - parent_fitness
                 became_elite = civ_id in elite_ids
 
@@ -914,9 +928,13 @@ class EvolutionaryEngine:
         if self.meta_learner:
             operator_history = []
             for gen, gen_stats in enumerate(self.meta_learner.operator_history):
+                # operator_history[i] contains stats from generation i+1
+                # rate_history[i+1] contains the rates that created generation i+1
+                # So we pair them: operator_history[i] with rate_history[i+1]
+                rate_index = gen + 1
                 rates = (
-                    self.rate_history[gen]
-                    if gen < len(self.rate_history)
+                    self.rate_history[rate_index]
+                    if rate_index < len(self.rate_history)
                     else {
                         "crossover": self.crossover_rate,
                         "mutation": self.mutation_rate,
@@ -925,7 +943,7 @@ class EvolutionaryEngine:
                 )
                 operator_history.append(
                     {
-                        "generation": gen,
+                        "generation": gen + 1,  # Actual generation number (1, 2, 3...)
                         "rates": rates,
                         "operator_stats": {
                             op: stats.to_dict() for op, stats in gen_stats.items()

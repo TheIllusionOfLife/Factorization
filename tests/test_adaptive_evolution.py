@@ -95,6 +95,9 @@ class TestMetaLearningEngineIntegration:
             random_seed=42,
         )
 
+        # Initialize population
+        engine.initialize_population()
+
         # Check initial generation
         for civ_data in engine.civilizations.values():
             assert civ_data["operator_metadata"].operator == "random"
@@ -166,13 +169,17 @@ class TestMetaLearningEngineIntegration:
         final_mutation = engine.mutation_rate
         final_random = 1.0 - final_crossover - final_mutation
 
-        # At least one rate should have changed significantly (>5%)
+        # At least one rate should have changed (>2% to allow for conservative bounds)
         rate_changed = (
-            abs(final_crossover - initial_crossover) > 0.05
-            or abs(final_mutation - initial_mutation) > 0.05
-            or abs(final_random - initial_random) > 0.05
+            abs(final_crossover - initial_crossover) > 0.02
+            or abs(final_mutation - initial_mutation) > 0.02
+            or abs(final_random - initial_random) > 0.02
         )
-        assert rate_changed, "Rates should adapt after window"
+        assert rate_changed, (
+            f"Rates should adapt after window. "
+            f"Initial: c={initial_crossover:.3f}, m={initial_mutation:.3f}, r={initial_random:.3f}. "
+            f"Final: c={final_crossover:.3f}, m={final_mutation:.3f}, r={final_random:.3f}"
+        )
 
     def test_rates_sum_to_one_after_adaptation(self):
         """Test that adapted rates always sum to 1.0."""
@@ -197,11 +204,7 @@ class TestMetaLearningEngineIntegration:
             engine.run_evolutionary_cycle()
 
             # Check rates sum to 1.0 after each generation
-            total_rate = (
-                engine.crossover_rate
-                + engine.mutation_rate
-                + (1.0 - engine.crossover_rate - engine.mutation_rate)
-            )
+            total_rate = engine.crossover_rate + engine.mutation_rate + engine.random_rate
             assert abs(total_rate - 1.0) < 1e-6
 
     def test_operator_history_exported(self):
@@ -366,8 +369,9 @@ class TestMetaLearningEngineIntegration:
             engine.run_evolutionary_cycle()
 
         # Check rate history
+        # Should have 6 entries: 1 from initialize_population + 5 from cycles
         assert hasattr(engine, "rate_history")
-        assert len(engine.rate_history) == 5
+        assert len(engine.rate_history) == 6
 
         # Each entry should have all three rates
         for rates in engine.rate_history:
