@@ -5,7 +5,7 @@ This module provides dataclasses for tracking which reproduction operators
 (crossover, mutation, random) create strategies and their performance.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List
 
 

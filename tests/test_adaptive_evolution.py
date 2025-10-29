@@ -13,12 +13,9 @@ import random
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from prototype import (
     EvolutionaryEngine,
     FactorizationCrucible,
-    LLMStrategyGenerator,
     StrategyGenerator,
 )
 from src.meta_learning import OperatorMetadata
@@ -77,7 +74,7 @@ class TestMetaLearningEngineIntegration:
         best_fitness, best_strategy = engine.run_evolutionary_cycle()
 
         # All civilizations should have operator metadata
-        for civ_id, civ_data in engine.civilizations.items():
+        for _civ_id, civ_data in engine.civilizations.items():
             assert "operator_metadata" in civ_data
             metadata = civ_data["operator_metadata"]
             assert isinstance(metadata, OperatorMetadata)
@@ -121,7 +118,7 @@ class TestMetaLearningEngineIntegration:
         engine.initialize_population()
 
         # Run 3 generations
-        for gen in range(3):
+        for _gen in range(3):
             engine.run_evolutionary_cycle()
 
         # Check that we have history for 2 generations
@@ -237,7 +234,7 @@ class TestMetaLearningEngineIntegration:
             engine.export_metrics(temp_path)
 
             # Read and verify JSON
-            with open(temp_path, "r") as f:
+            with open(temp_path) as f:
                 data = json.load(f)
 
             assert "operator_history" in data
@@ -282,7 +279,7 @@ class TestMetaLearningEngineIntegration:
         try:
             engine.export_metrics(temp_path)
 
-            with open(temp_path, "r") as f:
+            with open(temp_path) as f:
                 data = json.load(f)
 
             assert "operator_history" in data
@@ -315,7 +312,7 @@ class TestMetaLearningEngineIntegration:
         engine.run_evolutionary_cycle()
 
         # Check that non-random operators have parent fitness
-        for civ_id, civ_data in engine.civilizations.items():
+        for _civ_id, civ_data in engine.civilizations.items():
             metadata = civ_data["operator_metadata"]
             if metadata.operator in ["crossover", "mutation"]:
                 assert len(metadata.parent_fitness) > 0

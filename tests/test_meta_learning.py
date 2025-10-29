@@ -8,17 +8,14 @@ Tests cover:
 - Integration with EvolutionaryEngine
 """
 
-import random
-from typing import Dict
 
-import pytest
 
+from src.adaptive_engine import MetaLearningEngine
 from src.meta_learning import (
     AdaptiveRates,
     OperatorMetadata,
     OperatorStatistics,
 )
-from src.adaptive_engine import MetaLearningEngine
 
 
 class TestOperatorMetadata:

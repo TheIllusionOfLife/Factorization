@@ -169,7 +169,7 @@ class MetaLearningEngine:
                 agg.total_fitness_improvement += stats.total_fitness_improvement
 
         # Calculate averages and success rates
-        for operator, stats in aggregated.items():
+        for _operator, stats in aggregated.items():
             if stats.total_offspring > 0:
                 stats.avg_fitness_improvement = (
                     stats.total_fitness_improvement / stats.total_offspring
