@@ -137,7 +137,10 @@ class ComparisonEngine:
         evaluation_duration: float = 0.1,
         convergence_window: int = 5,
         llm_provider=None,
+        config=None,
     ):
+        from src.config import Config
+
         self.crucible = crucible
         self.num_runs = num_runs
         self.max_generations = max_generations
@@ -145,6 +148,7 @@ class ComparisonEngine:
         self.evaluation_duration = evaluation_duration
         self.convergence_window = convergence_window
         self.llm_provider = llm_provider
+        self.config = config if config is not None else Config(api_key="", llm_enabled=False)
 
         self.baseline_generator = BaselineStrategyGenerator()
         self.convergence_detector = ConvergenceDetector(window_size=convergence_window)
@@ -185,7 +189,7 @@ class ComparisonEngine:
         engine = EvolutionaryEngine(
             crucible=self.crucible,
             population_size=self.population_size,
-            evaluation_duration=self.evaluation_duration,
+            config=self.config,
             llm_provider=self.llm_provider,
             random_seed=seed,
         )

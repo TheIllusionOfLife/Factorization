@@ -336,6 +336,7 @@ class EvolutionaryEngine:
             "population_size": self.population_size,
             "evaluation_duration": self.evaluation_duration,
             "random_seed": self.random_seed,
+            "config": self.config.to_dict(),  # Export config (excluding api_key)
             "metrics_history": [
                 [metrics.to_dict() for metrics in generation]
                 for generation in self.metrics_history
