@@ -510,3 +510,38 @@ Typical prototype costs:
    - Added directory creation instruction to main README: `mkdir -p results`
    - Why: Users need to know what directories are for and how to create them
    - Impact: Prevents FileNotFoundError when following README examples
+
+## Critical Learnings from PR #18
+
+1. **GraphQL for Complete PR Feedback Coverage**: Use GraphQL single query instead of multiple REST calls
+   - Created `/tmp/pr_feedback_query.gql` with atomic query fetching comments, reviews, line comments, CI annotations
+   - Replaced broken REST approach (404 errors on empty collections) with 100% reliable coverage
+   - Pattern: Single GraphQL query → Parse JSON → Filter by timestamp
+   - Why: REST API returns 404 for empty review collections; GraphQL returns empty arrays
+   - Impact: Zero missed reviewer feedback, eliminated false negatives
+
+2. **Incremental Post-Commit Review Handling**: Always check for new feedback after pushing fixes
+   - Pattern: Fix issues → Commit → Push → Wait for CI → Check for NEW feedback since commit
+   - Use `/fix_pr_since_commit_graphql` to filter feedback by timestamp vs second-to-last commit
+   - Why: Reviewers (especially AI) can post feedback AFTER you push fixes
+   - Example: PR #18 received 6 new comments from claude-review after initial fixes pushed
+   - Impact: Prevented merge with unaddressed feedback
+
+3. **Warning Testing Pattern**: Test warning mechanisms with mock patching
+   - Pattern: Create mock that forces non-convergence → Use `pytest.warns()` → Verify warning message
+   - Example: `test_enforce_rate_bounds_convergence_warning` patches method to force max iterations
+   - Use `stacklevel=2` in `warnings.warn()` for proper source tracking (prevents B028 lint error)
+   - Why: Convergence failures are rare in normal operation but must be tested
+   - Impact: Verified warning mechanism works without waiting for pathological inputs
+
+4. **Bounds Validation Testing**: Always test initialization validators
+   - Added 3 tests: `min > max`, `3*min > 1.0`, `3*max < 1.0`
+   - Pattern: `pytest.raises(ValueError, match="regex")` for validation errors
+   - Why: Validation exists but wasn't tested - could silently break
+   - Impact: Caught feasibility bugs before production use
+
+5. **Mutation Prevention in Getters**: Return copies from getter methods
+   - Issue: `get_current_statistics()` returned direct reference, allowing external mutation
+   - Fix: `return self.current_stats.copy()` prevents callers from modifying internal state
+   - Why: Defensive programming - internal state should be immutable from outside
+   - Impact: Eliminated subtle mutation bugs
