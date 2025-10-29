@@ -60,7 +60,6 @@ class Strategy:
         return self._count_small_prime_hits(candidate) >= self.min_small_prime_hits
 
     def _normalize(self, config=None) -> None:
-
         if config is None:
             config = Config(api_key="", llm_enabled=False)
 
@@ -181,7 +180,6 @@ def crossover_strategies(parent1: Strategy, parent2: Strategy, config=None) -> S
 
 class StrategyGenerator:
     def __init__(self, primes: Sequence[int] = SMALL_PRIMES, config=None) -> None:
-
         self.primes = list(primes)
         self.config = (
             config if config is not None else Config(api_key="", llm_enabled=False)
@@ -324,7 +322,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=parent.modulus_filters[:],
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
-            _config=self.config,
+                _config=self.config,
             )
 
         elif mutation_type == "add_filter":
@@ -340,7 +338,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=new_filters,
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
-            _config=self.config,
+                _config=self.config,
             )
 
         elif mutation_type == "modify_filter":
@@ -357,7 +355,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=new_filters,
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
-            _config=self.config,
+                _config=self.config,
             )
 
         elif mutation_type == "remove_filter":
@@ -379,7 +377,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=new_filters,
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
-            _config=self.config,
+                _config=self.config,
             )
 
         elif mutation_type == "adjust_smoothness":
@@ -398,7 +396,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=parent.modulus_filters[:],
                 smoothness_bound=new_bound,
                 min_small_prime_hits=new_hits,
-            _config=self.config,
+                _config=self.config,
             )
 
         # 未知の変異タイプの場合は親をそのまま返す
