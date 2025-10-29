@@ -421,3 +421,24 @@ Typical prototype costs:
    - Method: `grep -r "run_evolutionary_cycle()"` to find all occurrences
    - Pattern: `best_fitness, best_strategy = engine.run_evolutionary_cycle()`
    - Why: Better to break at compile time than silently use wrong value
+## Critical Learnings from PR #16
+
+1. **Jupyter Notebook Edge Case Robustness**: Always defend against unexpected data conditions
+   - Use `.get()` with defaults for JSON keys: `runs = data.get("runs", [])`
+   - Check empty collections before operations: `if not all_evolved: ... else: max_gens = max(..., default=0)`
+   - Handle None before formatting: `if conv_stats['mean'] is not None: ... else: "No runs converged"`
+   - Conditional expressions for division by zero: `improvement_pct = ... if baseline_mean > 0 else float("inf")`
+   - Impact: Notebooks handle edge cases gracefully (0% convergence, baseline=0, empty runs)
+   - Why: Experimental data often has unexpected conditions; robust handling enables exploration
+
+2. **Systematic PR Review Response**: Address all feedback comprehensively in priority order
+   - PR #16: Fixed 5 robustness issues from gemini-code-assist and chatgpt-codex-connector
+   - Issues: KeyError, ValueError (empty runs), IndexError (runs[0]), ValueError (ci_upper), TypeError (None formatting)
+   - Pattern: Read ALL review comments → Prioritize by severity → Fix systematically → Test edge cases → Commit
+   - Result: All edge cases tested and passing, documentation complete
+
+3. **results/ Directory Documentation**: Document data directories even if gitignored
+   - Created `results/README.md` explaining purpose, usage, file format
+   - Added directory creation instruction to main README: `mkdir -p results`
+   - Why: Users need to know what directories are for and how to create them
+   - Impact: Prevents FileNotFoundError when following README examples
