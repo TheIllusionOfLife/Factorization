@@ -618,6 +618,9 @@ class EvolutionaryEngine:
         crossover_rate: float = 0.3,
         mutation_rate: float = 0.5,
         random_seed: Optional[int] = None,
+        enable_meta_learning: bool = False,
+        adaptation_window: int = 5,
+        generator: Optional['StrategyGenerator'] = None,
     ):
         self.crucible = crucible
         self.population_size = population_size
@@ -635,19 +638,43 @@ class EvolutionaryEngine:
         self.metrics_history: List[List[EvaluationMetrics]] = []
 
         # LLM統合版または従来版のジェネレータを選択
-        if llm_provider:
+        if generator:
+            self.generator = generator
+        elif llm_provider:
             self.generator = LLMStrategyGenerator(llm_provider=llm_provider)
         else:
             self.generator = (
                 LLMStrategyGenerator()
             )  # llm_provider=None で従来と同じ動作
 
+        # Meta-learning for adaptive operator selection
+        if enable_meta_learning:
+            from src.adaptive_engine import MetaLearningEngine
+            from src.meta_learning import OperatorMetadata
+
+            self.meta_learner = MetaLearningEngine(adaptation_window=adaptation_window)
+            self.rate_history: List[Dict[str, float]] = []
+        else:
+            self.meta_learner = None
+            self.rate_history = []
+
     def initialize_population(self):
         """最初の文明（戦略）群を生成する"""
         for i in range(self.population_size):
             civ_id = f"civ_{self.generation}_{i}"
             strategy = self.generator.random_strategy()
-            self.civilizations[civ_id] = {"strategy": strategy, "fitness": 0}
+
+            # Create civilization with operator metadata if meta-learning enabled
+            civ_data = {"strategy": strategy, "fitness": 0}
+            if self.meta_learner:
+                from src.meta_learning import OperatorMetadata
+                civ_data["operator_metadata"] = OperatorMetadata(
+                    operator="random",
+                    parent_ids=[],
+                    parent_fitness=[],
+                    generation=self.generation,
+                )
+            self.civilizations[civ_id] = civ_data
 
     def run_evolutionary_cycle(self) -> tuple[float, Strategy]:
         """
@@ -726,6 +753,54 @@ class EvolutionaryEngine:
             if len(self.generator.fitness_history) > 5:
                 self.generator.fitness_history = self.generator.fitness_history[-5:]
 
+        # Meta-learning: Update operator statistics
+        if self.meta_learner and self.generation > 0:
+            elite_ids = {civ_id for civ_id, _ in elites}
+            for civ_id, civ_data in self.civilizations.items():
+                metadata = civ_data["operator_metadata"]
+                fitness = civ_data["fitness"]
+
+                # Calculate fitness improvement over parent
+                parent_fitness = (
+                    metadata.parent_fitness[0] if metadata.parent_fitness else 0
+                )
+                improvement = fitness - parent_fitness
+                became_elite = civ_id in elite_ids
+
+                self.meta_learner.update_statistics(
+                    operator=metadata.operator,
+                    fitness_improvement=improvement,
+                    became_elite=became_elite,
+                )
+
+            # Finalize this generation's statistics
+            self.meta_learner.finalize_generation()
+
+        # Meta-learning: Adapt rates based on operator performance
+        if self.meta_learner and self.generation >= self.meta_learner.adaptation_window:
+            adaptive_rates = self.meta_learner.calculate_adaptive_rates(
+                current_rates={
+                    "crossover": self.crossover_rate,
+                    "mutation": self.mutation_rate,
+                    "random": self.random_rate,
+                }
+            )
+            self.crossover_rate = adaptive_rates.crossover_rate
+            self.mutation_rate = adaptive_rates.mutation_rate
+            self.random_rate = adaptive_rates.random_rate
+            print(
+                f"   📊 Adapted rates: {self.crossover_rate:.2f} crossover, "
+                f"{self.mutation_rate:.2f} mutation, {self.random_rate:.2f} random"
+            )
+
+        # Track rate history
+        if self.meta_learner:
+            self.rate_history.append({
+                "crossover": self.crossover_rate,
+                "mutation": self.mutation_rate,
+                "random": self.random_rate,
+            })
+
         # 繁殖: エリート戦略を基に、次世代の文明（戦略）を生成
         # Use configurable rates: crossover, mutation, random newcomers
         next_generation_civs = {}
@@ -735,6 +810,10 @@ class EvolutionaryEngine:
             new_civ_id = f"civ_{self.generation + 1}_{i}"
 
             rand = random.random()
+            operator_used = None
+            parent_ids = []
+            parent_fitness_list = []
+
             if rand < self.crossover_rate:
                 # Crossover: Combine two elite parents
                 if len(elites) >= 2:
@@ -746,6 +825,9 @@ class EvolutionaryEngine:
                         parent1_strategy, parent2_strategy
                     )
                     offspring_sources["crossover"] += 1
+                    operator_used = "crossover"
+                    parent_ids = [parent1_civ[0], parent2_civ[0]]
+                    parent_fitness_list = [parent1_civ[1]["fitness"], parent2_civ[1]["fitness"]]
                 else:
                     # Fallback to mutation if only one elite
                     parent_civ = random.choice(elites)
@@ -758,6 +840,9 @@ class EvolutionaryEngine:
                     else:
                         new_strategy = self.generator.mutate_strategy(parent_strategy)
                     offspring_sources["mutation"] += 1
+                    operator_used = "mutation"
+                    parent_ids = [parent_civ[0]]
+                    parent_fitness_list = [parent_civ[1]["fitness"]]
             elif rand < self.crossover_rate + self.mutation_rate:
                 # Mutation: Mutate single elite parent
                 parent_civ = random.choice(elites)
@@ -771,12 +856,28 @@ class EvolutionaryEngine:
                 else:
                     new_strategy = self.generator.mutate_strategy(parent_strategy)
                 offspring_sources["mutation"] += 1
+                operator_used = "mutation"
+                parent_ids = [parent_civ[0]]
+                parent_fitness_list = [parent_civ[1]["fitness"]]
             else:
                 # Random newcomer: Introduce genetic diversity
                 new_strategy = self.generator.random_strategy()
                 offspring_sources["random"] += 1
+                operator_used = "random"
+                parent_ids = []
+                parent_fitness_list = []
 
-            next_generation_civs[new_civ_id] = {"strategy": new_strategy, "fitness": 0}
+            # Create civilization with operator metadata if meta-learning enabled
+            civ_data = {"strategy": new_strategy, "fitness": 0}
+            if self.meta_learner:
+                from src.meta_learning import OperatorMetadata
+                civ_data["operator_metadata"] = OperatorMetadata(
+                    operator=operator_used,
+                    parent_ids=parent_ids,
+                    parent_fitness=parent_fitness_list,
+                    generation=self.generation + 1,
+                )
+            next_generation_civs[new_civ_id] = civ_data
 
         print(
             f"   Offspring: {offspring_sources['crossover']} crossover, "
@@ -802,6 +903,27 @@ class EvolutionaryEngine:
                 for generation in self.metrics_history
             ],
         }
+
+        # Add operator history if meta-learning was enabled
+        if self.meta_learner:
+            operator_history = []
+            for gen, gen_stats in enumerate(self.meta_learner.operator_history):
+                rates = self.rate_history[gen] if gen < len(self.rate_history) else {
+                    "crossover": self.crossover_rate,
+                    "mutation": self.mutation_rate,
+                    "random": self.random_rate,
+                }
+                operator_history.append({
+                    "generation": gen,
+                    "rates": rates,
+                    "operator_stats": {
+                        op: stats.to_dict()
+                        for op, stats in gen_stats.items()
+                    },
+                })
+            data["operator_history"] = operator_history
+        else:
+            data["operator_history"] = None
 
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -1055,6 +1177,20 @@ if __name__ == "__main__":
         help="Random seed for reproducible runs (e.g., 42). Omit for non-deterministic behavior.",
     )
 
+    # Meta-learning arguments
+    parser.add_argument(
+        "--meta-learning",
+        action="store_true",
+        help="Enable meta-learning: adapt operator rates based on performance",
+    )
+    parser.add_argument(
+        "--adaptation-window",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Generations to consider for rate adaptation (default: 5)",
+    )
+
     # Comparison mode arguments
     parser.add_argument(
         "--compare-baseline",
@@ -1246,14 +1382,22 @@ if __name__ == "__main__":
             crossover_rate=args.crossover_rate,
             mutation_rate=args.mutation_rate,
             random_seed=args.seed,
+            enable_meta_learning=args.meta_learning,
+            adaptation_window=args.adaptation_window,
         )
 
         print(f"\n🎯 Target number: {args.number}")
         print(f"🧬 Generations: {args.generations}, Population: {args.population}")
         print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
-        print(
-            f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random"
-        )
+        if args.meta_learning:
+            print(
+                f"🔀 Reproduction: {args.crossover_rate:.0%} crossover (initial), {args.mutation_rate:.0%} mutation (initial), {engine.random_rate:.0%} random (initial)"
+            )
+            print(f"🧠 Meta-learning enabled: Rates will adapt based on performance (window={args.adaptation_window})")
+        else:
+            print(
+                f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random"
+            )
         if args.seed is not None:
             print(f"🎲 Random seed: {args.seed} (reproducible run)")
         print()
