@@ -575,7 +575,7 @@ Typical prototype costs:
 3. **CLI Validation for Core Parameters**: Prevent crashes with clear error messages
    - Issue: `generations=0`, `population=0`, `num_comparison_runs=0` caused crashes (assertion, IndexError, division by zero)
    - Solution: Add validation after argument parsing with descriptive errors
-   - Pattern: `if args.param < 1: print("❌ ERROR: param must be >= 1"); sys.exit(1)`
+   - Pattern: `if args.param < 1: sys.exit("❌ ERROR: param must be >= 1")`
    - Impact: User-friendly errors instead of cryptic tracebacks
 
 4. **ValueError Handling in Config Loading**: Catch all config-related exceptions
