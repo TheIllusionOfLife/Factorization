@@ -519,10 +519,27 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 
 ## Session Handover
 
-### Last Updated: October 29, 2025 06:30 PM JST
+### Last Updated: October 29, 2025 11:12 PM JST
 
 #### Recently Completed
-- ✅ [PR #18](https://github.com/TheIllusionOfLife/Factorization/pull/18): Meta-Learning for Adaptive Operator Selection (Week 7-8)
+- ✅ [PR #21](https://github.com/TheIllusionOfLife/Factorization/pull/21): Modular Architecture Refactoring (Week 8)
+  - Split monolithic prototype.py (1449 lines) into 6 focused modules (36-379 lines each)
+  - Created modular structure: metrics, strategy, crucible, evolution, comparison, main.py
+  - Maintained 100% backward compatibility via prototype.py re-export shim
+  - Fixed 5 critical review issues: ruff UP037 (quoted type), conditional imports (scipy), ValueError handling, CLI validation, semantic consistency
+  - All 164 tests passing, zero breaking changes
+  - Addressed feedback from 4 reviewers (gemini-code-assist, chatgpt-codex-connector, coderabbitai, claude)
+  - CI fixes: Conditional dependency imports (scipy only for comparison mode), CLI validation (generations/population >= 1), ValueError exception handling
+  - Semantic fix: candidate==0 returns False in both evaluation paths for consistency
+  - Documentation updated: CLAUDE.md reflects new modular structure, main.py as primary entry point
+
+- ✅ [PR #20](https://github.com/TheIllusionOfLife/Factorization/pull/20): Consolidated Development Plan
+  - Synthesized 5 independent code reviews into unified development roadmap
+  - Organized by priority: Immediate (6-8h), High (5-7h), Medium, Deferred
+  - Removed attribution, focused on actionable tasks
+  - Plan: Modular refactoring (Task 1 - completed in PR #21), config management, logging, CLI testing
+
+- ✅ [PR #18](https://github.com/TheIllusionOfLife/Factorization/pull/18): Meta-Learning for Adaptive Operator Selection (Week 7)
   - Implemented adaptive operator rate selection using UCB1 algorithm for exploration-exploitation balance
   - Added MetaLearningEngine with comprehensive bounds validation and iterative rate adjustment
   - Operator metadata tracking: provenance (crossover/mutation/random), parent fitness, generation
@@ -588,39 +605,51 @@ For production factorization, use established tools like [CADO-NFS](https://cado
    - Fixed in commit `010fac1`
 
 #### Next Priority Tasks
-1. **Documentation Clarity Improvements** (Low Priority - Polish)
+1. **Task 2: Config Management System** (High Priority from plan_20251029.md)
+   - Source: Post-PR #21 from development plan
+   - Context: Currently configuration scattered across CLI args, .env, and defaults
+   - Tasks:
+     - Create centralized config system (pydantic BaseSettings or similar)
+     - Unify LLM config, evolutionary params, meta-learning settings
+     - Support config file + environment variables + CLI overrides (precedence)
+     - Add validation for interdependent parameters
+   - Approach: config.py with Settings class, load hierarchy, validation
+   - Priority: HIGH (enables better user experience and maintainability)
+   - Estimated: 5-7 hours
+
+2. **Task 3: Production Logging System** (High Priority from plan_20251029.md)
+   - Source: Post-PR #21 from development plan
+   - Context: Logger exists but not configured; no structured logging
+   - Tasks:
+     - Configure log levels (DEBUG/INFO/WARNING/ERROR)
+     - Add structured logging (JSON output option)
+     - Environment-based configuration (dev vs production)
+     - Log rotation and file output
+   - Approach: logging.config, handler setup, format strings
+   - Priority: HIGH (critical for debugging and production deployment)
+   - Estimated: 2-3 hours
+
+3. **Documentation Clarity Improvements** (Low Priority - Polish)
    - Source: PR #18 post-merge review feedback
    - Context: Two LOW priority suggestions from final review
    - Tasks:
-     - Update docs to clarify "continuously adapts using rolling N-generation window" (currently says "adapt every N generations")
-     - Extract `MAX_CONVERGENCE_ITERATIONS = 20` constant in adaptive_engine.py:319
-   - Approach: Quick doc update + constant extraction (5-10 minutes)
+     - Update docs to clarify "continuously adapts using rolling N-generation window"
+     - Extract `MAX_CONVERGENCE_ITERATIONS = 20` constant
    - Priority: LOW (cosmetic improvements, functionality correct)
-
-2. **Add Production Logging Configuration** (Optional Enhancement)
-   - Source: PR #2 review feedback (low priority)
-   - Context: Logger created but not configured with appropriate log levels
-   - Approach: Add logging config with environment-based levels (DEBUG/INFO/WARNING)
-   - Priority: Low (nice-to-have for production deployment)
-
-3. **Extract Magic Numbers to Config** (Optional Enhancement)
-   - Source: PR #2 review feedback (low priority)
-   - Context: Hardcoded percentages (0.2 for elite selection, 0.8/1.2 temperatures)
-   - Approach: Move to configuration constants for tuneability
-   - Priority: Low (current values work well, optimization not critical)
+   - Estimated: 5-10 minutes
 
 #### Known Issues / Blockers
 - None currently blocking development
 
 #### Session Learnings
+- **Modular Refactoring Workflow** (PR #21): Bottom-up extraction (foundation → dependent → high-level) + compatibility shim = zero breaking changes. Test imports after each module. All 164 tests passed via re-export shim.
+- **Conditional Dependency Imports** (PR #21): Import heavy dependencies (scipy, numpy) only when features used, not at module top. Pattern: `if feature_enabled: from heavy_module import Class`. Fixes: basic mode works without scipy.
+- **CLI Validation for Core Params** (PR #21): Add validation AFTER argparse for parameters that cause crashes (generations/population >= 1). Pattern: `if args.param < 1: print("❌ ERROR"); sys.exit(1)`. Prevents IndexError, assertion failures, division by zero.
+- **Semantic Consistency Across Paths** (PR #21): Same edge case must behave identically in all code paths (simple/detailed, fast/slow). Fixed: candidate==0 returns False in both `__call__` and `evaluate_detailed` for comparable results.
 - **GraphQL for Complete PR Feedback** (PR #18): Use single GraphQL query instead of multiple REST calls - REST returns 404 on empty collections, GraphQL returns empty arrays. Created `/tmp/pr_feedback_query.gql` with atomic query fetching comments, reviews, line comments, CI annotations - zero missed feedback
 - **Incremental Post-Commit Review** (PR #18): Always check for NEW feedback after pushing fixes using `/fix_pr_since_commit_graphql` - claude-review posted 6 comments AFTER initial fixes pushed
 - **Warning Testing Pattern** (PR #18): Test warning mechanisms with mock patching - `pytest.warns()` + forced non-convergence path. Use `stacklevel=2` in `warnings.warn()` for proper source tracking (prevents B028 lint error)
 - **Bounds Validation Testing** (PR #18): Always test initialization validators with `pytest.raises(ValueError, match="regex")` - validation can exist but remain untested and break silently
-- **Mutation Prevention in Getters** (PR #18): Return `.copy()` from getter methods to prevent external mutation of internal state - defensive programming eliminates subtle bugs
-- **Jupyter Notebook Edge Case Robustness** (PR #16): Always use `.get()` with defaults for JSON keys, check empty collections before operations, handle None before formatting, use conditional expressions for division by zero
-- **Critical Bug Pattern - State Capture** (PR #14): Capture state BEFORE mutation/replacement - `final_best_strategy` bug showed importance of returning data before civilizations replaced
-- **Function Signature Evolution** (PR #14): When changing return type (float → tuple), grep for ALL call sites and update - missed call site = runtime error
 
 ---
 
