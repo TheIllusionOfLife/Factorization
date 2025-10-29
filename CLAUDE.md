@@ -328,6 +328,199 @@ Generation 5:
 
 **Validation**: Raises ValueError if LLM enabled but API key missing (fail-fast pattern)
 
+## Configuration Management System
+
+### Overview
+
+The system uses a centralized `Config` dataclass (`src/config.py`) that eliminates magic numbers and provides a single source of truth for all tunable parameters. This was implemented to address technical debt from hardcoded values scattered across the codebase.
+
+### Architecture
+
+**Configuration Sources** (in priority order):
+1. **Default values** in `Config` dataclass fields (lowest priority)
+2. **Environment variables** loaded via `load_config()` from `.env` file
+3. **CLI arguments** parsed in `main.py` (highest priority - overrides everything)
+
+**Configuration Flow**:
+```
+.env file → load_config() → Config(defaults)
+                                ↓
+CLI args → Override Config fields
+                                ↓
+                    Config.__post_init__() validates
+                                ↓
+            Pass Config to all components
+```
+
+### Config Dataclass Structure
+
+**23 total parameters organized into 5 categories**:
+
+1. **LLM Configuration** (7 params):
+   - `api_key`, `max_llm_calls`, `llm_enabled`
+   - `temperature_base`, `temperature_max`, `max_tokens`, `temperature_scaling_generations`
+
+2. **Evolution Parameters** (4 params):
+   - `elite_selection_rate` (0.2) - Top X% become parents
+   - `crossover_rate` (0.3) - Fraction from two parents
+   - `mutation_rate` (0.5) - Fraction from single parent
+   - `evaluation_duration` (0.1) - Seconds per strategy
+
+3. **Meta-Learning Parameters** (5 params):
+   - `meta_learning_min_rate` (0.1), `meta_learning_max_rate` (0.7)
+   - `adaptation_window` (5) - Generations for rate adaptation
+   - `fallback_inf_rate` (0.8), `fallback_finite_rate` (0.2)
+
+4. **Strategy Bounds** (5 params):
+   - `power_min` (2), `power_max` (5) - Polynomial power range
+   - `max_filters` (4) - Maximum modulus filters
+   - `min_hits_min` (1), `min_hits_max` (6) - Prime hit bounds
+
+5. **Mutation Probabilities** (5 params):
+   - `mutation_prob_power` (0.3), `mutation_prob_filter` (0.3)
+   - `mutation_prob_modulus` (0.5), `mutation_prob_residue` (0.5)
+   - `mutation_prob_add_filter` (0.15)
+
+### Validation
+
+**Four validation methods** in `Config.__post_init__()`:
+
+1. `_validate_evolution_params()`:
+   - Elite rate in (0, 1]
+   - Crossover + mutation rates ≤ 1.0
+   - Evaluation duration > 0
+
+2. `_validate_meta_learning_params()`:
+   - 0 ≤ min_rate ≤ max_rate ≤ 1
+   - 3 * min_rate ≤ 1.0 + epsilon (feasibility for 3 operators)
+   - 3 * max_rate ≥ 1.0 - epsilon (distribution constraint)
+   - Adaptation window ≥ 1
+
+3. `_validate_strategy_bounds()`:
+   - 2 ≤ power_min ≤ power_max ≤ 5
+   - max_filters ≥ 1
+   - 1 ≤ min_hits_min ≤ min_hits_max
+
+4. `_validate_mutation_probs()`:
+   - All probabilities in [0, 1]
+
+**Epsilon tolerance**: Uses 0.01 (1%) for floating point comparisons to handle edge cases like 3 * 0.33.
+
+### Component Integration
+
+**All components accept optional `config` parameter**:
+
+```python
+# EvolutionaryEngine
+def __init__(self, crucible, population_size=10, config=None, ...):
+    if config is None:
+        config = Config(api_key="", llm_enabled=False)
+    self.config = config
+    self.evaluation_duration = config.evaluation_duration
+    self.crossover_rate = config.crossover_rate
+    # ...
+
+# StrategyGenerator
+def __init__(self, primes=SMALL_PRIMES, config=None):
+    self.config = config or Config(api_key="", llm_enabled=False)
+    # Uses config.power_min, config.power_max, config.mutation_prob_*, etc.
+
+# MetaLearningEngine
+def __init__(self, adaptation_window=5, min_rate=0.1, max_rate=0.7, ...):
+    # Now accepts fallback_inf_rate and fallback_finite_rate from config
+```
+
+**Backward Compatibility**: Default Config created if not provided, ensuring existing code works without changes.
+
+### CLI Integration
+
+**15 new CLI arguments** added to `main.py`:
+- Evolution: `--elite-rate`, `--duration`
+- Strategy bounds: `--power-min`, `--power-max`, `--max-filters`, `--min-hits-min`, `--min-hits-max`
+- Meta-learning: `--meta-min-rate`, `--meta-max-rate`, `--fallback-inf-rate`, `--fallback-finite-rate`
+- Mutation probs: `--mutation-prob-power`, `--mutation-prob-filter`, `--mutation-prob-modulus`, `--mutation-prob-residue`, `--mutation-prob-add-filter`
+
+**Override logic** in `main.py`:
+```python
+# Load base config
+config = load_config() if args.llm else Config(api_key="", llm_enabled=False)
+
+# Override with CLI args (only if provided)
+if args.elite_rate is not None:
+    config.elite_selection_rate = args.elite_rate
+# ... (repeated for all 15 parameters)
+
+# Re-validate combined config
+config.__post_init__()
+```
+
+### Serialization
+
+**Security-aware export/import**:
+
+```python
+# Export (excludes api_key by default)
+config_dict = config.to_dict(include_sensitive=False)
+# {"elite_selection_rate": 0.2, "crossover_rate": 0.3, ...}
+
+# Import
+config = Config.from_dict(config_dict, api_key="user_key")
+```
+
+**Metrics export** includes full config:
+```python
+# In EvolutionaryEngine.export_metrics()
+data = {
+    "target_number": self.crucible.N,
+    "config": self.config.to_dict(),  # Full config for reproducibility
+    "metrics_history": [...]
+}
+```
+
+### Testing
+
+**48 comprehensive tests** in `tests/test_config.py`:
+- **Defaults**: Verify all 23 default values
+- **Validation**: Test all 4 validation methods with valid/invalid inputs
+- **Serialization**: Round-trip testing, sensitive data handling
+- **Edge cases**: Floating point tolerance, boundary conditions
+
+**Test fixtures** in `tests/conftest.py`:
+```python
+@pytest.fixture
+def test_config():
+    return Config(api_key="test_key", llm_enabled=False, evaluation_duration=0.05)
+```
+
+### Design Principles
+
+1. **Single Source of Truth**: Each parameter defined exactly once (DRY)
+2. **Fail-Fast Validation**: Invalid configs rejected at construction time
+3. **Security by Default**: Sensitive data (API keys) excluded from export
+4. **Backward Compatible**: Optional parameter with sensible defaults
+5. **Discoverable**: All parameters documented in CLI help and README
+
+### Migration Path
+
+**Before** (magic numbers scattered):
+```python
+engine = EvolutionaryEngine(crucible, evaluation_duration=0.1, crossover_rate=0.3)
+# Hardcoded: elite_rate=0.2, power bounds 2-5, mutation probs in code
+```
+
+**After** (centralized config):
+```python
+config = Config(evaluation_duration=0.1, crossover_rate=0.3)
+engine = EvolutionaryEngine(crucible, config=config)
+# All parameters in one place, documented, validated
+```
+
+### Known Limitations
+
+1. **Test Updates**: Some existing tests still use old parameter passing (being migrated)
+2. **No Config File**: Currently no `.yaml` or `.toml` config file support (only `.env` for API key)
+3. **No Hot Reload**: Changes require restart (config validated at initialization)
+
 ## Critical Implementation Details
 
 ### Temperature Calculation Bug (PR #2)
