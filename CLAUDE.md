@@ -195,6 +195,74 @@ cp .env.example .env
 - `interpret()`: Human-readable string explaining results
 - Automatically categorizes effect sizes and formats output
 
+### Meta-Learning System (src/meta_learning.py, src/adaptive_engine.py)
+
+**Purpose**: Automatically adapts operator selection rates based on performance, eliminating manual hyperparameter tuning.
+
+**OperatorMetadata** (Dataclass):
+- Tracks how each strategy was created
+- Fields: `operator` (crossover/mutation/random), `parent_ids`, `parent_fitness`, `generation`
+- Attached to each civilization in `civilizations` dict
+- Used to calculate fitness improvement: `fitness - parent_fitness`
+
+**OperatorStatistics** (Dataclass):
+- Accumulated performance metrics per operator
+- Fields: `total_offspring`, `elite_offspring`, `total_fitness_improvement`, `avg_fitness_improvement`, `success_rate`
+- Updated after each generation's elite selection
+- Success rate = `elite_offspring / total_offspring`
+
+**AdaptiveRates** (Dataclass):
+- Snapshot of rates and statistics at a given generation
+- Fields: `crossover_rate`, `mutation_rate`, `random_rate`, `generation`, `operator_stats`
+- Returned by `calculate_adaptive_rates()` method
+
+**MetaLearningEngine** (Class):
+- Manages operator performance tracking and rate adaptation
+- **Key Methods**:
+  - `update_statistics(operator, fitness_improvement, became_elite)`: Records offspring performance
+  - `finalize_generation()`: Saves current stats to history, prepares for next generation
+  - `calculate_adaptive_rates(current_rates)`: Computes new rates using UCB1 algorithm
+  - `get_operator_history()`: Returns historical statistics for all generations
+- **UCB1 Algorithm** (Upper Confidence Bound):
+  - Formula: `score = success_rate + sqrt(2 * ln(total_trials) / operator_trials)`
+  - Balances exploitation (high success rate) with exploration (sqrt term for less-tried operators)
+  - Converts scores to rates via softmax-like normalization
+  - Enforces rate bounds: [min_rate=0.1, max_rate=0.7]
+  - Ensures sum to 1.0 via renormalization
+- **Configuration**: `adaptation_window` (default: 5), `min_rate`, `max_rate`
+
+**Integration with EvolutionaryEngine**:
+1. **Initialization** (line ~650): Creates MetaLearningEngine if `enable_meta_learning=True`
+2. **Population Init** (line ~670): Adds OperatorMetadata to each civilization
+3. **After Elite Selection** (line ~757): Updates statistics for all civilizations
+4. **Before Reproduction** (line ~780): Calculates and applies adaptive rates
+5. **Offspring Creation** (line ~870): Attaches OperatorMetadata to new civilizations
+6. **Export** (line ~907): Includes `operator_history` in metrics JSON
+
+**Data Flow**:
+```
+Generation N:
+1. Evaluate all civilizations → assign fitness
+2. Select elites (top 20%)
+3. Update operator statistics (which operators created elites?)
+4. Finalize generation (save to history)
+5. IF generation >= adaptation_window:
+     Calculate adaptive rates using UCB1
+     Update self.crossover_rate, self.mutation_rate, self.random_rate
+6. Create next generation with current rates
+7. Attach operator metadata to offspring
+```
+
+**Example Adaptation**:
+```
+Generation 0-4: Fixed rates (0.3/0.5/0.2)
+Generation 5:
+  - Crossover: 67% elite rate (4/6 offspring) → high UCB score
+  - Mutation: 33% elite rate (2/6 offspring) → medium UCB score
+  - Random: 0% elite rate (0/2 offspring) → low UCB score
+  - New rates: 0.52 crossover, 0.28 mutation, 0.20 random
+```
+
 ### Metrics & Instrumentation
 
 **evaluate_strategy_detailed()**: Comprehensive evaluation method

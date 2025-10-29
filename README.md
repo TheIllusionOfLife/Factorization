@@ -72,6 +72,7 @@ usage: prototype.py [-h] [--number NUMBER] [--generations GENERATIONS]
                     [--population POPULATION] [--duration DURATION] [--llm]
                     [--export-metrics PATH] [--crossover-rate RATE]
                     [--mutation-rate RATE] [--seed SEED]
+                    [--meta-learning] [--adaptation-window N]
                     [--compare-baseline] [--num-comparison-runs N]
                     [--convergence-window N] [--export-comparison PATH]
 
@@ -85,6 +86,10 @@ Evolution Options:
   --crossover-rate RATE   Crossover rate: offspring from two parents (default: 0.3)
   --mutation-rate RATE    Mutation rate: offspring from single parent (default: 0.5)
   --seed SEED             Random seed for reproducible runs (e.g., 42)
+
+Meta-Learning Options:
+  --meta-learning         Enable meta-learning: adapt operator rates based on performance
+  --adaptation-window N   Generations to consider for rate adaptation (default: 5)
 
 Comparison Mode Options:
   --compare-baseline           Run comparison against baseline strategies
@@ -123,6 +128,11 @@ python prototype.py --crossover-rate 0.6 --mutation-rate 0.2 --generations 5 --p
 **Reproducible run for debugging/research**:
 ```bash
 python prototype.py --seed 42 --generations 5 --population 10
+```
+
+**Meta-learning with adaptive operator selection** (rates auto-adjust based on performance):
+```bash
+python prototype.py --meta-learning --generations 10 --population 12 --seed 42
 ```
 
 **Compare evolved strategies against baselines with statistical analysis**:
@@ -218,6 +228,74 @@ python prototype.py --seed 42 --generations 3 --population 5 --duration 0.1
 - ✅ Compare different configurations fairly
 
 **Note**: Without `--seed`, runs use non-deterministic randomness (different results each time). Slight fitness variations may occur even with the same seed due to timing differences in evaluation, but the evolutionary decisions (initialization, mutation, selection) remain identical.
+
+### Meta-Learning for Adaptive Operator Selection
+
+Meta-learning automatically adjusts reproduction operator rates (crossover/mutation/random) based on which operators produce the best strategies, eliminating the need for manual hyperparameter tuning.
+
+**How It Works**:
+1. **Track Performance**: Records which operator created each strategy and whether it became elite (top 20%)
+2. **Calculate Success Rates**: Every N generations (adaptation window), computes success rate for each operator
+3. **Adapt Rates**: Uses UCB1 (Upper Confidence Bound) algorithm to favor successful operators while maintaining exploration
+4. **Automatic Tuning**: Rates adjust dynamically throughout evolution based on real performance data
+
+**Usage**:
+```bash
+# Enable meta-learning with default settings (adaptation window = 5 generations)
+python prototype.py --meta-learning --generations 10 --population 12
+
+# Custom adaptation window (adapt every 3 generations)
+python prototype.py --meta-learning --adaptation-window 3 --generations 15 --population 10
+
+# With LLM mode
+python prototype.py --llm --meta-learning --generations 8 --population 10
+```
+
+**Example Output**:
+```
+Generation 0: Initial rates: 30% crossover, 50% mutation, 20% random
+Generation 5: 📊 Adapted rates: 0.52 crossover, 0.19 mutation, 0.28 random
+  (Crossover produced 67% of elites, mutation 33%, random 11%)
+Generation 7: 📊 Adapted rates: 0.41 crossover, 0.34 mutation, 0.25 random
+  (Mutation improved, crossover still strong)
+```
+
+**Algorithm Details**:
+- **UCB1 Formula**: `score = success_rate + sqrt(2 * ln(total_trials) / operator_trials)`
+- **Exploration Bonus**: Sqrt term ensures less-tried operators get chances
+- **Rate Bounds**: All rates constrained to [0.1, 0.7] to prevent ignoring any operator
+- **Normalization**: Rates always sum to 1.0
+
+**Benefits**:
+- ✅ **Automatic Hyperparameter Tuning**: No manual rate optimization needed
+- ✅ **Problem-Adaptive**: Different problems may favor different operators
+- ✅ **Balanced Exploration**: UCB1 prevents premature convergence to single operator
+- ✅ **Observable**: Operator history exported in metrics JSON for analysis
+- ✅ **Reproducible**: Works with `--seed` for deterministic adaptation
+
+**Metrics Export**:
+When `--export-metrics` is used with `--meta-learning`, the JSON includes `operator_history`:
+```json
+{
+  "operator_history": [
+    {
+      "generation": 0,
+      "rates": {"crossover": 0.3, "mutation": 0.5, "random": 0.2},
+      "operator_stats": {
+        "crossover": {"total_offspring": 3, "elite_offspring": 2, "success_rate": 0.67},
+        "mutation": {"total_offspring": 5, "elite_offspring": 1, "success_rate": 0.20},
+        "random": {"total_offspring": 2, "elite_offspring": 0, "success_rate": 0.0}
+      }
+    }
+  ]
+}
+```
+
+**Use Cases**:
+- Automatically discover optimal operator mix for specific factorization problems
+- Reduce need for manual hyperparameter search
+- Adapt to changing fitness landscape during evolution
+- Research which operators work best for different problem classes
 
 ### Detailed Metrics & Visualization
 
@@ -400,6 +478,10 @@ Factorization/
        - **Rule-based**: Random parameter tweaks
        - **LLM-guided**: Gemini proposes mutations based on fitness trends
      - **Random newcomers** (default 20%): Fresh random strategies for diversity
+   - **Meta-Learning** (optional): Automatically adapts operator rates based on success
+     - Tracks which operators produce elite strategies
+     - Uses UCB1 algorithm to balance exploration vs exploitation
+     - Rates adjust every N generations (default: 5)
 
 4. **LLM Integration**: When enabled, Gemini 2.5 Flash Lite analyzes:
    - Current strategy parameters
