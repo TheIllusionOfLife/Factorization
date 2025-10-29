@@ -159,9 +159,13 @@ class Config:
             include_sensitive: If True, include api_key. Default False for export.
 
         Returns:
-            Dictionary representation of config.
+            Dictionary representation of config (excludes EPSILON class variable).
         """
         config_dict = asdict(self)
+
+        # Exclude class variables (EPSILON) - ClassVar included in asdict() on Python 3.9-3.10
+        config_dict.pop("EPSILON", None)
+
         if not include_sensitive:
             config_dict.pop("api_key", None)
         return config_dict

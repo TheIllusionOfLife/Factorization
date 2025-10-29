@@ -110,6 +110,15 @@ class TestConfigValidation:
         assert config.crossover_rate == 0.7
         assert config.mutation_rate == 0.3
 
+    def test_reproduction_rates_sum_within_epsilon(self):
+        """Sum slightly > 1.0 but within epsilon (0.01) should be valid."""
+        # 0.34 + 0.67 = 1.01 > 1.0, but within epsilon (1.0 + 0.01 = 1.01)
+        config = Config(api_key="test", crossover_rate=0.34, mutation_rate=0.67)
+        assert config.crossover_rate == 0.34
+        assert config.mutation_rate == 0.67
+        # Verify sum is indeed slightly over 1.0
+        assert config.crossover_rate + config.mutation_rate == pytest.approx(1.01)
+
     def test_evaluation_duration_zero(self):
         """Zero evaluation duration should be rejected."""
         with pytest.raises(ValueError, match="evaluation_duration must be > 0"):
@@ -274,6 +283,29 @@ class TestConfigSerialization:
         assert restored.crossover_rate == original.crossover_rate
         assert restored.power_min == original.power_min
         assert restored.power_max == original.power_max
+
+    def test_to_dict_excludes_epsilon(self):
+        """to_dict() should exclude EPSILON ClassVar (Python 3.9-3.10 bug)."""
+        config = Config(api_key="test")
+        config_dict = config.to_dict()
+        assert "EPSILON" not in config_dict, (
+            "EPSILON ClassVar should not be in serialized dict"
+        )
+
+    def test_round_trip_serialization_without_epsilon(self):
+        """Exported dict should not contain EPSILON and restore correctly."""
+        original = Config(
+            api_key="test", elite_selection_rate=0.25, crossover_rate=0.35
+        )
+        config_dict = original.to_dict()
+
+        # Verify EPSILON not in exported dict
+        assert "EPSILON" not in config_dict
+
+        # Verify round-trip works (would fail if EPSILON present)
+        restored = Config.from_dict(config_dict, api_key="test")
+        assert restored.elite_selection_rate == 0.25
+        assert restored.crossover_rate == 0.35
 
 
 class TestConfigEdgeCases:
