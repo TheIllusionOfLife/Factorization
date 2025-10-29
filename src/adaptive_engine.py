@@ -66,6 +66,19 @@ class MetaLearningEngine:
                 f"Cannot distribute rates with max_rate={max_rate} for all 3 operators."
             )
 
+        # Validate fallback split for untried vs tried operators
+        if not (0.0 <= fallback_inf_rate <= 1.0) or not (
+            0.0 <= fallback_finite_rate <= 1.0
+        ):
+            raise ValueError(
+                f"fallback rates must be in [0,1], got inf={fallback_inf_rate}, finite={fallback_finite_rate}"
+            )
+        if not abs(fallback_inf_rate + fallback_finite_rate - 1.0) < 1e-9:
+            raise ValueError(
+                f"fallback_inf_rate + fallback_finite_rate must equal 1.0, got "
+                f"{fallback_inf_rate + fallback_finite_rate:.6f}"
+            )
+
         self.adaptation_window = adaptation_window
         self.min_rate = min_rate
         self.max_rate = max_rate

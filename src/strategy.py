@@ -3,7 +3,9 @@
 import logging
 import random
 from dataclasses import dataclass
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
+
+from src.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +19,10 @@ class Strategy:
     modulus_filters: List[Tuple[int, List[int]]]
     smoothness_bound: int
     min_small_prime_hits: int
+    _config: Optional[object] = None  # Store config for normalization
 
     def __post_init__(self) -> None:
-        self._normalize()
+        self._normalize(self._config)
 
     def copy(self) -> "Strategy":
         return Strategy(
@@ -29,6 +32,7 @@ class Strategy:
             ],
             smoothness_bound=self.smoothness_bound,
             min_small_prime_hits=self.min_small_prime_hits,
+            _config=self._config,
         )
 
     def describe(self) -> str:
@@ -56,7 +60,6 @@ class Strategy:
         return self._count_small_prime_hits(candidate) >= self.min_small_prime_hits
 
     def _normalize(self, config=None) -> None:
-        from src.config import Config
 
         if config is None:
             config = Config(api_key="", llm_enabled=False)
@@ -127,7 +130,7 @@ def blend_modulus_filters(
     return blended[:max_filters]
 
 
-def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
+def crossover_strategies(parent1: Strategy, parent2: Strategy, config=None) -> Strategy:
     """
     Uniform crossover: combine strategies from two parents.
 
@@ -142,10 +145,16 @@ def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
     Args:
         parent1: First parent strategy
         parent2: Second parent strategy
+        config: Optional Config object for max_filters limit (default: None uses default Config)
 
     Returns:
         New strategy combining traits from both parents
     """
+    from src.config import Config
+
+    if config is None:
+        config = Config(api_key="", llm_enabled=False)
+
     # Randomly select discrete parameters from either parent
     power = random.choice([parent1.power, parent2.power])
     smoothness_bound = random.choice(
@@ -157,7 +166,7 @@ def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
 
     # Blend modulus filters from both parents
     modulus_filters = blend_modulus_filters(
-        parent1.modulus_filters, parent2.modulus_filters, max_filters=4
+        parent1.modulus_filters, parent2.modulus_filters, max_filters=config.max_filters
     )
 
     # Create new strategy (automatically normalized)
@@ -166,12 +175,12 @@ def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
         modulus_filters=modulus_filters,
         smoothness_bound=smoothness_bound,
         min_small_prime_hits=min_small_prime_hits,
+        _config=config,
     )
 
 
 class StrategyGenerator:
     def __init__(self, primes: Sequence[int] = SMALL_PRIMES, config=None) -> None:
-        from src.config import Config
 
         self.primes = list(primes)
         self.config = (
@@ -201,6 +210,7 @@ class StrategyGenerator:
             modulus_filters=filters,
             smoothness_bound=smoothness_bound,
             min_small_prime_hits=min_hits,
+            _config=self.config,
         )
 
     def mutate_strategy(self, parent: Strategy) -> Strategy:
@@ -314,6 +324,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=parent.modulus_filters[:],
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
+            _config=self.config,
             )
 
         elif mutation_type == "add_filter":
@@ -329,6 +340,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=new_filters,
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
+            _config=self.config,
             )
 
         elif mutation_type == "modify_filter":
@@ -345,6 +357,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=new_filters,
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
+            _config=self.config,
             )
 
         elif mutation_type == "remove_filter":
@@ -366,6 +379,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=new_filters,
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
+            _config=self.config,
             )
 
         elif mutation_type == "adjust_smoothness":
@@ -384,6 +398,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=parent.modulus_filters[:],
                 smoothness_bound=new_bound,
                 min_small_prime_hits=new_hits,
+            _config=self.config,
             )
 
         # 未知の変異タイプの場合は親をそのまま返す

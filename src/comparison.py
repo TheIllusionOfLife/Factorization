@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+from src.config import Config
 from src.crucible import FactorizationCrucible
 from src.evolution import EvolutionaryEngine
 from src.statistics import ConvergenceDetector, StatisticalAnalyzer
@@ -139,8 +140,6 @@ class ComparisonEngine:
         llm_provider=None,
         config=None,
     ):
-        from src.config import Config
-
         self.crucible = crucible
         self.num_runs = num_runs
         self.max_generations = max_generations

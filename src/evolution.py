@@ -262,7 +262,7 @@ class EvolutionaryEngine:
                     parent1_strategy = parent1_civ[1]["strategy"]
                     parent2_strategy = parent2_civ[1]["strategy"]
                     new_strategy = crossover_strategies(
-                        parent1_strategy, parent2_strategy
+                        parent1_strategy, parent2_strategy, config=self.config
                     )
                     offspring_sources["crossover"] += 1
                     operator_used = "crossover"
