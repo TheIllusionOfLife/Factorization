@@ -261,19 +261,24 @@ The notebook provides:
 
 After running comparison mode with `--export-comparison`, visualize the statistical analysis:
 
-1. **Run comparison with export**:
+1. **Create results directory** (if it doesn't exist):
+   ```bash
+   mkdir -p results
+   ```
+
+2. **Run comparison with export**:
    ```bash
    python prototype.py --compare-baseline --num-comparison-runs 5 \
      --generations 10 --population 10 --seed 42 \
      --export-comparison results/comparison_20251029.json
    ```
 
-2. **Visualize in Jupyter notebook**:
+3. **Visualize in Jupyter notebook**:
    ```bash
    jupyter notebook analysis/visualize_comparison.ipynb
    ```
 
-3. **Update the comparison file path** in Cell 2:
+4. **Update the comparison file path** in Cell 2:
    ```python
    comparison_file = "../results/comparison_20251029.json"
    ```
