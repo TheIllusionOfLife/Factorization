@@ -150,7 +150,10 @@ def test_evolutionary_engine_evaluation_duration():
     from prototype import EvolutionaryEngine, FactorizationCrucible
 
     crucible = FactorizationCrucible(961730063)
-    engine = EvolutionaryEngine(crucible, population_size=3, evaluation_duration=0.05)
+    engine = EvolutionaryEngine(
+        crucible,
+        population_size=3,
+        config=Config(api_key="", llm_enabled=False, evaluation_duration=0.05))
 
     assert engine.evaluation_duration == 0.05
 
