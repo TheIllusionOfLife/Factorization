@@ -63,7 +63,7 @@ class EvolutionaryEngine:
         if enable_meta_learning:
             from src.adaptive_engine import MetaLearningEngine
 
-            self.meta_learner: Optional["MetaLearningEngine"] = MetaLearningEngine(
+            self.meta_learner: Optional[MetaLearningEngine] = MetaLearningEngine(
                 adaptation_window=adaptation_window
             )
         else:
