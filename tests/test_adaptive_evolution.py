@@ -18,6 +18,7 @@ from prototype import (
     FactorizationCrucible,
     StrategyGenerator,
 )
+from src.config import Config
 from src.meta_learning import OperatorMetadata
 
 
@@ -28,11 +29,12 @@ class TestMetaLearningEngineIntegration:
         """Test engine initializes without meta-learning by default."""
         crucible = FactorizationCrucible(961730063)
         generator = StrategyGenerator()
+        config = Config(api_key="", llm_enabled=False, evaluation_duration=0.01)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=5,
-            evaluation_duration=0.01,
+            config=config,
         )
         assert engine.meta_learner is None
         assert not hasattr(engine, "rate_history") or len(engine.rate_history) == 0
@@ -41,13 +43,15 @@ class TestMetaLearningEngineIntegration:
         """Test engine initializes with meta-learning enabled."""
         crucible = FactorizationCrucible(961730063)
         generator = StrategyGenerator()
+        config = Config(
+            api_key="", llm_enabled=False, evaluation_duration=0.01, adaptation_window=3
+        )
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=5,
-            evaluation_duration=0.01,
+            config=config,
             enable_meta_learning=True,
-            adaptation_window=3,
         )
         assert engine.meta_learner is not None
         assert engine.meta_learner.adaptation_window == 3
@@ -62,7 +66,7 @@ class TestMetaLearningEngineIntegration:
             crucible=crucible,
             generator=generator,
             population_size=8,
-            evaluation_duration=0.01,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -90,7 +94,7 @@ class TestMetaLearningEngineIntegration:
             crucible=crucible,
             generator=generator,
             population_size=5,
-            evaluation_duration=0.01,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -112,7 +116,7 @@ class TestMetaLearningEngineIntegration:
             crucible=crucible,
             generator=generator,
             population_size=10,
-            evaluation_duration=0.01,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -146,9 +150,13 @@ class TestMetaLearningEngineIntegration:
             crucible=crucible,
             generator=generator,
             population_size=10,
-            evaluation_duration=0.01,
+            config=Config(
+                api_key="",
+                llm_enabled=False,
+                evaluation_duration=0.01,
+                adaptation_window=3,
+            ),
             enable_meta_learning=True,
-            adaptation_window=3,
             random_seed=42,
         )
 
@@ -190,9 +198,13 @@ class TestMetaLearningEngineIntegration:
             crucible=crucible,
             generator=generator,
             population_size=10,
-            evaluation_duration=0.01,
+            config=Config(
+                api_key="",
+                llm_enabled=False,
+                evaluation_duration=0.01,
+                adaptation_window=2,
+            ),
             enable_meta_learning=True,
-            adaptation_window=2,
             random_seed=42,
         )
 
@@ -218,9 +230,13 @@ class TestMetaLearningEngineIntegration:
             crucible=crucible,
             generator=generator,
             population_size=8,
-            evaluation_duration=0.01,
+            config=Config(
+                api_key="",
+                llm_enabled=False,
+                evaluation_duration=0.01,
+                adaptation_window=2,
+            ),
             enable_meta_learning=True,
-            adaptation_window=2,
             random_seed=42,
         )
 
@@ -268,7 +284,7 @@ class TestMetaLearningEngineIntegration:
             crucible=crucible,
             generator=generator,
             population_size=5,
-            evaluation_duration=0.01,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
             enable_meta_learning=False,
             random_seed=42,
         )
@@ -302,7 +318,7 @@ class TestMetaLearningEngineIntegration:
             crucible=crucible,
             generator=generator,
             population_size=10,
-            evaluation_duration=0.01,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -330,13 +346,15 @@ class TestMetaLearningEngineIntegration:
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
         generator = StrategyGenerator()
+        config = Config(
+            api_key="", llm_enabled=False, evaluation_duration=0.01, adaptation_window=2
+        )
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=3,  # Very small
-            evaluation_duration=0.01,
+            config=config,
             enable_meta_learning=True,
-            adaptation_window=2,
             random_seed=42,
         )
 
@@ -357,9 +375,13 @@ class TestMetaLearningEngineIntegration:
             crucible=crucible,
             generator=generator,
             population_size=10,
-            evaluation_duration=0.01,
+            config=Config(
+                api_key="",
+                llm_enabled=False,
+                evaluation_duration=0.01,
+                adaptation_window=2,
+            ),
             enable_meta_learning=True,
-            adaptation_window=2,
             random_seed=42,
         )
 
