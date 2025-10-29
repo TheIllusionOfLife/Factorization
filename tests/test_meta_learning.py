@@ -406,6 +406,7 @@ class TestMetaLearningEngine:
                         f"Rate normalization did not converge after 20 iterations. "
                         f"Final total: {total:.6f}, rates: {result}",
                         RuntimeWarning,
+                        stacklevel=2,
                     )
                 return result
 

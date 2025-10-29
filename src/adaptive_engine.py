@@ -316,7 +316,7 @@ class MetaLearningEngine:
 
         # Iteratively adjust to sum to 1.0 while respecting bounds
         converged = False
-        for iteration in range(20):  # Max iterations to prevent infinite loop
+        for _ in range(20):  # Max iterations to prevent infinite loop
             total = sum(result.values())
             if abs(total - 1.0) < 1e-9:
                 converged = True
@@ -351,6 +351,7 @@ class MetaLearningEngine:
                 f"Rate normalization did not converge after 20 iterations. "
                 f"Final total: {total:.6f}, rates: {result}",
                 RuntimeWarning,
+                stacklevel=2,
             )
 
         return result
