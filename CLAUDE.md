@@ -10,23 +10,25 @@ This is an LLM-guided evolutionary algorithm that optimizes heuristics for the G
 
 ### Running the Application
 
+**Note**: Use `main.py` (new modular entry point) or `prototype.py` (backward compatibility shim).
+
 **Rule-based mode** (no LLM):
 ```bash
-python prototype.py --generations 5 --population 10
+python main.py --generations 5 --population 10
 ```
 
 **LLM-guided mode** (requires `GEMINI_API_KEY` in `.env`):
 ```bash
-python prototype.py --llm --generations 5 --population 10
+python main.py --llm --generations 5 --population 10
 ```
 
 **Comparison mode** (statistical analysis against baselines):
 ```bash
 # Rule-based comparison with 5 independent runs
-python prototype.py --compare-baseline --num-comparison-runs 5 --generations 10 --population 10 --seed 42
+python main.py --compare-baseline --num-comparison-runs 5 --generations 10 --population 10 --seed 42
 
 # LLM-guided comparison with JSON export
-python prototype.py --llm --compare-baseline --num-comparison-runs 3 --generations 5 \
+python main.py --llm --compare-baseline --num-comparison-runs 3 --generations 5 \
   --export-comparison results/comparison.json --seed 100
 ```
 
@@ -101,9 +103,19 @@ cp .env.example .env
 
 ## Architecture
 
-### Core Components
+### Modular Structure (Refactored)
 
-**prototype.py** - Main evolutionary engine with three key classes:
+The codebase has been refactored into focused modules under `src/`:
+
+- **src/metrics.py**: EvaluationMetrics dataclass and constants
+- **src/strategy.py**: Strategy class, generators (rule-based & LLM), crossover operators
+- **src/crucible.py**: FactorizationCrucible evaluation environment
+- **src/evolution.py**: EvolutionaryEngine orchestrating the evolutionary process
+- **src/comparison.py**: ComparisonEngine, BaselineStrategyGenerator, comparison logic
+- **main.py**: CLI entry point with argument parsing
+- **prototype.py**: Backward compatibility shim (re-exports all components)
+
+### Core Components
 
 1. **FactorizationCrucible**: The evaluation environment
    - Simulates GNFS sieving step
