@@ -198,9 +198,7 @@ class MetaLearningEngine:
             UCB1 scores for each operator
         """
         # Total trials across all operators
-        total_trials = sum(
-            stats.total_offspring for stats in window_stats.values()
-        )
+        total_trials = sum(stats.total_offspring for stats in window_stats.values())
 
         # Avoid division by zero
         if total_trials == 0:
@@ -254,11 +252,10 @@ class MetaLearningEngine:
 
         if score_range == 0:
             # All scores equal - use uniform distribution
-            return {"crossover": 1/3, "mutation": 1/3, "random": 1/3}
+            return {"crossover": 1 / 3, "mutation": 1 / 3, "random": 1 / 3}
 
         normalized = {
-            op: (score - min_score) / score_range
-            for op, score in ucb_scores.items()
+            op: (score - min_score) / score_range for op, score in ucb_scores.items()
         }
 
         # Apply softmax to convert to probabilities

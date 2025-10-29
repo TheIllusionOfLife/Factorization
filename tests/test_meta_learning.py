@@ -8,8 +8,6 @@ Tests cover:
 - Integration with EvolutionaryEngine
 """
 
-
-
 from src.adaptive_engine import MetaLearningEngine
 from src.meta_learning import (
     AdaptiveRates,
@@ -146,9 +144,7 @@ class TestAdaptiveRates:
 
     def test_adaptive_rates_to_dict(self):
         """Test converting adaptive rates to dictionary."""
-        stats = {
-            "crossover": OperatorStatistics(total_offspring=5, elite_offspring=3)
-        }
+        stats = {"crossover": OperatorStatistics(total_offspring=5, elite_offspring=3)}
         rates = AdaptiveRates(
             crossover_rate=0.4,
             mutation_rate=0.4,
@@ -175,9 +171,7 @@ class TestMetaLearningEngine:
 
     def test_initialization_custom(self):
         """Test meta-learning engine initialization with custom params."""
-        engine = MetaLearningEngine(
-            adaptation_window=3, min_rate=0.15, max_rate=0.6
-        )
+        engine = MetaLearningEngine(adaptation_window=3, min_rate=0.15, max_rate=0.6)
         assert engine.adaptation_window == 3
         assert engine.min_rate == 0.15
         assert engine.max_rate == 0.6
@@ -292,9 +286,7 @@ class TestMetaLearningEngine:
 
     def test_calculate_adaptive_rates_respects_bounds(self):
         """Test adaptive rates respect min/max bounds."""
-        engine = MetaLearningEngine(
-            adaptation_window=1, min_rate=0.1, max_rate=0.7
-        )
+        engine = MetaLearningEngine(adaptation_window=1, min_rate=0.1, max_rate=0.7)
 
         # Simulate extreme case: only crossover succeeds
         engine.current_generation = 0
