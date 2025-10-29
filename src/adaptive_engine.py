@@ -6,6 +6,7 @@ and adapts selection rates using the UCB1 (Upper Confidence Bound) algorithm.
 """
 
 import math
+import warnings
 from typing import Dict, List
 
 from src.meta_learning import AdaptiveRates, OperatorStatistics
@@ -116,9 +117,9 @@ class MetaLearningEngine:
         """Get current generation statistics.
 
         Returns:
-            Dictionary mapping operator names to their statistics
+            Copy of dictionary mapping operator names to their statistics
         """
-        return self.current_stats
+        return self.current_stats.copy()
 
     def get_operator_history(self) -> List[Dict[str, OperatorStatistics]]:
         """Get historical operator statistics.
@@ -314,9 +315,11 @@ class MetaLearningEngine:
         }
 
         # Iteratively adjust to sum to 1.0 while respecting bounds
-        for _ in range(20):  # Max iterations to prevent infinite loop
+        converged = False
+        for iteration in range(20):  # Max iterations to prevent infinite loop
             total = sum(result.values())
             if abs(total - 1.0) < 1e-9:
+                converged = True
                 break
 
             # Find operators that can be adjusted (not at bounds)
@@ -331,6 +334,7 @@ class MetaLearningEngine:
                 # Can't adjust further - normalize what we have
                 # This handles infeasible constraint cases
                 result = {op: v / total for op, v in result.items()}
+                converged = True  # Normalization is a valid convergence path
                 break
 
             # Distribute surplus/deficit equally among adjustable operators
@@ -339,5 +343,14 @@ class MetaLearningEngine:
                 new_val = result[op] + adjustment
                 # Clip to bounds
                 result[op] = max(self.min_rate, min(self.max_rate, new_val))
+
+        # Warn if convergence failed after max iterations
+        if not converged:
+            total = sum(result.values())
+            warnings.warn(
+                f"Rate normalization did not converge after 20 iterations. "
+                f"Final total: {total:.6f}, rates: {result}",
+                RuntimeWarning,
+            )
 
         return result

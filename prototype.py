@@ -764,6 +764,7 @@ class EvolutionaryEngine:
                 self.generator.fitness_history = self.generator.fitness_history[-5:]
 
         # Meta-learning: Update operator statistics
+        # Skip generation 0: all random strategies with no meaningful parent fitness
         if self.meta_learner and self.generation > 0:
             elite_ids = {civ_id for civ_id, _ in elites}
             for civ_id, civ_data in self.civilizations.items():
