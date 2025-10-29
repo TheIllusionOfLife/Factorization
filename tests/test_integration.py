@@ -153,7 +153,8 @@ def test_evolutionary_engine_evaluation_duration():
     engine = EvolutionaryEngine(
         crucible,
         population_size=3,
-        config=Config(api_key="", llm_enabled=False, evaluation_duration=0.05))
+        config=Config(api_key="", llm_enabled=False, evaluation_duration=0.05),
+    )
 
     assert engine.evaluation_duration == 0.05
 

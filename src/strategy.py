@@ -57,6 +57,7 @@ class Strategy:
 
     def _normalize(self, config=None) -> None:
         from src.config import Config
+
         if config is None:
             config = Config(api_key="", llm_enabled=False)
 
@@ -68,9 +69,11 @@ class Strategy:
             residues = sorted({residue % modulus for residue in residues})
             if residues:
                 normalized_filters.append((modulus, residues))
-        self.modulus_filters = normalized_filters[:config.max_filters]
+        self.modulus_filters = normalized_filters[: config.max_filters]
         self.smoothness_bound = max(3, min(self.smoothness_bound, SMALL_PRIMES[-1]))
-        self.min_small_prime_hits = max(config.min_hits_min, min(self.min_small_prime_hits, config.min_hits_max))
+        self.min_small_prime_hits = max(
+            config.min_hits_min, min(self.min_small_prime_hits, config.min_hits_max)
+        )
 
     def _count_small_prime_hits(self, candidate: int) -> int:
         hits = 0
@@ -171,7 +174,9 @@ class StrategyGenerator:
         from src.config import Config
 
         self.primes = list(primes)
-        self.config = config if config is not None else Config(api_key="", llm_enabled=False)
+        self.config = (
+            config if config is not None else Config(api_key="", llm_enabled=False)
+        )
 
     def random_strategy(self) -> Strategy:
         # Use config bounds for power
@@ -205,9 +210,15 @@ class StrategyGenerator:
         # Use config.mutation_prob_power
         if mutation_roll < self.config.mutation_prob_power:
             # Generate power within config bounds
-            power_choices = list(range(self.config.power_min, self.config.power_max + 1))
+            power_choices = list(
+                range(self.config.power_min, self.config.power_max + 1)
+            )
             child.power = random.choice(power_choices)
-        elif mutation_roll < self.config.mutation_prob_power + self.config.mutation_prob_filter and child.modulus_filters:
+        elif (
+            mutation_roll
+            < self.config.mutation_prob_power + self.config.mutation_prob_filter
+            and child.modulus_filters
+        ):
             index = random.randrange(len(child.modulus_filters))
             modulus, residues = child.modulus_filters[index]
             # Use config.mutation_prob_modulus
@@ -217,7 +228,10 @@ class StrategyGenerator:
             else:
                 choices = list(range(modulus))
                 # Use config.mutation_prob_residue
-                if random.random() < self.config.mutation_prob_residue and len(residues) > 1:
+                if (
+                    random.random() < self.config.mutation_prob_residue
+                    and len(residues) > 1
+                ):
                     residues.pop(random.randrange(len(residues)))
                 else:
                     candidate = random.choice(choices)
@@ -229,11 +243,14 @@ class StrategyGenerator:
             child.smoothness_bound = child.smoothness_bound + adjustment
             child.min_small_prime_hits = max(
                 self.config.min_hits_min,
-                child.min_small_prime_hits + random.choice([-1, 0, 1])
+                child.min_small_prime_hits + random.choice([-1, 0, 1]),
             )
 
         # Use config.mutation_prob_add_filter and config.max_filters
-        if random.random() < self.config.mutation_prob_add_filter and len(child.modulus_filters) < self.config.max_filters:
+        if (
+            random.random() < self.config.mutation_prob_add_filter
+            and len(child.modulus_filters) < self.config.max_filters
+        ):
             modulus = random.choice(self.primes)
             residues = random.sample(range(modulus), random.randint(1, min(3, modulus)))
             child.modulus_filters.append((modulus, residues))

@@ -148,7 +148,9 @@ class ComparisonEngine:
         self.evaluation_duration = evaluation_duration
         self.convergence_window = convergence_window
         self.llm_provider = llm_provider
-        self.config = config if config is not None else Config(api_key="", llm_enabled=False)
+        self.config = (
+            config if config is not None else Config(api_key="", llm_enabled=False)
+        )
 
         self.baseline_generator = BaselineStrategyGenerator()
         self.convergence_detector = ConvergenceDetector(window_size=convergence_window)

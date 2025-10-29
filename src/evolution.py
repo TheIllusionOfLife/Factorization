@@ -55,9 +55,13 @@ class EvolutionaryEngine:
         if generator:
             self.generator = generator
         elif llm_provider:
-            self.generator = LLMStrategyGenerator(llm_provider=llm_provider, config=config)
+            self.generator = LLMStrategyGenerator(
+                llm_provider=llm_provider, config=config
+            )
         else:
-            self.generator = LLMStrategyGenerator(config=config)  # llm_provider=None で従来と同じ動作
+            self.generator = LLMStrategyGenerator(
+                config=config
+            )  # llm_provider=None で従来と同じ動作
 
         # Meta-learning for adaptive operator selection
         self.rate_history: List[Dict[str, float]] = []
@@ -161,7 +165,9 @@ class EvolutionaryEngine:
             key=lambda item: item[1]["fitness"],
             reverse=True,
         )
-        num_elites = max(1, int(self.population_size * self.config.elite_selection_rate))
+        num_elites = max(
+            1, int(self.population_size * self.config.elite_selection_rate)
+        )
         elites = sorted_civs[:num_elites]
 
         # IMPORTANT: Capture best fitness and strategy BEFORE civilizations is replaced

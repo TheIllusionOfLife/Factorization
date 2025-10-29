@@ -220,6 +220,7 @@ def main():
 
     # Build config from environment and CLI overrides
     from src.config import Config, load_config
+
     try:
         # Load base config from environment (.env file)
         config = load_config() if args.llm else Config(api_key="", llm_enabled=False)
