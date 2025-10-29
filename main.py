@@ -219,54 +219,12 @@ def main():
         sys.exit(1)
 
     # Build config from environment and CLI overrides
-    from src.config import Config, load_config
+    from src.config import Config
 
     try:
-        # Load base config from environment (.env file)
-        config = load_config() if args.llm else Config(api_key="", llm_enabled=False)
-
-        # Override with CLI arguments (only if provided)
-        if args.duration is not None:
-            config.evaluation_duration = args.duration
-        if args.elite_rate is not None:
-            config.elite_selection_rate = args.elite_rate
-        if args.crossover_rate is not None:
-            config.crossover_rate = args.crossover_rate
-        if args.mutation_rate is not None:
-            config.mutation_rate = args.mutation_rate
-        if args.power_min is not None:
-            config.power_min = args.power_min
-        if args.power_max is not None:
-            config.power_max = args.power_max
-        if args.max_filters is not None:
-            config.max_filters = args.max_filters
-        if args.min_hits_min is not None:
-            config.min_hits_min = args.min_hits_min
-        if args.min_hits_max is not None:
-            config.min_hits_max = args.min_hits_max
-        if args.adaptation_window is not None:
-            config.adaptation_window = args.adaptation_window
-        if args.meta_min_rate is not None:
-            config.meta_learning_min_rate = args.meta_min_rate
-        if args.meta_max_rate is not None:
-            config.meta_learning_max_rate = args.meta_max_rate
-        if args.fallback_inf_rate is not None:
-            config.fallback_inf_rate = args.fallback_inf_rate
-        if args.fallback_finite_rate is not None:
-            config.fallback_finite_rate = args.fallback_finite_rate
-        if args.mutation_prob_power is not None:
-            config.mutation_prob_power = args.mutation_prob_power
-        if args.mutation_prob_filter is not None:
-            config.mutation_prob_filter = args.mutation_prob_filter
-        if args.mutation_prob_modulus is not None:
-            config.mutation_prob_modulus = args.mutation_prob_modulus
-        if args.mutation_prob_residue is not None:
-            config.mutation_prob_residue = args.mutation_prob_residue
-        if args.mutation_prob_add_filter is not None:
-            config.mutation_prob_add_filter = args.mutation_prob_add_filter
-
-        # Re-validate combined config
-        config.__post_init__()
+        # Create config from CLI args and environment (immutable construction pattern)
+        # Validation happens once in Config.__post_init__() - no mutation after construction
+        config = Config.from_args_and_env(args, use_llm=args.llm)
 
     except ValueError as e:
         print(f"❌ ERROR: Invalid configuration: {e}")

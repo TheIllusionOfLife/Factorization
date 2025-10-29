@@ -158,6 +158,16 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="Infeasible bounds.*3 \\* max_rate"):
             Config(api_key="test", meta_learning_max_rate=0.2)
 
+    def test_fallback_rates_must_sum_to_one(self):
+        """Fallback rates must sum to exactly 1.0."""
+        with pytest.raises(ValueError, match="fallback.*must equal 1.0"):
+            Config(api_key="test", fallback_inf_rate=0.7, fallback_finite_rate=0.2)
+
+    def test_fallback_rate_out_of_range(self):
+        """Fallback rates must be in [0, 1]."""
+        with pytest.raises(ValueError, match="fallback rates must be in"):
+            Config(api_key="test", fallback_inf_rate=1.5, fallback_finite_rate=-0.5)
+
     def test_adaptation_window_zero(self):
         """Zero adaptation window should be rejected."""
         with pytest.raises(ValueError, match="adaptation_window must be >= 1"):

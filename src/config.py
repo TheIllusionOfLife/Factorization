@@ -117,6 +117,22 @@ class Config:
                 f"got 3 * {self.meta_learning_max_rate} = {3 * self.meta_learning_max_rate}"
             )
 
+        # Validate fallback split for untried vs tried operators
+        if not (0.0 <= self.fallback_inf_rate <= 1.0) or not (
+            0.0 <= self.fallback_finite_rate <= 1.0
+        ):
+            raise ValueError(
+                f"fallback rates must be in [0,1], "
+                f"got inf={self.fallback_inf_rate}, finite={self.fallback_finite_rate}"
+            )
+
+        # Use tight epsilon (1e-9) for exact equality - these must sum to exactly 1.0
+        if abs(self.fallback_inf_rate + self.fallback_finite_rate - 1.0) >= 1e-9:
+            raise ValueError(
+                f"fallback_inf_rate + fallback_finite_rate must equal 1.0, "
+                f"got {self.fallback_inf_rate + self.fallback_finite_rate:.6f}"
+            )
+
         if self.adaptation_window < 1:
             raise ValueError(
                 f"adaptation_window must be >= 1, got {self.adaptation_window}"
@@ -182,6 +198,75 @@ class Config:
             Config instance
         """
         return cls(api_key=api_key, **config_dict)
+
+    @classmethod
+    def from_args_and_env(cls, args, use_llm: bool) -> "Config":
+        """Create Config from CLI args and environment variables.
+
+        This is the recommended way to create Config with CLI overrides,
+        avoiding the anti-pattern of mutating config after construction.
+
+        Args:
+            args: Argparse Namespace with CLI arguments
+            use_llm: Whether to load LLM config from environment
+
+        Returns:
+            Config instance with validation applied once at construction
+
+        Example:
+            config = Config.from_args_and_env(args, args.llm)
+        """
+        # Start with environment config if using LLM
+        if use_llm:
+            base_dict = load_config().to_dict(include_sensitive=True)
+            api_key = base_dict.pop("api_key")
+        else:
+            base_dict = {}
+            api_key = ""
+
+        # Build overrides dict from CLI args (only non-None values)
+        overrides = {}
+        if args.duration is not None:
+            overrides["evaluation_duration"] = args.duration
+        if args.elite_rate is not None:
+            overrides["elite_selection_rate"] = args.elite_rate
+        if args.crossover_rate is not None:
+            overrides["crossover_rate"] = args.crossover_rate
+        if args.mutation_rate is not None:
+            overrides["mutation_rate"] = args.mutation_rate
+        if args.power_min is not None:
+            overrides["power_min"] = args.power_min
+        if args.power_max is not None:
+            overrides["power_max"] = args.power_max
+        if args.max_filters is not None:
+            overrides["max_filters"] = args.max_filters
+        if args.min_hits_min is not None:
+            overrides["min_hits_min"] = args.min_hits_min
+        if args.min_hits_max is not None:
+            overrides["min_hits_max"] = args.min_hits_max
+        if args.adaptation_window is not None:
+            overrides["adaptation_window"] = args.adaptation_window
+        if args.meta_min_rate is not None:
+            overrides["meta_learning_min_rate"] = args.meta_min_rate
+        if args.meta_max_rate is not None:
+            overrides["meta_learning_max_rate"] = args.meta_max_rate
+        if args.fallback_inf_rate is not None:
+            overrides["fallback_inf_rate"] = args.fallback_inf_rate
+        if args.fallback_finite_rate is not None:
+            overrides["fallback_finite_rate"] = args.fallback_finite_rate
+        if args.mutation_prob_power is not None:
+            overrides["mutation_prob_power"] = args.mutation_prob_power
+        if args.mutation_prob_filter is not None:
+            overrides["mutation_prob_filter"] = args.mutation_prob_filter
+        if args.mutation_prob_modulus is not None:
+            overrides["mutation_prob_modulus"] = args.mutation_prob_modulus
+        if args.mutation_prob_residue is not None:
+            overrides["mutation_prob_residue"] = args.mutation_prob_residue
+        if args.mutation_prob_add_filter is not None:
+            overrides["mutation_prob_add_filter"] = args.mutation_prob_add_filter
+
+        # Merge base + overrides and construct once (validation happens in __post_init__)
+        return cls(api_key=api_key, llm_enabled=use_llm, **{**base_dict, **overrides})
 
 
 def load_config() -> Config:
