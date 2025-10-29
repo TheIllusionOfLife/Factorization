@@ -5,13 +5,13 @@ import math
 import os
 import tempfile
 
-from src.config import Config
 from prototype import (
     EvaluationMetrics,
     EvolutionaryEngine,
     FactorizationCrucible,
     Strategy,
 )
+from src.config import Config
 
 
 class TestEvaluationMetrics:
