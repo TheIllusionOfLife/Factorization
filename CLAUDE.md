@@ -184,96 +184,37 @@ The codebase has been refactored into focused modules under `src/`:
 
 ### Statistical Analysis (src/statistics.py)
 
-**StatisticalAnalyzer**:
-- **Welch's t-test**: Compares fitness distributions without assuming equal variances
-- **Cohen's d effect size**: Quantifies practical significance
-  - d < 0.2: Negligible
-  - 0.2 ≤ d < 0.5: Small
-  - 0.5 ≤ d < 0.8: Medium
-  - d ≥ 0.8: Large
-- **95% Confidence Intervals**: Uses Welch-Satterthwaite degrees of freedom
-- Returns ComparisonResult with all metrics
+See README "Multi-Strategy Evaluation & Comparison Mode" for user-facing guide. Technical details:
 
-**ConvergenceDetector**:
-- Detects fitness plateaus using rolling window variance
-- Algorithm: Relative variance = variance / mean² (coefficient of variation squared)
-- Configurable window size (default: 5 generations) and threshold (default: 0.05)
-- `has_converged(fitness_history)`: Returns bool
-- `generations_to_convergence(fitness_history)`: Returns generation index or None
-- Handles edge cases: near-zero mean, insufficient data
-
-**ComparisonResult**: Dataclass with interpretation
-- Contains all statistical metrics (means, p-value, effect size, CI, significance)
-- `interpret()`: Human-readable string explaining results
-- Automatically categorizes effect sizes and formats output
+**StatisticalAnalyzer**: Welch's t-test, Cohen's d, 95% CI using Welch-Satterthwaite df → Returns ComparisonResult
+**ConvergenceDetector**: Relative variance (variance/mean²), window=5, threshold=0.05 → Returns convergence bool/index
+**ComparisonResult**: Dataclass with `interpret()` method for human-readable output
 
 ### Meta-Learning System (src/meta_learning.py, src/adaptive_engine.py)
 
-**Purpose**: Automatically adapts operator selection rates based on performance, eliminating manual hyperparameter tuning.
+Automatically adapts operator selection rates based on performance via UCB1 algorithm.
 
-**OperatorMetadata** (Dataclass):
-- Tracks how each strategy was created
-- Fields: `operator` (crossover/mutation/random), `parent_ids`, `parent_fitness`, `generation`
-- Attached to each civilization in `civilizations` dict
-- Used to calculate fitness improvement: `fitness - parent_fitness`
+**Data Structures**:
+- **OperatorMetadata**: Tracks `operator`, `parent_ids`, `parent_fitness`, `generation` for each civilization
+- **OperatorStatistics**: Accumulates `total_offspring`, `elite_offspring`, `success_rate` per operator
+- **AdaptiveRates**: Snapshot of `crossover_rate`, `mutation_rate`, `random_rate`, `operator_stats` at generation N
 
-**OperatorStatistics** (Dataclass):
-- Accumulated performance metrics per operator
-- Fields: `total_offspring`, `elite_offspring`, `total_fitness_improvement`, `avg_fitness_improvement`, `success_rate`
-- Updated after each generation's elite selection
-- Success rate = `elite_offspring / total_offspring`
+**MetaLearningEngine**:
+- **Methods**: `update_statistics()`, `finalize_generation()`, `calculate_adaptive_rates()`, `get_operator_history()`
+- **UCB1 Algorithm**: `score = success_rate + sqrt(2 * ln(total_trials) / operator_trials)`
+  - Balances exploitation (success_rate) with exploration (sqrt term for less-tried operators)
+  - Converts scores to rates via softmax normalization
+  - Enforces bounds [0.1, 0.7], ensures sum=1.0
+- **Config**: `adaptation_window=5`, `min_rate=0.1`, `max_rate=0.7`
 
-**AdaptiveRates** (Dataclass):
-- Snapshot of rates and statistics at a given generation
-- Fields: `crossover_rate`, `mutation_rate`, `random_rate`, `generation`, `operator_stats`
-- Returned by `calculate_adaptive_rates()` method
+**Integration** (EvolutionaryEngine):
+1. Init: Create MetaLearningEngine if enabled
+2. After elite selection: Update statistics for all civilizations
+3. Before reproduction (if gen ≥ window): Calculate adaptive rates via UCB1, apply to engine
+4. Offspring creation: Attach OperatorMetadata
+5. Export: Include `operator_history` in metrics JSON
 
-**MetaLearningEngine** (Class):
-- Manages operator performance tracking and rate adaptation
-- **Key Methods**:
-  - `update_statistics(operator, fitness_improvement, became_elite)`: Records offspring performance
-  - `finalize_generation()`: Saves current stats to history, prepares for next generation
-  - `calculate_adaptive_rates(current_rates)`: Computes new rates using UCB1 algorithm
-  - `get_operator_history()`: Returns historical statistics for all generations
-- **UCB1 Algorithm** (Upper Confidence Bound):
-  - Formula: `score = success_rate + sqrt(2 * ln(total_trials) / operator_trials)`
-  - Balances exploitation (high success rate) with exploration (sqrt term for less-tried operators)
-  - Converts scores to rates via softmax-like normalization
-  - Enforces rate bounds: [min_rate=0.1, max_rate=0.7]
-  - Ensures sum to 1.0 via renormalization
-- **Configuration**: `adaptation_window` (default: 5), `min_rate`, `max_rate`
-
-**Integration with EvolutionaryEngine**:
-1. **Initialization** (line ~650): Creates MetaLearningEngine if `enable_meta_learning=True`
-2. **Population Init** (line ~670): Adds OperatorMetadata to each civilization
-3. **After Elite Selection** (line ~757): Updates statistics for all civilizations
-4. **Before Reproduction** (line ~780): Calculates and applies adaptive rates
-5. **Offspring Creation** (line ~870): Attaches OperatorMetadata to new civilizations
-6. **Export** (line ~907): Includes `operator_history` in metrics JSON
-
-**Data Flow**:
-```
-Generation N:
-1. Evaluate all civilizations → assign fitness
-2. Select elites (top 20%)
-3. Update operator statistics (which operators created elites?)
-4. Finalize generation (save to history)
-5. IF generation >= adaptation_window:
-     Calculate adaptive rates using UCB1
-     Update self.crossover_rate, self.mutation_rate, self.random_rate
-6. Create next generation with current rates
-7. Attach operator metadata to offspring
-```
-
-**Example Adaptation**:
-```
-Generation 0-4: Fixed rates (0.3/0.5/0.2)
-Generation 5:
-  - Crossover: 67% elite rate (4/6 offspring) → high UCB score
-  - Mutation: 33% elite rate (2/6 offspring) → medium UCB score
-  - Random: 0% elite rate (0/2 offspring) → low UCB score
-  - New rates: 0.52 crossover, 0.28 mutation, 0.20 random
-```
+**Data Flow**: Evaluate → Select elites → Update stats → Finalize → (if gen≥window: adapt rates via UCB1) → Create offspring with metadata
 
 ### Metrics & Instrumentation
 
@@ -330,196 +271,47 @@ Generation 5:
 
 ## Configuration Management System
 
-### Overview
+Centralized `Config` dataclass (`src/config.py`) eliminates magic numbers via single source of truth for all tunable parameters.
 
-The system uses a centralized `Config` dataclass (`src/config.py`) that eliminates magic numbers and provides a single source of truth for all tunable parameters. This was implemented to address technical debt from hardcoded values scattered across the codebase.
+**Configuration Priority**: Default values → Environment variables (`.env`) → CLI arguments (highest)
 
-### Architecture
+**Flow**: `.env` → `load_config()` → `Config(defaults)` → CLI overrides → `__post_init__()` validates → Pass to components
 
-**Configuration Sources** (in priority order):
-1. **Default values** in `Config` dataclass fields (lowest priority)
-2. **Environment variables** loaded via `load_config()` from `.env` file
-3. **CLI arguments** parsed in `main.py` (highest priority - overrides everything)
+### Config Parameters (23 total, 5 categories)
 
-**Configuration Flow**:
-```
-.env file → load_config() → Config(defaults)
-                                ↓
-CLI args → Override Config fields
-                                ↓
-                    Config.__post_init__() validates
-                                ↓
-            Pass Config to all components
-```
+1. **LLM** (7): `api_key`, `max_llm_calls`, `llm_enabled`, `temperature_base`, `temperature_max`, `max_tokens`, `temperature_scaling_generations`
+2. **Evolution** (4): `elite_selection_rate` (0.2), `crossover_rate` (0.3), `mutation_rate` (0.5), `evaluation_duration` (0.1)
+3. **Meta-Learning** (5): `meta_learning_min_rate` (0.1), `meta_learning_max_rate` (0.7), `adaptation_window` (5), `fallback_inf_rate` (0.8), `fallback_finite_rate` (0.2)
+4. **Strategy Bounds** (5): `power_min` (2), `power_max` (5), `max_filters` (4), `min_hits_min` (1), `min_hits_max` (6)
+5. **Mutation Probabilities** (5): `mutation_prob_power` (0.3), `mutation_prob_filter` (0.3), `mutation_prob_modulus` (0.5), `mutation_prob_residue` (0.5), `mutation_prob_add_filter` (0.15)
 
-### Config Dataclass Structure
+### Validation (4 methods in `__post_init__()`)
 
-**23 total parameters organized into 5 categories**:
+1. **Evolution**: Elite rate in (0,1], crossover+mutation ≤ 1.0, duration > 0
+2. **Meta-Learning**: 0 ≤ min_rate ≤ max_rate ≤ 1, 3*min_rate ≤ 1.0+ε, 3*max_rate ≥ 1.0-ε, window ≥ 1
+3. **Strategy Bounds**: 2 ≤ power_min ≤ power_max ≤ 5, max_filters ≥ 1, 1 ≤ min_hits_min ≤ min_hits_max
+4. **Mutation Probs**: All in [0,1]
 
-1. **LLM Configuration** (7 params):
-   - `api_key`, `max_llm_calls`, `llm_enabled`
-   - `temperature_base`, `temperature_max`, `max_tokens`, `temperature_scaling_generations`
-
-2. **Evolution Parameters** (4 params):
-   - `elite_selection_rate` (0.2) - Top X% become parents
-   - `crossover_rate` (0.3) - Fraction from two parents
-   - `mutation_rate` (0.5) - Fraction from single parent
-   - `evaluation_duration` (0.1) - Seconds per strategy
-
-3. **Meta-Learning Parameters** (5 params):
-   - `meta_learning_min_rate` (0.1), `meta_learning_max_rate` (0.7)
-   - `adaptation_window` (5) - Generations for rate adaptation
-   - `fallback_inf_rate` (0.8), `fallback_finite_rate` (0.2)
-
-4. **Strategy Bounds** (5 params):
-   - `power_min` (2), `power_max` (5) - Polynomial power range
-   - `max_filters` (4) - Maximum modulus filters
-   - `min_hits_min` (1), `min_hits_max` (6) - Prime hit bounds
-
-5. **Mutation Probabilities** (5 params):
-   - `mutation_prob_power` (0.3), `mutation_prob_filter` (0.3)
-   - `mutation_prob_modulus` (0.5), `mutation_prob_residue` (0.5)
-   - `mutation_prob_add_filter` (0.15)
-
-### Validation
-
-**Four validation methods** in `Config.__post_init__()`:
-
-1. `_validate_evolution_params()`:
-   - Elite rate in (0, 1]
-   - Crossover + mutation rates ≤ 1.0
-   - Evaluation duration > 0
-
-2. `_validate_meta_learning_params()`:
-   - 0 ≤ min_rate ≤ max_rate ≤ 1
-   - 3 * min_rate ≤ 1.0 + epsilon (feasibility for 3 operators)
-   - 3 * max_rate ≥ 1.0 - epsilon (distribution constraint)
-   - Adaptation window ≥ 1
-
-3. `_validate_strategy_bounds()`:
-   - 2 ≤ power_min ≤ power_max ≤ 5
-   - max_filters ≥ 1
-   - 1 ≤ min_hits_min ≤ min_hits_max
-
-4. `_validate_mutation_probs()`:
-   - All probabilities in [0, 1]
-
-**Epsilon tolerance**: Uses 0.01 (1%) for floating point comparisons to handle edge cases like 3 * 0.33.
+**Epsilon**: 0.01 (1%) tolerance for floating point comparisons (e.g., 3*0.33)
 
 ### Component Integration
 
-**All components accept optional `config` parameter**:
+All components (`EvolutionaryEngine`, `StrategyGenerator`, `MetaLearningEngine`) accept optional `config` parameter. Default `Config()` created if not provided (backward compatibility).
 
-```python
-# EvolutionaryEngine
-def __init__(self, crucible, population_size=10, config=None, ...):
-    if config is None:
-        config = Config(api_key="", llm_enabled=False)
-    self.config = config
-    self.evaluation_duration = config.evaluation_duration
-    self.crossover_rate = config.crossover_rate
-    # ...
-
-# StrategyGenerator
-def __init__(self, primes=SMALL_PRIMES, config=None):
-    self.config = config or Config(api_key="", llm_enabled=False)
-    # Uses config.power_min, config.power_max, config.mutation_prob_*, etc.
-
-# MetaLearningEngine
-def __init__(self, adaptation_window=5, min_rate=0.1, max_rate=0.7, ...):
-    # Now accepts fallback_inf_rate and fallback_finite_rate from config
-```
-
-**Backward Compatibility**: Default Config created if not provided, ensuring existing code works without changes.
-
-### CLI Integration
-
-**15 new CLI arguments** added to `main.py`:
-- Evolution: `--elite-rate`, `--duration`
-- Strategy bounds: `--power-min`, `--power-max`, `--max-filters`, `--min-hits-min`, `--min-hits-max`
-- Meta-learning: `--meta-min-rate`, `--meta-max-rate`, `--fallback-inf-rate`, `--fallback-finite-rate`
-- Mutation probs: `--mutation-prob-power`, `--mutation-prob-filter`, `--mutation-prob-modulus`, `--mutation-prob-residue`, `--mutation-prob-add-filter`
-
-**Override logic** in `main.py`:
-```python
-# Load base config
-config = load_config() if args.llm else Config(api_key="", llm_enabled=False)
-
-# Override with CLI args (only if provided)
-if args.elite_rate is not None:
-    config.elite_selection_rate = args.elite_rate
-# ... (repeated for all 15 parameters)
-
-# Re-validate combined config
-config.__post_init__()
-```
+**CLI Integration**: 15 new arguments in `main.py` override config fields. After overrides, `config.__post_init__()` re-validates.
 
 ### Serialization
 
-**Security-aware export/import**:
-
-```python
-# Export (excludes api_key by default)
-config_dict = config.to_dict(include_sensitive=False)
-# {"elite_selection_rate": 0.2, "crossover_rate": 0.3, ...}
-
-# Import
-config = Config.from_dict(config_dict, api_key="user_key")
-```
-
-**Metrics export** includes full config:
-```python
-# In EvolutionaryEngine.export_metrics()
-data = {
-    "target_number": self.crucible.N,
-    "config": self.config.to_dict(),  # Full config for reproducibility
-    "metrics_history": [...]
-}
-```
-
-### Testing
-
-**48 comprehensive tests** in `tests/test_config.py`:
-- **Defaults**: Verify all 23 default values
-- **Validation**: Test all 4 validation methods with valid/invalid inputs
-- **Serialization**: Round-trip testing, sensitive data handling
-- **Edge cases**: Floating point tolerance, boundary conditions
-
-**Test fixtures** in `tests/conftest.py`:
-```python
-@pytest.fixture
-def test_config():
-    return Config(api_key="test_key", llm_enabled=False, evaluation_duration=0.05)
-```
+**Export**: `config.to_dict(include_sensitive=False)` excludes API keys
+**Import**: `Config.from_dict(dict, api_key="...")` reconstructs from dict
+**Metrics**: `export_metrics()` includes full config for reproducibility
 
 ### Design Principles
 
-1. **Single Source of Truth**: Each parameter defined exactly once (DRY)
-2. **Fail-Fast Validation**: Invalid configs rejected at construction time
-3. **Security by Default**: Sensitive data (API keys) excluded from export
+1. **Single Source of Truth**: Each parameter defined once (DRY)
+2. **Fail-Fast Validation**: Invalid configs rejected at construction
+3. **Security by Default**: Sensitive data excluded from export
 4. **Backward Compatible**: Optional parameter with sensible defaults
-5. **Discoverable**: All parameters documented in CLI help and README
-
-### Migration Path
-
-**Before** (magic numbers scattered):
-```python
-engine = EvolutionaryEngine(crucible, evaluation_duration=0.1, crossover_rate=0.3)
-# Hardcoded: elite_rate=0.2, power bounds 2-5, mutation probs in code
-```
-
-**After** (centralized config):
-```python
-config = Config(evaluation_duration=0.1, crossover_rate=0.3)
-engine = EvolutionaryEngine(crucible, config=config)
-# All parameters in one place, documented, validated
-```
-
-### Known Limitations
-
-1. **Test Updates**: Some existing tests still use old parameter passing (being migrated)
-2. **No Config File**: Currently no `.yaml` or `.toml` config file support (only `.env` for API key)
-3. **No Hot Reload**: Changes require restart (config validated at initialization)
 
 ## Critical Implementation Details
 
@@ -625,257 +417,166 @@ Typical prototype costs:
 5. **Push to GitHub** and create PR (never push to main)
 6. **Verify CI passes** before requesting review
 
-## Critical Learnings from PR #2
+## Critical Learnings
 
-1. **Temperature Inversion**: Always verify exploration→exploitation patterns in evolutionary algorithms
-2. **Finally Block Pattern**: Use `finally` for counters to prevent resource leaks on failures
-3. **Early Validation**: Validate config (API keys) at load time with clear error messages
-4. **Dataclass Equality**: Python's `@dataclass` auto-generates `__eq__` (no manual implementation needed)
-5. **Specific Exception Handling**: Catch specific exceptions (JSONDecodeError, ValueError) not bare Exception
+### Temperature Calculation & LLM Patterns (PR #2)
+- **Temperature Inversion**: Original increased temp (0.8→1.2) over generations instead of decreasing, inverting exploration→exploitation tradeoff
+- **Fix**: `temp = temp_max - (temp_max - temp_base) * progress` (starts high, decreases to base)
+- **Finally Block for Counters**: Use `finally` to increment API call counters, prevents resource leaks on failures
+- **Early Validation**: Validate config (API keys) at load time with clear error messages (fail-fast)
 
-## Critical Learnings from PR #10
+### Genetic Algorithms & Randomness (PR #10, #12)
+- **Parent Selection**: Use `random.sample(elites, 2)` not `random.choice()` twice - prevents selecting same parent (asexual reproduction), critical for diversity
+- **Filter Merging**: Use `sorted(set(list1) | set(list2))` not `sorted(set(list1 + list2))` - cleaner set operations
+- **RNG Seeding in Tests**: Let components handle seeding (`Engine(seed=42)` only), don't seed externally - tests verify component actually works
+- **Single Seeding Location**: Seed only in `__init__` where randomness used, not in `main()` - second call overwrites first
 
-1. **Parent Selection in Genetic Algorithms**: Use `random.sample(population, k)` not multiple `random.choice()` calls
-   - Issue: Calling `random.choice(elites)` twice can select the same parent (asexual reproduction)
-   - Solution: `parent1, parent2 = random.sample(elites, 2)` ensures distinct parents
-   - Impact: Critical for genetic diversity, especially with small populations
+### Critical Bug Fixes (PR #14)
+- **Returning Unevaluated Strategy**: `final_best_strategy` selected AFTER `run_evolutionary_cycle()` replaced civilizations with next gen (fitness=0)
+  - Fix: Return `(best_fitness, best_strategy)` tuple BEFORE mutation, updated 8 call sites
+  - Changed signature: `def run_evolutionary_cycle() -> float` → `-> tuple[float, Strategy]`
+- **ZeroDivisionError**: `improvement_pct = ((evolved / baseline) - 1) * 100` when baseline=0
+  - Fix: `... if baseline > 0 else float("inf")`, added regression test
 
-2. **Filter Merging Optimization**: Use set union operators instead of list concatenation + deduplication
-   - Before: `sorted(set(list1 + list2))`
-   - After: `sorted(set(list1) | set(list2))`
-   - Impact: More readable and slightly more efficient
+### Testing Patterns (PR #18, #25)
+- **Warning Testing**: Mock to force rare conditions → `pytest.warns()` → verify message, use `stacklevel=2` in `warnings.warn()`
+- **Bounds Validation**: Test validators with `pytest.raises(ValueError, match="regex")` - validation exists but needs tests
+- **Mutation Prevention**: Return copies from getters (`self.stats.copy()`) - prevents external mutation of internal state
+- **Test Isolation**: Use `autouse` pytest fixture to reset global state (loggers, RNG) before/after each test - prevents pollution
 
-## Critical Learnings from PR #12
+### Modular Refactoring & Architecture (PR #21)
+- **Zero Breaking Changes**: Bottom-up extraction (foundation → dependent → high-level) + re-export shim (`from src.X import Y` in old file)
+  - Split prototype.py (1449 lines) → 6 modules, all 164 tests passing
+- **Conditional Imports**: Import heavy deps only when needed - `if args.feature: from heavy_module import Class`
+  - scipy only loaded for comparison mode, basic mode runs without it
+- **CLI Validation**: Check core params after parsing - `if args.param < 1: sys.exit("❌ ERROR: param must be >= 1")`
+- **Semantic Consistency**: Edge cases behave identically across code paths - `candidate==0` returns False in both simple and detailed evaluation
 
-1. **RNG Seeding in Tests**: Let components handle their own seeding
-   - Issue: External `random.seed()` in tests masks whether component's seeding works
-   - Wrong: `random.seed(42); engine = Engine(seed=42)` - test passes even if engine doesn't seed
-   - Correct: `engine = Engine(seed=42)` - test verifies engine actually applies seed
-   - Impact: Tests verify actual user experience, catch seeding bugs in components
+### Configuration Management (PR #23)
+- **Config Propagation**: Pass same config to all components in tests - extract to variable first, prevents mismatches
+- **Immutable Pattern**: `Config.from_args_and_env()` factory method constructs once with validation - no post-hoc mutation
+- **ClassVar Serialization (Python 3.9-3.10)**: Explicitly `pop("EPSILON")` from `to_dict()` - `asdict()` incorrectly includes ClassVars
 
-2. **Duplicate RNG Seeding Anti-Pattern**: Seed only in one place
-   - Issue: Seeding in main() and __init__() - second call overwrites first
-   - Wrong: `random.seed(args.seed)` in main(), then `random.seed(seed)` in __init__
-   - Correct: Seed only in __init__ where component uses randomness
-   - Impact: Eliminates confusion, ensures seeding happens correctly for all usage patterns
+## Docker Security Patterns
 
-## Critical Learnings from PR #14
+### Security Layered Defense
+**When**: Running untrusted code (LLM-generated)
+**Pattern**: Combine 4 isolation layers
+```python
+container = client.containers.create(
+    image="sandbox:latest",
+    network_disabled=True,  # Layer 1: Network isolation
+    read_only=True,  # Layer 2: Filesystem protection
+    tmpfs={"/tmp": "size=100m,uid=1000"},  # Writable tmpfs for numpy
+    mem_limit="512m", memswap_limit="512m",  # Layer 3: Resource limits
+    cpu_period=100000, cpu_quota=50000, pids_limit=100,
+    user="1000:1000",  # Layer 4: Non-root user
+)
+```
 
-1. **Systematic Multi-Issue PR Review Handling**: Fix all issues in priority order
-   - Received 7 code review issues from gemini-code-assist and chatgpt-codex-connector
-   - Prioritized: 2 HIGH (ZeroDivisionError fixes), 1 CRITICAL (final_best_strategy bug), 4 MEDIUM (code quality)
-   - Fixed all in single commit with comprehensive testing
-   - Pattern: Discover → Prioritize → Fix by priority → Extract duplicates → Verify
-   - Success: 126 tests passing, all CI green
+### Container Cleanup
+**Pattern**: Always cleanup in finally block with force removal
+```python
+container = None
+try:
+    container = client.containers.create(...)
+    container.start()
+    exit_info = container.wait(timeout=timeout)
+    logs = container.logs()
+except Exception:
+    if container:
+        container.kill()
+        container.wait()
+    raise
+finally:
+    if container is not None:
+        try:
+            container.remove(force=True)
+        except Exception:
+            pass  # Ignore cleanup errors
+```
 
-2. **Critical Bug: Returning Unevaluated Strategy**: Capture state BEFORE mutation
-   - Issue: `final_best_strategy` selected from `engine.civilizations` AFTER `run_evolutionary_cycle()` completed
-   - Root cause: `run_evolutionary_cycle()` replaces civilizations with next generation (fitness=0, unevaluated)
-   - Wrong: `max(engine.civilizations.items(), key=lambda x: x[1]["fitness"])` after cycle → random unevaluated strategy
-   - Correct: Return `(best_fitness, best_strategy)` tuple BEFORE replacing civilizations
-   - Impact: Fixed major bug where exported ComparisonRun had wrong strategy; updated 8 call sites
+### OOM Kill Detection
+**Pattern**: Check `inspect["State"].get("OOMKilled", False)` after wait
+**Why**: OOM kills indicate resource config issue, not code bug
 
-3. **Edge Case Handling: ZeroDivisionError in Statistical Analysis**
-   - Issue 1: `improvement_pct = ((evolved_mean / baseline_mean) - 1) * 100` when baseline_mean=0 (conservative finds no candidates)
-   - Fix: `improvement_pct = ... if baseline_mean > 0 else float("inf")`
-   - Issue 2: Welch-Satterthwaite df calculation when both variances zero: `df = num / den` when den=0
-   - Fix: `df = num / den if den > 0 else float(n1 + n2 - 2)`
-   - Test: Added `test_comparison_result_interpret_zero_baseline()` to prevent regression
+### Base64 + Pickle Serialization
+**When**: Passing numpy arrays to containers
+**Pattern**: `pickle.dumps() → base64.encode() → embed in script → decode → pickle.loads()`
+```python
+# Host
+grid_b64 = base64.b64encode(pickle.dumps(numpy_array)).decode("ascii")
+script = f'grid_b64 = {repr(grid_b64)}\nnumpy_array = pickle.loads(base64.b64decode(grid_b64))'
+# Result: print(f"RESULT:{{base64.b64encode(pickle.dumps(result)).decode()}}")
+result = pickle.loads(base64.b64decode(logs.split("RESULT:")[1].strip()))
+```
+**Benefits**: No volume mounts, works with read-only filesystem
+**Security**: Only for trusted container data
 
-4. **DRY Principle Application**: Extract duplicate code immediately when spotted
-   - Duplicate 1: LLM cost summary (6 lines × 2 occurrences) → `print_llm_summary(llm_provider)` helper
-   - Duplicate 2: Convergence logic (20+ lines in 2 methods) → `_is_window_converged(window)` private method
-   - Impact: Reduces maintenance burden, single source of truth
-   - Timing: Fix during PR review, not "later"
+### Bandit False Positives
+**Pattern**: `# nosec` with explanatory comment
+```python
+tmpfs={"/tmp": "size=100m,uid=1000"},  # noqa: S108  # nosec - Docker tmpfs, ephemeral
+result = pickle.loads(result_bytes)  # noqa: S301  # nosec - trusted container
+```
+**Use for**: `/tmp` in Docker, `pickle` from trusted sources, `subprocess` with controlled input
 
-5. **Function Signature Evolution**: Update ALL call sites when changing return type
-   - Changed: `def run_evolutionary_cycle() -> float` → `-> tuple[float, Strategy]`
-   - Required: Update 8 call sites (main() + 4 test files)
-   - Method: `grep -r "run_evolutionary_cycle()"` to find all occurrences
-   - Pattern: `best_fitness, best_strategy = engine.run_evolutionary_cycle()`
-   - Why: Better to break at compile time than silently use wrong value
-## Critical Learnings from PR #16
+## Evolution System Patterns
 
-1. **Jupyter Notebook Edge Case Robustness**: Always defend against unexpected data conditions
-   - Use `.get()` with defaults for JSON keys: `runs = data.get("runs", [])`
-   - Check empty collections before operations: `if not all_evolved: ... else: max_gens = max(..., default=0)`
-   - Handle None before formatting: `if conv_stats['mean'] is not None: ... else: "No runs converged"`
-   - Conditional expressions for division by zero: `improvement_pct = ... if baseline_mean > 0 else float("inf")`
-   - Impact: Notebooks handle edge cases gracefully (0% convergence, baseline=0, empty runs)
-   - Why: Experimental data often has unexpected conditions; robust handling enables exploration
+### Accurate Evaluation Metrics
+**Pattern**: `new_evaluations = len(population) - config.elite_size` (elite preservation doesn't count as new evaluation)
 
-2. **Systematic PR Review Response**: Address all feedback comprehensively in priority order
-   - PR #16: Fixed 5 robustness issues from gemini-code-assist and chatgpt-codex-connector
-   - Issues: KeyError, ValueError (empty runs), IndexError (runs[0]), ValueError (ci_upper), TypeError (None formatting)
-   - Pattern: Read ALL review comments → Prioritize by severity → Fix systematically → Test edge cases → Commit
-   - Result: All edge cases tested and passing, documentation complete
+### State vs Transition Clarity
+**Pattern**: Document if number = completed state or next transition (prevents off-by-one errors)
 
-3. **results/ Directory Documentation**: Document data directories even if gitignored
-   - Created `results/README.md` explaining purpose, usage, file format
-   - Added directory creation instruction to main README: `mkdir -p results`
-   - Why: Users need to know what directories are for and how to create them
-   - Impact: Prevents FileNotFoundError when following README examples
+### Consistent Operation Timing
+**Pattern**: Standardize timing (e.g., snapshots AFTER evolution, not before)
 
-## Critical Learnings from PR #18
+### Enhanced Semantic Operators Pattern
+**Concept**: High-scoring ideas trigger revolutionary variations (breakthrough mutations)
+**Implementation**:
+```python
+# Breakthrough threshold
+if fitness >= 0.8:
+    mutation_type = "breakthrough"
+    temperature = 0.95  # Higher creativity
+    max_tokens = default_tokens * 2  # More space for creative exploration
+else:
+    mutation_type = "regular"
+    temperature = 0.8
+    max_tokens = default_tokens
+```
+**Cache Handling**: Store mutation type alongside content for consistency
+**Validation**: Always validate cache has "content" key before using
+**Batch Consistency**: Never skip ideas in batch - fallback to original content if cache invalid
+**Type Safety**: Initialize variables before conditional blocks to avoid mypy errors
 
-1. **GraphQL for Complete PR Feedback Coverage**: Use GraphQL single query instead of multiple REST calls
-   - Created `/tmp/pr_feedback_query.gql` with atomic query fetching comments, reviews, line comments, CI annotations
-   - Replaced broken REST approach (404 errors on empty collections) with 100% reliable coverage
-   - Pattern: Single GraphQL query → Parse JSON → Filter by timestamp
-   - Why: REST API returns 404 for empty review collections; GraphQL returns empty arrays
-   - Impact: Zero missed reviewer feedback, eliminated false negatives
+### Semantic Diversity Implementation
+**Pattern**: Use Gemini embeddings API with caching + Jaccard fallback
+```python
+class GeminiDiversityCalculator:
+    async def calculate_diversity(self, population):
+        embeddings = await self._get_embeddings_with_cache(texts)  # :batchEmbedContents
+        similarity_matrix = cosine_similarity(embeddings)
+        return 1.0 - np.mean(upper_triangle)
 
-2. **Incremental Post-Commit Review Handling**: Always check for new feedback after pushing fixes
-   - Pattern: Fix issues → Commit → Push → Wait for CI → Check for NEW feedback since commit
-   - Use `/fix_pr_since_commit_graphql` to filter feedback by timestamp vs second-to-last commit
-   - Why: Reviewers (especially AI) can post feedback AFTER you push fixes
-   - Example: PR #18 received 6 new comments from claude-review after initial fixes pushed
-   - Impact: Prevented merge with unaddressed feedback
+# Always provide fallback
+if diversity_method == SEMANTIC:
+    primary = GeminiDiversityCalculator(llm)
+    fallback = JaccardDiversityCalculator()
+```
 
-3. **Warning Testing Pattern**: Test warning mechanisms with mock patching
-   - Pattern: Create mock that forces non-convergence → Use `pytest.warns()` → Verify warning message
-   - Example: `test_enforce_rate_bounds_convergence_warning` patches method to force max iterations
-   - Use `stacklevel=2` in `warnings.warn()` for proper source tracking (prevents B028 lint error)
-   - Why: Convergence failures are rare in normal operation but must be tested
-   - Impact: Verified warning mechanism works without waiting for pathological inputs
+### Architecture Unification Pattern
+**When**: Multiple components share similar functionality with duplicated code
+**How**: Extract shared functionality to base class, use inheritance
+**Example**: PR #158 - Created BatchOperationsBase to eliminate ~180 lines of duplicate batch processing code
+```python
+class BatchOperationsBase:
+    def prepare_advocacy_input(self, candidates):
+        return [{"idea": c["text"], "evaluation": c["critique"]} for c in candidates]
 
-4. **Bounds Validation Testing**: Always test initialization validators
-   - Added 3 tests: `min > max`, `3*min > 1.0`, `3*max < 1.0`
-   - Pattern: `pytest.raises(ValueError, match="regex")` for validation errors
-   - Why: Validation exists but wasn't tested - could silently break
-   - Impact: Caught feasibility bugs before production use
-
-5. **Mutation Prevention in Getters**: Return copies from getter methods
-   - Issue: `get_current_statistics()` returned direct reference, allowing external mutation
-   - Fix: `return self.current_stats.copy()` prevents callers from modifying internal state
-   - Why: Defensive programming - internal state should be immutable from outside
-   - Impact: Eliminated subtle mutation bugs
-
-## Critical Learnings from PR #21
-
-1. **Modular Refactoring with Zero Breaking Changes**: Bottom-up extraction + compatibility shim
-   - Pattern: Foundation modules (no deps) → Dependent modules → High-level modules → Shim
-   - Example: Split prototype.py (1449 lines) → 6 modules (metrics, strategy, crucible, evolution, comparison, main)
-   - Shim: Re-export all from old file for backward compatibility: `from src.X import Y`
-   - Impact: All 164 tests passing, zero breaking changes, improved code organization
-
-2. **Conditional Dependency Imports**: Import heavy dependencies only when features are used
-   - Issue: Importing ComparisonEngine at module level required scipy for all users
-   - Solution: Move import inside `if args.compare_baseline:` block
-   - Pattern: `if feature_enabled: from heavy_module import FeatureClass`
-   - Impact: Basic mode works without scipy; comparison mode imports only when needed
-
-3. **CLI Validation for Core Parameters**: Prevent crashes with clear error messages
-   - Issue: `generations=0`, `population=0`, `num_comparison_runs=0` caused crashes (assertion, IndexError, division by zero)
-   - Solution: Add validation after argument parsing with descriptive errors
-   - Pattern: `if args.param < 1: sys.exit("❌ ERROR: param must be >= 1")`
-   - Impact: User-friendly errors instead of cryptic tracebacks
-
-4. **ValueError Handling in Config Loading**: Catch all config-related exceptions
-   - Issue: `load_config()` raises ValueError when GEMINI_API_KEY missing, only ImportError was caught
-   - Solution: Add `except ValueError as e:` with hint about setting environment variable
-   - Pattern: Catch specific config errors (ValueError, KeyError) before generic ImportError
-   - Impact: Friendly error message instead of crash
-
-5. **Semantic Consistency Across Evaluation Paths**: Same edge cases must behave identically
-   - Issue: `Strategy.__call__` returned True for candidate==0, but `evaluate_strategy_detailed` skipped it
-   - Solution: Both paths now return False for candidate==0
-   - Why: Inconsistent semantics make simple vs detailed evaluation incomparable
-   - Impact: Consistent behavior enables reliable benchmarking
-
-## Critical Learnings from PR #23
-
-1. **Config Propagation to Test Components**: Always pass config to all components in tests
-   - Issue: 12 test files created `StrategyGenerator()` without config parameter, using different config in EvolutionaryEngine
-   - Solution: Extract inline `Config()` to named variable before generator instantiation, pass `config=config` to all components
-   - Pattern: Define config first, then pass to all components that need it
-   - Impact: Ensures test components use consistent config, prevents bugs from config mismatches
-   - Example:
-     ```python
-     # Wrong: Generator uses default config, engine uses custom config
-     generator = StrategyGenerator()
-     engine = EvolutionaryEngine(..., config=Config(power_min=3, power_max=3))
-
-     # Correct: Both use same config
-     config = Config(api_key="", llm_enabled=False, power_min=3, power_max=3)
-     generator = StrategyGenerator(config=config)
-     engine = EvolutionaryEngine(..., config=config)
-     ```
-
-2. **Integration Tests for Config Propagation**: Verify full chain behavior
-   - Created `test_config_integration.py` with 12 tests covering:
-     - StrategyGenerator respects config bounds (power, filters, min_hits)
-     - EvolutionaryEngine passes config to all components
-     - MetaLearningEngine receives config parameters
-     - Full evolution cycle respects bounds end-to-end
-   - Impact: Catches config propagation bugs that unit tests miss
-
-3. **Immutable Configuration Pattern**: Use factory method to prevent mutation
-   - Issue: Direct field mutation bypassed validation, creating invalid states
-   - Solution: `Config.from_args_and_env()` factory method that constructs once with validation
-   - Pattern: Build overrides dict → Merge with base → Construct once
-   - Anti-pattern: `config = Config(); config.field = value; config.__post_init__()` (fragile)
-   - Impact: Eliminated 42-line mutation block, removed re-validation pattern
-   - Example in `src/config.py:203-269`
-
-4. **ClassVar Serialization Bug in Python 3.9-3.10**: `asdict()` includes `ClassVar` fields
-   - Issue: On Python 3.9 and 3.10, `dataclasses.asdict()` incorrectly includes fields marked with `ClassVar`. This caused our `EPSILON` constant to be serialized, breaking round-trip deserialization with `from_dict()`. This behavior was fixed in Python 3.11.
-   - Solution: Explicitly exclude in `to_dict()`: `config_dict.pop("EPSILON", None)`
-   - Pattern: Always exclude ClassVars from dataclass serialization on affected Python versions
-   - Impact: Fixed round-trip serialization, added tests to prevent regression
-   - Reference: `src/config.py:183`
-
-5. **Ruff Formatting in CI**: Always format before pushing
-   - Issue: CI failed because new test file wasn't formatted with Ruff
-   - Solution: Run `ruff format tests/test_config_integration.py` locally
-   - Pattern: Run `ruff format .` before every commit
-   - Impact: Prevents CI failures from formatting issues
-
-## Critical Learnings from PR #25
-
-1. **Test Isolation for Global State (Root Logger)**: Always reset global singletons in test fixtures
-   - Issue: `setup_logging()` modifies the root logger, which persists across tests, causing test pollution
-   - Solution: Use autouse pytest fixture to reset root logger before and after each test
-   - Pattern:
-     ```python
-     @pytest.fixture(autouse=True)
-     def reset_logging():
-         root_logger = logging.getLogger()
-         root_logger.handlers.clear()
-         root_logger.setLevel(logging.WARNING)
-         yield
-         root_logger.handlers.clear()
-         root_logger.setLevel(logging.WARNING)
-     ```
-   - Why: Global state (loggers, random seeds, environment variables) persists across tests, causing:
-     - Tests to interfere with each other
-     - Different behavior when run individually vs in suite
-     - Unreliable CI results
-   - Impact: Ensures consistent test behavior regardless of execution order
-   - Reference: `tests/test_logging_config.py:12-29`
-
-2. **PEP 8 Import Organization for Conditional Features**: Keep all imports at module top
-   - Issue: Imports placed inside function after argument parsing violated PEP 8 style
-   - Wrong: `args = parser.parse_args(); import os; from src.logging_config import setup_logging`
-   - Correct: Import at top of file, use conditionally in function body
-   - Why: Makes dependencies immediately visible and discoverable
-   - Pattern: Import all modules at top → Use conditionally in code
-   - Impact: Better code readability, clearer dependency graph
-   - Reference: `main.py:1-12`
-
-3. **Lock File Management**: Add package manager lock files to .gitignore
-   - Issue: `uv.lock` was accidentally committed when it wasn't intended
-   - Solution: `git rm uv.lock && echo "uv.lock" >> .gitignore`
-   - Pattern: Add all lock files to .gitignore unless explicitly using for reproducibility
-   - Common lock files: `uv.lock`, `poetry.lock`, `Pipfile.lock`, `package-lock.json`, `yarn.lock`
-   - Why: Lock files should be intentional, documented in README if used for reproducibility
-   - Impact: Prevents accidental commits of build artifacts
-
-4. **Invalid Input Handling in Configuration**: Always test edge cases for user-provided config
-   - Issue: Invalid log level (e.g., "INVALID") wasn't tested, could cause unexpected behavior
-   - Solution: Added `test_setup_logging_invalid_level()` verifying fallback to INFO
-   - Pattern: Test invalid/malformed input for all user-configurable parameters
-   - Examples: Invalid enum values, out-of-range numbers, malformed strings
-   - Why: User input is unreliable, defensive programming prevents crashes
-   - Impact: Better error handling, clearer failure modes
-   - Reference: `tests/test_logging_config.py:137-141`
+class AsyncCoordinator(BatchOperationsBase):
+    def __init__(self):
+        super().__init__()  # Initialize base class
+```
+**Benefits**: Single source of truth, easier testing, consistent behavior
