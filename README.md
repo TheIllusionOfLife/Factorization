@@ -646,7 +646,7 @@ For production factorization, use established tools like [CADO-NFS](https://cado
   - Fixed critical bugs: EPSILON ClassVar serialization (Python 3.9-3.10), fallback rate validation
   - Propagated config to all components: StrategyGenerator, MetaLearningEngine, LLMStrategyGenerator
   - 65 new tests (229 total): 53 unit tests (test_config.py), 12 integration tests (test_config_integration.py)
-  - Complete documentation: 100+ lines README, 193+ lines CLAUDE.md with architecture and examples
+  - Complete documentation: Extensive updates to README and CLAUDE.md, including architecture and examples
   - Fixed 2 syntax errors (line joining), 1 CI failure (Ruff formatting)
   - All 7 CI checks passing: Lint, Type check, Tests (3.9/3.10/3.11), claude-review, CodeRabbit
   - Approved by claude-review with minor follow-up suggestions (see Next Priority Tasks)
@@ -754,10 +754,10 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 - None currently blocking development
 
 #### Session Learnings
-- **Config Propagation to Test Components** (PR #23): Always pass config to all test components - 12 test files created `StrategyGenerator()` without config, using different config in EvolutionaryEngine. Pattern: Extract inline `Config()` to named variable, pass `config=config` to all components. Prevents bugs from config mismatches.
+- **Config Propagation to Test Components** (PR #23): Always pass config to all test components. 12 test files created `StrategyGenerator()` without config, using different config in EvolutionaryEngine. Pattern: Extract inline `Config()` to named variable, pass `config=config` to all components. Prevents bugs from config mismatches.
 - **Integration Tests for Config** (PR #23): Created test_config_integration.py with 12 tests verifying full chain (Config → Engine → Generator → Strategies). Catches propagation bugs that unit tests miss.
 - **Immutable Configuration Pattern** (PR #23): Use factory method `Config.from_args_and_env()` to prevent mutation. Anti-pattern: `config = Config(); config.field = value; config.__post_init__()` (fragile). Correct: Build overrides dict → Merge → Construct once with validation.
-- **ClassVar Serialization Bug** (PR #23): Python 3.9-3.10 include ClassVars in `asdict()`. Solution: Explicitly exclude in `to_dict()`: `config_dict.pop("EPSILON", None)`. Always test round-trip serialization.
+- **ClassVar Serialization Bug** (PR #23): Python 3.9-3.10 include ClassVars in `asdict()` (fixed in Python 3.11). Solution: Explicitly exclude in `to_dict()`: `config_dict.pop("EPSILON", None)`. Always test round-trip serialization.
 - **Ruff Formatting Before Push** (PR #23): CI failed due to unformatted test file. Pattern: Run `ruff format .` before every commit to prevent CI failures.
 - **Modular Refactoring Workflow** (PR #21): Bottom-up extraction (foundation → dependent → high-level) + compatibility shim = zero breaking changes. Test imports after each module. All 164 tests passed via re-export shim.
 - **GraphQL for Complete PR Feedback** (PR #18): Use single GraphQL query instead of multiple REST calls - REST returns 404 on empty collections, GraphQL returns empty arrays. Zero missed feedback with atomic query.

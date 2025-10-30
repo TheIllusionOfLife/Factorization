@@ -818,10 +818,10 @@ Typical prototype costs:
    - Impact: Eliminated 42-line mutation block, removed re-validation pattern
    - Example in `src/config.py:203-269`
 
-4. **ClassVar Serialization Bug**: Python 3.9-3.10 include ClassVars in asdict()
-   - Issue: `EPSILON: ClassVar[float]` appeared in exported configs, broke `from_dict()`
+4. **ClassVar Serialization Bug in Python 3.9-3.10**: `asdict()` includes `ClassVar` fields
+   - Issue: On Python 3.9 and 3.10, `dataclasses.asdict()` incorrectly includes fields marked with `ClassVar`. This caused our `EPSILON` constant to be serialized, breaking round-trip deserialization with `from_dict()`. This behavior was fixed in Python 3.11.
    - Solution: Explicitly exclude in `to_dict()`: `config_dict.pop("EPSILON", None)`
-   - Pattern: Always exclude ClassVars from dataclass serialization
+   - Pattern: Always exclude ClassVars from dataclass serialization on affected Python versions
    - Impact: Fixed round-trip serialization, added tests to prevent regression
    - Reference: `src/config.py:183`
 
