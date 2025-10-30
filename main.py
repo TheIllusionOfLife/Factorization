@@ -2,11 +2,14 @@
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
+from src.config import Config
 from src.crucible import FactorizationCrucible
 from src.evolution import EvolutionaryEngine
+from src.logging_config import setup_logging
 
 
 def main():
@@ -221,10 +224,6 @@ def main():
     args = parser.parse_args()
 
     # Initialize logging BEFORE any other operations
-    import os
-
-    from src.logging_config import setup_logging
-
     log_level = args.log_level or os.getenv("LOG_LEVEL", "INFO")
     log_file = args.log_file or os.getenv("LOG_FILE", None)
 
@@ -248,8 +247,6 @@ def main():
         sys.exit(1)
 
     # Build config from environment and CLI overrides
-    from src.config import Config
-
     try:
         # Create config from CLI args and environment (immutable construction pattern)
         # Validation happens once in Config.__post_init__() - no mutation after construction

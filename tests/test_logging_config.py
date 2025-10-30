@@ -4,7 +4,29 @@ import logging
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from src.logging_config import get_logger, setup_logging
+
+
+@pytest.fixture(autouse=True)
+def reset_logging():
+    """Reset logging state before and after each test to prevent test pollution.
+
+    This fixture is critical because setup_logging() modifies the root logger,
+    which is a global singleton that persists across tests.
+    """
+    # Setup: Clear before test
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    root_logger.setLevel(logging.WARNING)
+
+    yield
+
+    # Teardown: Clear after test
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    root_logger.setLevel(logging.WARNING)
 
 
 def test_setup_logging_default():
@@ -110,3 +132,10 @@ def test_setup_logging_clears_existing_handlers():
     # Second setup should clear and recreate
     logger2 = setup_logging(level="DEBUG")
     assert len(logger2.handlers) == initial_handler_count  # Should be same, not doubled
+
+
+def test_setup_logging_invalid_level():
+    """Test that invalid log level defaults to INFO."""
+    logger = setup_logging(level="INVALID")
+    # getattr with default should fall back to INFO
+    assert logger.level == logging.INFO

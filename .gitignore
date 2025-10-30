@@ -11,3 +11,4 @@ checkpoints/
 
 .gemini/
 gha-creds-*.json
+uv.lock

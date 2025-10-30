@@ -830,3 +830,52 @@ Typical prototype costs:
    - Solution: Run `ruff format tests/test_config_integration.py` locally
    - Pattern: Run `ruff format .` before every commit
    - Impact: Prevents CI failures from formatting issues
+
+## Critical Learnings from PR #25
+
+1. **Test Isolation for Global State (Root Logger)**: Always reset global singletons in test fixtures
+   - Issue: `setup_logging()` modifies the root logger, which persists across tests, causing test pollution
+   - Solution: Use autouse pytest fixture to reset root logger before and after each test
+   - Pattern:
+     ```python
+     @pytest.fixture(autouse=True)
+     def reset_logging():
+         root_logger = logging.getLogger()
+         root_logger.handlers.clear()
+         root_logger.setLevel(logging.WARNING)
+         yield
+         root_logger.handlers.clear()
+         root_logger.setLevel(logging.WARNING)
+     ```
+   - Why: Global state (loggers, random seeds, environment variables) persists across tests, causing:
+     - Tests to interfere with each other
+     - Different behavior when run individually vs in suite
+     - Unreliable CI results
+   - Impact: Ensures consistent test behavior regardless of execution order
+   - Reference: `tests/test_logging_config.py:12-29`
+
+2. **PEP 8 Import Organization for Conditional Features**: Keep all imports at module top
+   - Issue: Imports placed inside function after argument parsing violated PEP 8 style
+   - Wrong: `args = parser.parse_args(); import os; from src.logging_config import setup_logging`
+   - Correct: Import at top of file, use conditionally in function body
+   - Why: Makes dependencies immediately visible and discoverable
+   - Pattern: Import all modules at top → Use conditionally in code
+   - Impact: Better code readability, clearer dependency graph
+   - Reference: `main.py:1-12`
+
+3. **Lock File Management**: Add package manager lock files to .gitignore
+   - Issue: `uv.lock` was accidentally committed when it wasn't intended
+   - Solution: `git rm uv.lock && echo "uv.lock" >> .gitignore`
+   - Pattern: Add all lock files to .gitignore unless explicitly using for reproducibility
+   - Common lock files: `uv.lock`, `poetry.lock`, `Pipfile.lock`, `package-lock.json`, `yarn.lock`
+   - Why: Lock files should be intentional, documented in README if used for reproducibility
+   - Impact: Prevents accidental commits of build artifacts
+
+4. **Invalid Input Handling in Configuration**: Always test edge cases for user-provided config
+   - Issue: Invalid log level (e.g., "INVALID") wasn't tested, could cause unexpected behavior
+   - Solution: Added `test_setup_logging_invalid_level()` verifying fallback to INFO
+   - Pattern: Test invalid/malformed input for all user-configurable parameters
+   - Examples: Invalid enum values, out-of-range numbers, malformed strings
+   - Why: User input is unreliable, defensive programming prevents crashes
+   - Impact: Better error handling, clearer failure modes
+   - Reference: `tests/test_logging_config.py:137-141`
