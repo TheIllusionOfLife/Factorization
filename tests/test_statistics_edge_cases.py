@@ -39,7 +39,9 @@ class TestStatisticalAnalyzer:
         # Should work with negative values
         assert result.evolved_mean == pytest.approx(-20.0)
         assert result.baseline_mean == pytest.approx(-60.0)
-        assert result.evolved_mean > result.baseline_mean  # Evolved is "better" (less negative)
+        assert (
+            result.evolved_mean > result.baseline_mean
+        )  # Evolved is "better" (less negative)
 
     def test_zero_baseline_fitness(self):
         """Test comparison with zero baseline."""

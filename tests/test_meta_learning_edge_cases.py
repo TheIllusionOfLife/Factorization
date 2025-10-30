@@ -251,9 +251,7 @@ class TestRateNormalizationEdgeCases:
     def test_epsilon_edge_cases(self):
         """Test 3*0.333333... = 1.0 boundary condition."""
         # This should not raise error (within epsilon tolerance)
-        engine = MetaLearningEngine(
-            adaptation_window=1, min_rate=0.333, max_rate=0.334
-        )
+        engine = MetaLearningEngine(adaptation_window=1, min_rate=0.333, max_rate=0.334)
 
         # Verify it was created successfully
         assert engine.min_rate == 0.333
@@ -261,9 +259,7 @@ class TestRateNormalizationEdgeCases:
 
     def test_single_rate_at_max_bound(self):
         """Test when one operator is maxed, others at min."""
-        engine = MetaLearningEngine(
-            adaptation_window=1, min_rate=0.1, max_rate=0.7
-        )
+        engine = MetaLearningEngine(adaptation_window=1, min_rate=0.1, max_rate=0.7)
         engine.current_generation = 0
 
         # Crossover: Very high success (90%)
@@ -299,9 +295,7 @@ class TestRateNormalizationEdgeCases:
 
     def test_all_rates_at_min_bound(self):
         """Test edge case when all rates want to be at min."""
-        engine = MetaLearningEngine(
-            adaptation_window=1, min_rate=0.3, max_rate=0.7
-        )
+        engine = MetaLearningEngine(adaptation_window=1, min_rate=0.3, max_rate=0.7)
         engine.current_generation = 0
 
         # All operators have identical, poor performance
@@ -346,9 +340,7 @@ class TestRateNormalizationEdgeCases:
 
     def test_rates_within_bounds_after_normalization(self):
         """Verify all rates respect min/max bounds after normalization."""
-        engine = MetaLearningEngine(
-            adaptation_window=1, min_rate=0.15, max_rate=0.65
-        )
+        engine = MetaLearningEngine(adaptation_window=1, min_rate=0.15, max_rate=0.65)
         engine.current_generation = 0
 
         # Extreme success differences

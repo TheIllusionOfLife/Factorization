@@ -64,12 +64,18 @@ class TestTimingOverhead:
         # Total time should be positive and less than or equal to duration
         # (due to overhead, it will typically be 60-80% of duration)
         assert total_time > 0, "Timing sum should be positive"
-        assert total_time <= duration * 1.1, f"Timing sum {total_time:.4f}s exceeds duration {duration}s"
-        assert total_time >= duration * 0.5, f"Timing sum {total_time:.4f}s too low (< 50% of {duration}s)"
+        assert total_time <= duration * 1.1, (
+            f"Timing sum {total_time:.4f}s exceeds duration {duration}s"
+        )
+        assert total_time >= duration * 0.5, (
+            f"Timing sum {total_time:.4f}s too low (< 50% of {duration}s)"
+        )
 
     def test_timing_breakdown_non_negative(self, test_crucible):
         """Test all timing phases are non-negative."""
-        strategy = Strategy(power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1)
+        strategy = Strategy(
+            power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1
+        )
 
         metrics = test_crucible.evaluate_strategy_detailed(strategy, 0.1)
 
@@ -79,7 +85,12 @@ class TestTimingOverhead:
 
     def test_timing_phases_present(self, test_crucible):
         """Test all 3 timing phases are present."""
-        strategy = Strategy(power=3, modulus_filters=[(7, [0, 1])], smoothness_bound=19, min_small_prime_hits=1)
+        strategy = Strategy(
+            power=3,
+            modulus_filters=[(7, [0, 1])],
+            smoothness_bound=19,
+            min_small_prime_hits=1,
+        )
 
         metrics = test_crucible.evaluate_strategy_detailed(strategy, 0.05)
 
@@ -94,7 +105,9 @@ class TestExtremeDurations:
 
     def test_very_short_duration_10ms(self, test_crucible):
         """Test evaluation with very short duration (10ms)."""
-        strategy = Strategy(power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1)
+        strategy = Strategy(
+            power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1
+        )
 
         metrics = test_crucible.evaluate_strategy_detailed(strategy, 0.01)
 
@@ -107,7 +120,9 @@ class TestExtremeDurations:
 
     def test_zero_duration_edge_case(self, test_crucible):
         """Test evaluation with zero duration (should handle gracefully)."""
-        strategy = Strategy(power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1)
+        strategy = Strategy(
+            power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1
+        )
 
         # Zero duration might find 0 or very few candidates
         metrics = test_crucible.evaluate_strategy_detailed(strategy, 0.0)
@@ -117,7 +132,9 @@ class TestExtremeDurations:
 
     def test_negative_duration_validation(self, test_crucible):
         """Test that negative durations are handled (may not be explicitly validated)."""
-        strategy = Strategy(power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1)
+        strategy = Strategy(
+            power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1
+        )
 
         # Negative duration - system may treat as 0 or handle gracefully
         try:
@@ -135,7 +152,9 @@ class TestTimingConsistency:
     def test_strategy_complexity_affects_timing(self, test_crucible):
         """Test that more filters increases filter time proportion."""
         # Strategy with no filters
-        simple = Strategy(power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1)
+        simple = Strategy(
+            power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1
+        )
         metrics_simple = test_crucible.evaluate_strategy_detailed(simple, 0.2)
 
         # Strategy with many filters
@@ -145,18 +164,24 @@ class TestTimingConsistency:
             smoothness_bound=13,
             min_small_prime_hits=1,
         )
-        metrics_complex = test_crucible.evaluate_strategy_detailed(complex_strategy, 0.2)
+        metrics_complex = test_crucible.evaluate_strategy_detailed(
+            complex_strategy, 0.2
+        )
 
         # Complex strategy should spend more time in filtering
         filter_time_simple = metrics_simple.timing_breakdown.get("modulus_filtering", 0)
-        filter_time_complex = metrics_complex.timing_breakdown.get("modulus_filtering", 0)
+        filter_time_complex = metrics_complex.timing_breakdown.get(
+            "modulus_filtering", 0
+        )
 
         # Complex should have higher filtering time (or at least not less)
         assert filter_time_complex >= filter_time_simple * 0.8  # Allow some variance
 
     def test_no_filters_reduces_filter_time(self, test_crucible):
         """Test that filters=[] results in minimal filter time."""
-        strategy = Strategy(power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1)
+        strategy = Strategy(
+            power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1
+        )
 
         metrics = test_crucible.evaluate_strategy_detailed(strategy, 0.1)
 
@@ -172,7 +197,10 @@ class TestTimingConsistency:
         """Test timing with different power values."""
         for power in [2, 3, 4, 5]:
             strategy = Strategy(
-                power=power, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=1
+                power=power,
+                modulus_filters=[(3, [0, 1])],
+                smoothness_bound=13,
+                min_small_prime_hits=1,
             )
 
             metrics = test_crucible.evaluate_strategy_detailed(strategy, 0.05)
@@ -187,7 +215,9 @@ class TestPerformanceBenchmarks:
 
     def test_baseline_performance(self, test_crucible):
         """Establish baseline performance (candidates per second)."""
-        strategy = Strategy(power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1)
+        strategy = Strategy(
+            power=2, modulus_filters=[], smoothness_bound=13, min_small_prime_hits=1
+        )
 
         metrics = test_crucible.evaluate_strategy_detailed(strategy, 0.5)
 
@@ -204,7 +234,12 @@ class TestPerformanceBenchmarks:
 
     def test_evaluation_scales_linearly(self, test_crucible):
         """Test that 2x duration produces approximately 2x candidates."""
-        strategy = Strategy(power=3, modulus_filters=[(3, [0, 1])], smoothness_bound=19, min_small_prime_hits=1)
+        strategy = Strategy(
+            power=3,
+            modulus_filters=[(3, [0, 1])],
+            smoothness_bound=19,
+            min_small_prime_hits=1,
+        )
 
         # Short duration
         metrics1 = test_crucible.evaluate_strategy_detailed(strategy, 0.1)
@@ -217,11 +252,18 @@ class TestPerformanceBenchmarks:
         # Should find approximately 2x candidates (allow 30% variance for timing jitter)
         if count1 > 0:
             ratio = count2 / count1
-            assert 1.4 <= ratio <= 2.6, f"Scaling not linear: {count1} -> {count2} (ratio={ratio:.2f})"
+            assert 1.4 <= ratio <= 2.6, (
+                f"Scaling not linear: {count1} -> {count2} (ratio={ratio:.2f})"
+            )
 
     def test_metrics_collection_overhead(self, test_crucible):
         """Test that detailed metrics don't add significant overhead."""
-        strategy = Strategy(power=2, modulus_filters=[(3, [0, 1])], smoothness_bound=13, min_small_prime_hits=2)
+        strategy = Strategy(
+            power=2,
+            modulus_filters=[(3, [0, 1])],
+            smoothness_bound=13,
+            min_small_prime_hits=2,
+        )
 
         # Measure with detailed metrics
         start = time.perf_counter()

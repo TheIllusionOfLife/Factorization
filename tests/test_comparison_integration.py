@@ -7,7 +7,9 @@ from src.config import Config
 class TestBaselineConsistency:
     """Test baseline strategy consistency and determinism."""
 
-    def test_baseline_evaluation_deterministic(self, test_crucible, baseline_strategies):
+    def test_baseline_evaluation_deterministic(
+        self, test_crucible, baseline_strategies
+    ):
         """Test that baseline evaluation is deterministic across calls."""
         from src.comparison import ComparisonEngine
 
@@ -29,8 +31,12 @@ class TestBaselineConsistency:
         # But should be similar (within 30%)
         for key in fitness1:
             if fitness1[key] > 0 and fitness2[key] > 0:
-                diff_pct = abs(fitness1[key] - fitness2[key]) / max(fitness1[key], fitness2[key])
-                assert diff_pct < 0.4, f"Baseline {key} varies too much: {fitness1[key]} vs {fitness2[key]}"
+                diff_pct = abs(fitness1[key] - fitness2[key]) / max(
+                    fitness1[key], fitness2[key]
+                )
+                assert diff_pct < 0.4, (
+                    f"Baseline {key} varies too much: {fitness1[key]} vs {fitness2[key]}"
+                )
 
     def test_baseline_fitness_non_negative(self, baseline_strategies):
         """Test that all baseline strategies are valid and evaluable."""
@@ -57,7 +63,9 @@ class TestBaselineConsistency:
             # Valid filters
             assert len(strategy.modulus_filters) <= 4, f"{name} has too many filters"
             # Valid min hits
-            assert 1 <= strategy.min_small_prime_hits <= 6, f"{name} has invalid min_hits"
+            assert 1 <= strategy.min_small_prime_hits <= 6, (
+                f"{name} has invalid min_hits"
+            )
 
     def test_baseline_generation_idempotent(self):
         """Test that baseline generator produces same strategies each time."""
@@ -72,7 +80,10 @@ class TestBaselineConsistency:
             assert baselines1[key].power == baselines2[key].power
             assert baselines1[key].modulus_filters == baselines2[key].modulus_filters
             assert baselines1[key].smoothness_bound == baselines2[key].smoothness_bound
-            assert baselines1[key].min_small_prime_hits == baselines2[key].min_small_prime_hits
+            assert (
+                baselines1[key].min_small_prime_hits
+                == baselines2[key].min_small_prime_hits
+            )
 
 
 class TestBestStrategyValidation:
