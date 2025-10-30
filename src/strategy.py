@@ -305,7 +305,7 @@ class LLMStrategyGenerator(StrategyGenerator):
 
             if response.success:
                 child = self._apply_llm_mutation(parent, response.mutation_params)
-                print(f"    [LLM] {response.reasoning}")
+                logger.info(f"LLM mutation reasoning: {response.reasoning}")
                 return child
 
         # LLMが失敗またはNoneの場合は従来のルールベース手法
