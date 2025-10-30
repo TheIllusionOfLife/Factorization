@@ -198,6 +198,48 @@ When using `--export-metrics`, the complete configuration (excluding sensitive d
 }
 ```
 
+### Logging
+
+The application uses Python's standard logging module for internal diagnostics and progress tracking.
+
+**Configuration options:**
+
+1. **Environment variable** (`.env` file):
+   ```bash
+   LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+   LOG_FILE=logs/evolution.log  # Optional: write logs to file
+   ```
+
+2. **CLI arguments** (override environment):
+   ```bash
+   python main.py --log-level DEBUG --log-file debug.log
+   ```
+
+**Log levels:**
+- `DEBUG`: Detailed per-strategy evaluation metrics, timing breakdowns
+- `INFO`: Generation summaries, convergence events, meta-learning updates (default)
+- `WARNING`: Unusual conditions, performance issues
+- `ERROR`: Failures that don't stop execution
+- `CRITICAL`: Fatal errors
+
+**Example usage:**
+
+```bash
+# Normal run with INFO logging to console
+python main.py --generations 10
+
+# Debug run with detailed logs to file
+python main.py --log-level DEBUG --log-file debug.log --generations 5
+
+# Quiet run (only warnings and errors)
+python main.py --log-level WARNING --generations 10
+
+# Comparison mode with file logging
+python main.py --compare-baseline --log-level INFO --log-file comparison.log
+```
+
+**Note:** User-facing output (results, summaries, errors) always goes to console regardless of log level.
+
 ### Example Usage
 
 **Quick test with LLM** (3 generations, small population):
