@@ -72,7 +72,12 @@ class Strategy:
             if residues:
                 normalized_filters.append((modulus, residues))
         self.modulus_filters = normalized_filters[: config.max_filters]
-        self.smoothness_bound = max(3, min(self.smoothness_bound, SMALL_PRIMES[-1]))
+        # Ensure smoothness_bound is always one of SMALL_PRIMES
+        clamped_bound = max(3, min(self.smoothness_bound, SMALL_PRIMES[-1]))
+        # Find nearest prime in SMALL_PRIMES
+        self.smoothness_bound = min(
+            (p for p in SMALL_PRIMES if p >= clamped_bound), default=SMALL_PRIMES[-1]
+        )
         self.min_small_prime_hits = max(
             config.min_hits_min, min(self.min_small_prime_hits, config.min_hits_max)
         )

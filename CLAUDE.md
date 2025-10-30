@@ -364,7 +364,19 @@ if len(self.generator.fitness_history) > 5:
 
 ## Testing Patterns
 
-### CLI End-to-End Tests (tests/test_cli.py) - NEW
+### Test Coverage Summary
+
+**Total Tests**: 339 comprehensive tests ensuring code quality and reliability
+
+**Test Organization**:
+1. **CLI End-to-End Tests** (27 tests) - User workflow validation via subprocess
+2. **Meta-Learning Edge Cases** (25 tests) - UCB1, rate normalization, statistics
+3. **Timing & Performance** (13 tests) - Overhead, extreme durations, consistency
+4. **Comparison Integration** (11 tests) - Baseline strategies, RNG isolation
+5. **Statistical Analysis** (24 tests) - t-tests, effect sizes, CI, convergence
+6. **Core Functionality** (239 tests) - Config, strategies, evolution, crossover, etc.
+
+### CLI End-to-End Tests (tests/test_cli.py)
 
 **Purpose**: Validate complete user workflows via subprocess calls to main.py
 
@@ -377,6 +389,65 @@ if len(self.generator.fitness_history) > 5:
 6. **Meta-Learning** - CLI flags enable features correctly
 7. **Comparison Mode** - Baseline comparison workflows
 8. **LLM Mode** - API key validation (conditional test if GEMINI_API_KEY set)
+
+### Meta-Learning Edge Cases (tests/test_meta_learning_edge_cases.py)
+
+**Purpose**: Test UCB1 algorithm, rate normalization, and statistics tracking edge cases
+
+**25 tests across 3 categories**:
+1. **TestUCB1EdgeCases** (10 tests): untried operators, zero trials, identical rates, exploration bonus
+2. **TestRateNormalizationEdgeCases** (5 tests): epsilon boundaries, bounds enforcement, floating point errors
+3. **TestStatisticsEdgeCases** (10 tests): negative/inf/nan fitness, large offspring counts, history alignment
+
+**Key Findings**:
+- Shallow copy pattern in get_current_statistics (acceptable for test usage)
+- UCB1 exploration bonus behavior with mixed tried/untried operators
+- Rate normalization with min/max bounds enforcement
+
+### Timing & Performance Tests (tests/test_timing_accuracy.py)
+
+**Purpose**: Validate timing measurement accuracy and performance characteristics
+
+**13 tests across 4 categories**:
+1. **TestTimingOverhead** (4 tests): overhead measurement < 50%, timing sum validation
+2. **TestExtremeDurations** (3 tests): 10ms, zero, negative duration handling
+3. **TestTimingConsistency** (4 tests): complexity affects timing, filter proportions
+4. **TestPerformanceBenchmarks** (2 tests): baseline performance, linear scaling
+
+**Key Findings**:
+- Timing breakdown captures 60-80% of actual duration (loop overhead not captured)
+- This is acceptable for performance monitoring purposes
+- All timing values non-negative and sum to reasonable values
+
+### Comparison Integration Tests (tests/test_comparison_integration.py)
+
+**Purpose**: Validate comparison mode, baseline strategies, and convergence detection
+
+**11 tests across 4 categories**:
+1. **TestBaselineConsistency** (4 tests): deterministic evaluation, valid strategies, idempotency
+2. **TestBestStrategyValidation** (2 tests): parameter validation, valid across all runs
+3. **TestRNGIsolation** (3 tests): seed reproducibility, RNG independence
+4. **TestConvergenceDetection** (2 tests): integration flow, window boundary
+
+**Key Findings**:
+- Timing-based evaluation means fitness not 100% deterministic
+- Same seed may produce different final strategies (expected behavior)
+- Tests verify no crashes and valid output across scenarios
+
+### Statistical Edge Cases (tests/test_statistics_edge_cases.py)
+
+**Purpose**: Test statistical analysis functions with edge cases
+
+**24 tests across 4 categories**:
+1. **TestStatisticalAnalyzer** (8 tests): identical/negative/zero distributions, variance extremes
+2. **TestConvergenceDetector** (10 tests): basic/no convergence, mean near zero, insufficient history
+3. **TestConfidenceIntervals** (3 tests): significance detection, variance effects
+4. **TestEffectSize** (3 tests): small/large effects, zero variance handling
+
+**Key Findings**:
+- Identical distributions produce NaN p-value (expected scipy behavior)
+- Small sample sizes (n=3) can produce misleading effect sizes
+- Warnings about precision loss expected for identical data
 
 **Key Patterns**:
 ```python

@@ -354,28 +354,51 @@ jupyter notebook analysis/visualize_comparison.ipynb
 pytest tests/ -v
 ```
 
-**Run specific test categories:**
+### Running Specific Test Categories
+
+**Unit tests** (configuration, metrics, core components):
 ```bash
-# Unit tests only
 pytest tests/test_config.py tests/test_metrics.py -v
+```
 
-# Integration tests
+**Integration tests** (LLM mutations, strategy generators):
+```bash
 pytest tests/test_integration.py -v
+```
 
-# CLI end-to-end tests
+**CLI end-to-end tests** (command-line workflows):
+```bash
 pytest tests/test_cli.py -v
+```
 
-# Real API integration test (requires GEMINI_API_KEY)
+**Edge case tests** (boundary conditions, stress tests):
+```bash
+# Meta-learning edge cases (UCB1, rate adaptation)
+pytest tests/test_meta_learning_edge_cases.py -v
+
+# Timing accuracy and performance
+pytest tests/test_timing_accuracy.py -v
+
+# Comparison mode integration
+pytest tests/test_comparison_integration.py -v
+
+# Statistical analysis edge cases
+pytest tests/test_statistics_edge_cases.py -v
+```
+
+**Real API integration test** (requires `GEMINI_API_KEY`):
+```bash
 GEMINI_API_KEY=your_key pytest tests/test_llm_provider.py::test_real_gemini_call -v
 ```
 
-**CLI Testing:**
-The test suite includes 27 comprehensive CLI tests covering:
-- Command-line argument parsing and validation
-- JSON export functionality
-- Reproducibility with `--seed`
-- Error handling and user feedback
-- All major workflow modes (basic, meta-learning, comparison, LLM)
+**Test Coverage Overview:**
+The test suite includes **339 comprehensive tests** covering:
+- **CLI Testing** (27 tests): Command-line argument parsing, JSON export, reproducibility, error handling
+- **Meta-Learning Edge Cases** (25 tests): UCB1 algorithm, rate normalization, statistics tracking
+- **Timing & Performance** (13 tests): Overhead measurement, extreme durations, consistency validation
+- **Comparison Mode Integration** (11 tests): Baseline strategies, RNG isolation, convergence detection
+- **Statistical Analysis** (24 tests): t-tests, effect sizes, confidence intervals, convergence
+- **Core Functionality** (239 tests): Config, strategies, evolution, crossover, baseline, etc.
 
 ---
 

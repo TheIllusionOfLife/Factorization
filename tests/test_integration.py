@@ -212,7 +212,11 @@ def test_apply_llm_mutation_add_filter():
 
 
 def test_apply_llm_mutation_adjust_smoothness():
-    """Test applying adjust_smoothness mutation from LLM"""
+    """Test applying adjust_smoothness mutation from LLM.
+
+    Note: smoothness_bound is normalized to nearest prime in SMALL_PRIMES,
+    so 14 (not a prime) becomes 17 (next prime).
+    """
     from prototype import LLMStrategyGenerator, Strategy
 
     gen = LLMStrategyGenerator()
@@ -229,8 +233,37 @@ def test_apply_llm_mutation_adjust_smoothness():
     }
 
     child = gen._apply_llm_mutation(parent, mutation_params)
-    assert child.smoothness_bound == 14  # 13 + 1
+    # 13 + 1 = 14, normalized to nearest prime >= 14, which is 17
+    assert child.smoothness_bound == 17
     assert child.min_small_prime_hits == 1  # 2 - 1
+
+
+def test_apply_llm_mutation_smoothness_bound_at_max():
+    """Test adjust_smoothness mutation when bound is already at maximum.
+
+    Edge case: Ensure mutation doesn't crash when smoothness_bound is
+    already at SMALL_PRIMES[-1] and delta would exceed it.
+    """
+    from prototype import LLMStrategyGenerator, Strategy
+    from src.strategy import SMALL_PRIMES
+
+    gen = LLMStrategyGenerator()
+    parent = Strategy(
+        power=3,
+        modulus_filters=[(5, [0, 1])],
+        smoothness_bound=SMALL_PRIMES[-1],  # Already at max (37)
+        min_small_prime_hits=3,
+    )
+
+    mutation_params = {
+        "mutation_type": "adjust_smoothness",
+        "parameters": {"bound_delta": 10, "hits_delta": 1},  # Would exceed max
+    }
+
+    child = gen._apply_llm_mutation(parent, mutation_params)
+    # Should clamp to max, not crash
+    assert child.smoothness_bound == SMALL_PRIMES[-1]  # Still 37
+    assert child.min_small_prime_hits == 4  # 3 + 1
 
 
 def test_first_generation_mutation_with_empty_history():

@@ -140,6 +140,8 @@ class MetaLearningEngine:
         Returns:
             Copy of dictionary mapping operator names to their statistics
         """
+        # Shallow copy is safe: OperatorStatistics is a dataclass with
+        # immutable values (int, float). No nested mutable structures.
         return self.current_stats.copy()
 
     def get_operator_history(self) -> List[Dict[str, OperatorStatistics]]:
