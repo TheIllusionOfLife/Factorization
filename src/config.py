@@ -220,9 +220,11 @@ class Config:
         if use_llm:
             base_dict = load_config().to_dict(include_sensitive=True)
             api_key = base_dict.pop("api_key")
+            # llm_enabled is already in base_dict from load_config()
         else:
             base_dict = {}
             api_key = ""
+            base_dict["llm_enabled"] = False
 
         # Build overrides dict from CLI args (only non-None values)
         overrides = {}
@@ -266,7 +268,8 @@ class Config:
             overrides["mutation_prob_add_filter"] = args.mutation_prob_add_filter
 
         # Merge base + overrides and construct once (validation happens in __post_init__)
-        return cls(api_key=api_key, llm_enabled=use_llm, **{**base_dict, **overrides})
+        # llm_enabled is already in base_dict (either from load_config() or set above)
+        return cls(api_key=api_key, **{**base_dict, **overrides})
 
 
 def load_config() -> Config:
