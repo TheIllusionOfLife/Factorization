@@ -364,6 +364,38 @@ if len(self.generator.fitness_history) > 5:
 
 ## Testing Patterns
 
+### CLI End-to-End Tests (tests/test_cli.py) - NEW
+
+**Purpose**: Validate complete user workflows via subprocess calls to main.py
+
+**26 tests across 8 categories**:
+1. **Help & Version** - Verify --help documentation
+2. **Basic Workflows** - Rule-based mode, custom numbers, quiet mode
+3. **JSON Export** - File creation, structure validation, security (API key exclusion)
+4. **Argument Validation** - Invalid inputs, config validation, error messages
+5. **Reproducibility** - --seed produces identical results
+6. **Meta-Learning** - CLI flags enable features correctly
+7. **Comparison Mode** - Baseline comparison workflows
+8. **LLM Mode** - API key validation (conditional test if GEMINI_API_KEY set)
+
+**Key Patterns**:
+```python
+# Use sys.executable for cross-platform compatibility
+import sys
+cmd = [sys.executable, "main.py"] + list(args)
+
+# Validate JSON structure after export
+data = json.load(open(export_path))
+assert "target_number" in data
+assert "metrics_history" in data
+assert "api_key" not in data["config"]  # Security check
+
+# Test error handling
+result = subprocess.run(cmd, capture_output=True, check=False)
+assert result.returncode == 1
+assert "ERROR" in (result.stdout + result.stderr)
+```
+
 ### Integration Tests (tests/test_integration.py)
 
 - Test full evolutionary cycles with mock LLM

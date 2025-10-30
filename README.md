@@ -349,20 +349,33 @@ jupyter notebook analysis/visualize_comparison.ipynb
 
 ## Running Tests
 
-Run all unit tests:
+**Run all tests:**
 ```bash
 pytest tests/ -v
 ```
 
-Run integration tests only:
+**Run specific test categories:**
 ```bash
-pytest tests/test_integration.py -v
-```
+# Unit tests only
+pytest tests/test_config.py tests/test_metrics.py -v
 
-Run real API integration test (requires `GEMINI_API_KEY`):
-```bash
+# Integration tests
+pytest tests/test_integration.py -v
+
+# CLI end-to-end tests
+pytest tests/test_cli.py -v
+
+# Real API integration test (requires GEMINI_API_KEY)
 GEMINI_API_KEY=your_key pytest tests/test_llm_provider.py::test_real_gemini_call -v
 ```
+
+**CLI Testing:**
+The test suite includes 26 comprehensive CLI tests covering:
+- Command-line argument parsing and validation
+- JSON export functionality
+- Reproducibility with `--seed`
+- Error handling and user feedback
+- All major workflow modes (basic, meta-learning, comparison, LLM)
 
 ---
 
