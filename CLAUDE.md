@@ -397,6 +397,12 @@ assert result.returncode == 1
 assert "ERROR" in (result.stdout + result.stderr)
 ```
 
+**Local vs CI Environment Differences**:
+- **Pattern**: Tests may behave differently locally vs CI due to `.env` file presence
+- **Example**: `test_llm_mode_without_api_key` removes `GEMINI_API_KEY` from its test environment, but the application's startup logic reloads it from a local `.env` file if one exists
+- **Solution**: This is expected behavior - tests should pass in CI (where `.env` doesn't exist) which validates the actual error handling
+- **Why**: Local development legitimately uses `.env` for configuration; CI validates the error path when no configuration exists
+
 ### Integration Tests (tests/test_integration.py)
 
 - Test full evolutionary cycles with mock LLM
@@ -417,12 +423,6 @@ assert "ERROR" in (result.stdout + result.stderr)
 - Test all five mutation types with valid/invalid inputs
 
 ## Known Issues & Next Steps
-
-### From PR #2 Review (Low Priority)
-
-1. **CI/CD Organization**: 5 Gemini workflows (1,250+ lines) could be better organized
-2. **Production Logging**: Logger created but not configured with appropriate log levels
-3. **Magic Numbers**: Hardcoded 0.2 for elite selection, 0.8/1.2 temperatures should move to config
 
 ### Limitations
 
