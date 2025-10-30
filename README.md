@@ -488,11 +488,12 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 ### Last Updated: October 31, 2025 04:10 AM JST
 
 #### Recently Completed
-- ✅ **PR #30**: Test Coverage Expansion (73 new edge case tests) - Added comprehensive edge case testing across 4 new test files
+- ✅ **PR #30**: Test Coverage Expansion (+175 tests total, 73 in 4 new files) - Added comprehensive edge case testing
   - tests/test_meta_learning_edge_cases.py (25 tests): UCB1 algorithm, rate adaptation, boundary conditions
   - tests/test_timing_accuracy.py (13 tests): Performance validation, timing overhead, consistency
   - tests/test_comparison_integration.py (11 tests): Baseline strategies, RNG isolation, convergence
   - tests/test_statistics_edge_cases.py (24 tests): Statistical analysis edge cases, t-tests, effect sizes
+  - Total test growth: 164 → 339 tests across all test files
   - **Production Bug Fix**: Discovered and fixed smoothness_bound normalization bug in Strategy class
 - ✅ **PR #29**: Session Handover and Learnings
 - ✅ **PR #28**: CLI Automated Testing (27 comprehensive tests)
@@ -517,7 +518,7 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 
 #### Known Issues
 - **Local Test Behavior**: `test_llm_mode_without_api_key` fails locally when `.env` file present (expected - passes in CI)
-- **File Sizes**: All documentation within targets after cleanup (CLAUDE.md: 571 lines, README.md: 524 lines)
+- **File Sizes**: All documentation within targets after cleanup (CLAUDE.md: 571 lines, README.md: 531 lines)
 
 See git history for detailed PR descriptions and session learnings.
 
