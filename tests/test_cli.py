@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-
 # =============================================================================
 # Test Utilities
 # =============================================================================
@@ -66,18 +65,22 @@ def run_cli(*args, timeout=30, check=True, env=None):
 def assert_contains(text, *patterns):
     """Assert all patterns exist in text."""
     for pattern in patterns:
-        assert pattern in text, f"Expected pattern not found: '{pattern}'\nText:\n{text}"
+        assert pattern in text, (
+            f"Expected pattern not found: '{pattern}'\nText:\n{text}"
+        )
 
 
 def assert_not_contains(text, *patterns):
     """Assert no patterns exist in text."""
     for pattern in patterns:
-        assert pattern not in text, f"Unexpected pattern found: '{pattern}'\nText:\n{text}"
+        assert pattern not in text, (
+            f"Unexpected pattern found: '{pattern}'\nText:\n{text}"
+        )
 
 
 def load_json_file(path):
     """Load and parse JSON file, return dict."""
-    with open(path, "r") as f:
+    with open(path) as f:
         return json.load(f)
 
 
@@ -127,9 +130,12 @@ def test_help_shows_all_argument_categories():
 def test_basic_evolution_run():
     """Test basic evolution run completes successfully."""
     result = run_cli(
-        "--generations", "2",
-        "--population", "3",
-        "--log-level", "WARNING",  # Quiet mode for faster test
+        "--generations",
+        "2",
+        "--population",
+        "3",
+        "--log-level",
+        "WARNING",  # Quiet mode for faster test
     )
 
     assert result.returncode == 0
@@ -140,9 +146,12 @@ def test_basic_evolution_run():
 def test_rule_based_mode_default():
     """Test rule-based mode (default without --llm)."""
     result = run_cli(
-        "--generations", "1",
-        "--population", "2",
-        "--log-level", "WARNING",
+        "--generations",
+        "1",
+        "--population",
+        "2",
+        "--log-level",
+        "WARNING",
     )
 
     assert result.returncode == 0
@@ -153,10 +162,14 @@ def test_rule_based_mode_default():
 def test_custom_number():
     """Test --number argument with custom value."""
     result = run_cli(
-        "--number", "12345678901",
-        "--generations", "1",
-        "--population", "2",
-        "--log-level", "WARNING",
+        "--number",
+        "12345678901",
+        "--generations",
+        "1",
+        "--population",
+        "2",
+        "--log-level",
+        "WARNING",
     )
 
     assert result.returncode == 0
@@ -166,9 +179,12 @@ def test_custom_number():
 def test_quiet_mode():
     """Test --log-level WARNING produces minimal output."""
     result = run_cli(
-        "--generations", "1",
-        "--population", "2",
-        "--log-level", "WARNING",
+        "--generations",
+        "1",
+        "--population",
+        "2",
+        "--log-level",
+        "WARNING",
     )
 
     assert result.returncode == 0
@@ -189,10 +205,14 @@ def test_export_metrics_creates_file():
         output_path = Path(tmpdir) / "metrics.json"
 
         result = run_cli(
-            "--generations", "1",
-            "--population", "2",
-            "--export-metrics", str(output_path),
-            "--log-level", "WARNING",
+            "--generations",
+            "1",
+            "--population",
+            "2",
+            "--export-metrics",
+            str(output_path),
+            "--log-level",
+            "WARNING",
         )
 
         assert result.returncode == 0
@@ -205,10 +225,14 @@ def test_export_metrics_json_structure():
         output_path = Path(tmpdir) / "metrics.json"
 
         run_cli(
-            "--generations", "2",
-            "--population", "3",
-            "--export-metrics", str(output_path),
-            "--log-level", "WARNING",
+            "--generations",
+            "2",
+            "--population",
+            "3",
+            "--export-metrics",
+            str(output_path),
+            "--log-level",
+            "WARNING",
         )
 
         data = load_json_file(output_path)
@@ -235,10 +259,14 @@ def test_export_metrics_directory_creation():
         output_path = Path(tmpdir) / "nested" / "dir" / "metrics.json"
 
         result = run_cli(
-            "--generations", "1",
-            "--population", "2",
-            "--export-metrics", str(output_path),
-            "--log-level", "WARNING",
+            "--generations",
+            "1",
+            "--population",
+            "2",
+            "--export-metrics",
+            str(output_path),
+            "--log-level",
+            "WARNING",
         )
 
         assert result.returncode == 0
@@ -252,10 +280,14 @@ def test_exported_config_excludes_api_key():
         output_path = Path(tmpdir) / "metrics.json"
 
         run_cli(
-            "--generations", "1",
-            "--population", "2",
-            "--export-metrics", str(output_path),
-            "--log-level", "WARNING",
+            "--generations",
+            "1",
+            "--population",
+            "2",
+            "--export-metrics",
+            str(output_path),
+            "--log-level",
+            "WARNING",
         )
 
         data = load_json_file(output_path)
@@ -272,11 +304,16 @@ def test_export_comparison_json_structure():
 
         run_cli(
             "--compare-baseline",
-            "--num-comparison-runs", "2",
-            "--generations", "2",
-            "--population", "3",
-            "--export-comparison", str(output_path),
-            "--log-level", "WARNING",
+            "--num-comparison-runs",
+            "2",
+            "--generations",
+            "2",
+            "--population",
+            "3",
+            "--export-comparison",
+            str(output_path),
+            "--log-level",
+            "WARNING",
         )
 
         data = load_json_file(output_path)
@@ -306,8 +343,10 @@ def test_export_comparison_json_structure():
 def test_invalid_generations_zero():
     """Test CLI rejects --generations 0 with clear error."""
     result = run_cli(
-        "--generations", "0",
-        "--population", "3",
+        "--generations",
+        "0",
+        "--population",
+        "3",
         check=False,  # Expect failure
     )
 
@@ -319,8 +358,10 @@ def test_invalid_generations_zero():
 def test_invalid_generations_negative():
     """Test CLI rejects negative --generations."""
     result = run_cli(
-        "--generations", "-5",
-        "--population", "3",
+        "--generations",
+        "-5",
+        "--population",
+        "3",
         check=False,
     )
 
@@ -332,8 +373,10 @@ def test_invalid_generations_negative():
 def test_invalid_population_zero():
     """Test CLI rejects --population 0."""
     result = run_cli(
-        "--generations", "2",
-        "--population", "0",
+        "--generations",
+        "2",
+        "--population",
+        "0",
         check=False,
     )
 
@@ -346,9 +389,12 @@ def test_invalid_num_comparison_runs():
     """Test CLI rejects invalid --num-comparison-runs when --compare-baseline set."""
     result = run_cli(
         "--compare-baseline",
-        "--num-comparison-runs", "0",
-        "--generations", "2",
-        "--population", "3",
+        "--num-comparison-runs",
+        "0",
+        "--generations",
+        "2",
+        "--population",
+        "3",
         check=False,
     )
 
@@ -360,9 +406,12 @@ def test_invalid_num_comparison_runs():
 def test_invalid_elite_rate():
     """Test CLI rejects invalid --elite-rate via config validation."""
     result = run_cli(
-        "--elite-rate", "1.5",  # > 1.0 is invalid
-        "--generations", "1",
-        "--population", "2",
+        "--elite-rate",
+        "1.5",  # > 1.0 is invalid
+        "--generations",
+        "1",
+        "--population",
+        "2",
         check=False,
     )
 
@@ -374,10 +423,14 @@ def test_invalid_elite_rate():
 def test_conflicting_rates():
     """Test CLI rejects crossover + mutation rates > 1.0."""
     result = run_cli(
-        "--crossover-rate", "0.7",
-        "--mutation-rate", "0.7",  # Sum = 1.4 > 1.0
-        "--generations", "1",
-        "--population", "2",
+        "--crossover-rate",
+        "0.7",
+        "--mutation-rate",
+        "0.7",  # Sum = 1.4 > 1.0
+        "--generations",
+        "1",
+        "--population",
+        "2",
         check=False,
     )
 
@@ -395,17 +448,25 @@ def test_seed_reproducible_output():
     """Test --seed produces identical output across runs."""
     # Run twice with same seed
     result1 = run_cli(
-        "--seed", "42",
-        "--generations", "2",
-        "--population", "3",
-        "--log-level", "WARNING",
+        "--seed",
+        "42",
+        "--generations",
+        "2",
+        "--population",
+        "3",
+        "--log-level",
+        "WARNING",
     )
 
     result2 = run_cli(
-        "--seed", "42",
-        "--generations", "2",
-        "--population", "3",
-        "--log-level", "WARNING",
+        "--seed",
+        "42",
+        "--generations",
+        "2",
+        "--population",
+        "3",
+        "--log-level",
+        "WARNING",
     )
 
     # Outputs should be identical
@@ -420,19 +481,29 @@ def test_seed_with_export_reproducible():
 
         # Run twice with same seed
         run_cli(
-            "--seed", "42",
-            "--generations", "2",
-            "--population", "3",
-            "--export-metrics", str(path1),
-            "--log-level", "WARNING",
+            "--seed",
+            "42",
+            "--generations",
+            "2",
+            "--population",
+            "3",
+            "--export-metrics",
+            str(path1),
+            "--log-level",
+            "WARNING",
         )
 
         run_cli(
-            "--seed", "42",
-            "--generations", "2",
-            "--population", "3",
-            "--export-metrics", str(path2),
-            "--log-level", "WARNING",
+            "--seed",
+            "42",
+            "--generations",
+            "2",
+            "--population",
+            "3",
+            "--export-metrics",
+            str(path2),
+            "--log-level",
+            "WARNING",
         )
 
         data1 = load_json_file(path1)
@@ -455,17 +526,25 @@ def test_no_seed_non_deterministic():
 
         # Run twice without seed, export to compare metrics
         run_cli(
-            "--generations", "2",
-            "--population", "5",
-            "--export-metrics", str(path1),
-            "--log-level", "WARNING",
+            "--generations",
+            "2",
+            "--population",
+            "5",
+            "--export-metrics",
+            str(path1),
+            "--log-level",
+            "WARNING",
         )
 
         run_cli(
-            "--generations", "2",
-            "--population", "5",
-            "--export-metrics", str(path2),
-            "--log-level", "WARNING",
+            "--generations",
+            "2",
+            "--population",
+            "5",
+            "--export-metrics",
+            str(path2),
+            "--log-level",
+            "WARNING",
         )
 
         data1 = load_json_file(path1)
@@ -475,17 +554,17 @@ def test_no_seed_non_deterministic():
         seed1 = data1.get("random_seed")
         seed2 = data2.get("random_seed")
 
-        assert seed1 is None and seed2 is None, "Runs without --seed should not record seed"
+        assert seed1 is None and seed2 is None, (
+            "Runs without --seed should not record seed"
+        )
 
         # The actual metrics should differ due to different random initialization
         # Compare at least one generation's candidate counts (fitness)
         candidate_counts1 = [
-            civ["candidate_count"]
-            for civ in data1["metrics_history"][0]
+            civ["candidate_count"] for civ in data1["metrics_history"][0]
         ]
         candidate_counts2 = [
-            civ["candidate_count"]
-            for civ in data2["metrics_history"][0]
+            civ["candidate_count"] for civ in data2["metrics_history"][0]
         ]
 
         # Very unlikely all candidate counts are identical across 5 civilizations with different seeds
@@ -503,9 +582,12 @@ def test_meta_learning_flag():
     """Test --meta-learning enables meta-learning feature."""
     result = run_cli(
         "--meta-learning",
-        "--generations", "6",  # Need > adaptation_window (5) to see adaptation
-        "--population", "4",
-        "--log-level", "INFO",  # Need INFO to see meta-learning messages
+        "--generations",
+        "6",  # Need > adaptation_window (5) to see adaptation
+        "--population",
+        "4",
+        "--log-level",
+        "INFO",  # Need INFO to see meta-learning messages
     )
 
     assert result.returncode == 0
@@ -520,10 +602,14 @@ def test_adaptation_window_custom():
     """Test --adaptation-window customizes meta-learning window."""
     result = run_cli(
         "--meta-learning",
-        "--adaptation-window", "3",
-        "--generations", "4",  # Need > window to see adaptation
-        "--population", "4",
-        "--log-level", "INFO",
+        "--adaptation-window",
+        "3",
+        "--generations",
+        "4",  # Need > window to see adaptation
+        "--population",
+        "4",
+        "--log-level",
+        "INFO",
     )
 
     assert result.returncode == 0
@@ -539,10 +625,14 @@ def test_compare_baseline_mode():
     """Test --compare-baseline runs comparison against 3 baselines."""
     result = run_cli(
         "--compare-baseline",
-        "--num-comparison-runs", "2",
-        "--generations", "2",
-        "--population", "3",
-        "--log-level", "WARNING",
+        "--num-comparison-runs",
+        "2",
+        "--generations",
+        "2",
+        "--population",
+        "3",
+        "--log-level",
+        "WARNING",
     )
 
     assert result.returncode == 0
@@ -560,10 +650,14 @@ def test_num_comparison_runs():
     """Test --num-comparison-runs controls number of independent runs."""
     result = run_cli(
         "--compare-baseline",
-        "--num-comparison-runs", "3",
-        "--generations", "2",
-        "--population", "2",
-        "--log-level", "WARNING",
+        "--num-comparison-runs",
+        "3",
+        "--generations",
+        "2",
+        "--population",
+        "2",
+        "--log-level",
+        "WARNING",
     )
 
     assert result.returncode == 0
@@ -575,11 +669,16 @@ def test_comparison_with_seed():
     """Test comparison mode with --seed for reproducibility."""
     result = run_cli(
         "--compare-baseline",
-        "--num-comparison-runs", "2",
-        "--generations", "2",
-        "--population", "3",
-        "--seed", "42",
-        "--log-level", "WARNING",
+        "--num-comparison-runs",
+        "2",
+        "--generations",
+        "2",
+        "--population",
+        "3",
+        "--seed",
+        "42",
+        "--log-level",
+        "WARNING",
     )
 
     assert result.returncode == 0
@@ -598,8 +697,10 @@ def test_llm_mode_without_api_key():
 
     result = run_cli(
         "--llm",
-        "--generations", "1",
-        "--population", "2",
+        "--generations",
+        "1",
+        "--population",
+        "2",
         check=False,
         env=env,
     )
@@ -622,9 +723,12 @@ def test_llm_mode_with_api_key():
     """Test --llm mode works with valid API key (integration test)."""
     result = run_cli(
         "--llm",
-        "--generations", "1",
-        "--population", "2",
-        "--log-level", "WARNING",
+        "--generations",
+        "1",
+        "--population",
+        "2",
+        "--log-level",
+        "WARNING",
         timeout=60,  # LLM calls may take longer
     )
 
