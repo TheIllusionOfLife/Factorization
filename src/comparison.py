@@ -1,9 +1,12 @@
 """Comparison engine and baseline strategies."""
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 from src.config import Config
 from src.crucible import FactorizationCrucible
@@ -169,11 +172,8 @@ class ComparisonEngine:
 
         for run_idx in range(self.num_runs):
             seed = base_seed + run_idx if base_seed is not None else None
-            print(f"\n{'=' * 60}")
-            print(f"COMPARISON RUN {run_idx + 1}/{self.num_runs}")
-            if seed is not None:
-                print(f"🎲 Random seed: {seed}")
-            print(f"{'=' * 60}")
+            seed_info = f" (seed={seed})" if seed is not None else ""
+            logger.info(f"Starting comparison run {run_idx + 1}/{self.num_runs}{seed_info}")
 
             run_result = self._run_single_comparison(seed)
             runs.append(run_result)
@@ -210,7 +210,7 @@ class ComparisonEngine:
             # Check convergence
             if self.convergence_detector.has_converged(evolved_fitness_history):
                 converged_at = gen
-                print(f"\n✓ Converged at generation {gen}")
+                logger.info(f"Converged at generation {gen}")
                 break
 
         # At least one generation must have run, so best_strategy is not None
@@ -229,13 +229,13 @@ class ComparisonEngine:
         baselines = self.baseline_generator.get_baseline_strategies()
         results: Dict[str, float] = {}
 
-        print("\n--- Evaluating Baseline Strategies ---")
+        logger.info("Evaluating baseline strategies")
         for name, strategy in baselines.items():
             metrics = self.crucible.evaluate_strategy_detailed(
                 strategy, self.evaluation_duration
             )
             results[name] = float(metrics.candidate_count)
-            print(f"  {name:12s}: fitness = {metrics.candidate_count}")
+            logger.info(f"Baseline {name}: fitness={metrics.candidate_count}")
 
         return results
 
