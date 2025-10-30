@@ -212,7 +212,11 @@ def test_apply_llm_mutation_add_filter():
 
 
 def test_apply_llm_mutation_adjust_smoothness():
-    """Test applying adjust_smoothness mutation from LLM"""
+    """Test applying adjust_smoothness mutation from LLM.
+
+    Note: smoothness_bound is normalized to nearest prime in SMALL_PRIMES,
+    so 14 (not a prime) becomes 17 (next prime).
+    """
     from prototype import LLMStrategyGenerator, Strategy
 
     gen = LLMStrategyGenerator()
@@ -229,7 +233,8 @@ def test_apply_llm_mutation_adjust_smoothness():
     }
 
     child = gen._apply_llm_mutation(parent, mutation_params)
-    assert child.smoothness_bound == 14  # 13 + 1
+    # 13 + 1 = 14, normalized to nearest prime >= 14, which is 17
+    assert child.smoothness_bound == 17
     assert child.min_small_prime_hits == 1  # 2 - 1
 
 
