@@ -184,7 +184,7 @@ The codebase has been refactored into focused modules under `src/`:
 
 ### Statistical Analysis (src/statistics.py)
 
-See README "Multi-Strategy Evaluation & Comparison Mode" for user-facing guide. Technical details:
+See README "Multi-Strategy Evaluation System" for user-facing guide. Technical details:
 
 **StatisticalAnalyzer**: Welch's t-test, Cohen's d, 95% CI using Welch-Satterthwaite df → Returns ComparisonResult
 **ConvergenceDetector**: Relative variance (variance/mean²), window=5, threshold=0.05 → Returns convergence bool/index
@@ -292,7 +292,7 @@ Centralized `Config` dataclass (`src/config.py`) eliminates magic numbers via si
 3. **Strategy Bounds**: 2 ≤ power_min ≤ power_max ≤ 5, max_filters ≥ 1, 1 ≤ min_hits_min ≤ min_hits_max
 4. **Mutation Probs**: All in [0,1]
 
-**Epsilon**: 0.01 (1%) tolerance for floating point comparisons (e.g., 3*0.33)
+**Epsilon**: 0.01 (1%) tolerance for floating-point comparisons (e.g., 3*0.33)
 
 ### Component Integration
 

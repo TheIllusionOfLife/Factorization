@@ -269,7 +269,7 @@ See `CLAUDE.md` for UCB1 algorithm details and implementation.
 **Tracked Metrics**: Fitness (candidate count, smoothness scores), timing breakdown (generation/filtering/checking), rejection statistics, example candidates
 
 **Real-time Display**:
-```
+```text
 Civilization civ_0_1: Fitness = 3616 | Strategy: power=3, filters=[%31 in (0, 12, 14)], bound<=13, hits>=2
   ⏱️  Timing: Filter 27%, Smooth 6%  📊 Avg smoothness: 680164778412.80
 ```
