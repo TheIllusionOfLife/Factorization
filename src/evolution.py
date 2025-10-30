@@ -1,9 +1,12 @@
 """Evolutionary engine for strategy optimization."""
 
 import json
+import logging
 import random
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from src.config import Config
 from src.crucible import FactorizationCrucible
@@ -115,7 +118,7 @@ class EvolutionaryEngine:
             Tuple of (best fitness score, best strategy) from this generation
             (before creating next generation)
         """
-        print(f"\n===== Generation {self.generation}: Evaluating Strategies =====")
+        logger.info(f"Generation {self.generation}: Evaluating Strategies")
 
         generation_metrics = []
 
@@ -144,17 +147,17 @@ class EvolutionaryEngine:
             else:
                 filter_pct = smooth_pct = 0
 
-            print(
-                f"  Civilization {civ_id}: Fitness = {metrics.candidate_count:<5} | Strategy: {strategy.describe()}"
+            logger.debug(
+                f"Civilization {civ_id}: Fitness={metrics.candidate_count} | Strategy: {strategy.describe()}"
             )
-            print(f"    ⏱️  Timing: Filter {filter_pct:.0f}%, Smooth {smooth_pct:.0f}%")
+            logger.debug(f"  Timing: Filter {filter_pct:.0f}%, Smooth {smooth_pct:.0f}%")
 
             # Show smoothness quality
             if metrics.smoothness_scores:
                 avg_smoothness = sum(metrics.smoothness_scores) / len(
                     metrics.smoothness_scores
                 )
-                print(f"    📊 Avg smoothness ratio: {avg_smoothness:.2e}")
+                logger.debug(f"  Avg smoothness ratio: {avg_smoothness:.2e}")
 
         # Store metrics history
         self.metrics_history.append(generation_metrics)
@@ -174,9 +177,8 @@ class EvolutionaryEngine:
         best_fitness_this_gen = elites[0][1]["fitness"]
         best_strategy_this_gen = elites[0][1]["strategy"]
 
-        print(
-            f"\n--- Top performing civilization in Generation {self.generation}: "
-            f"{elites[0][0]} with fitness {best_fitness_this_gen} ---"
+        logger.info(
+            f"Top performer (Gen {self.generation}): {elites[0][0]} with fitness {best_fitness_this_gen}"
         )
 
         # フィットネス履歴を更新（LLM用）
@@ -226,9 +228,8 @@ class EvolutionaryEngine:
             self.crossover_rate = adaptive_rates.crossover_rate
             self.mutation_rate = adaptive_rates.mutation_rate
             self.random_rate = adaptive_rates.random_rate
-            print(
-                f"   📊 Adapted rates: {self.crossover_rate:.2f} crossover, "
-                f"{self.mutation_rate:.2f} mutation, {self.random_rate:.2f} random"
+            logger.info(
+                f"Adapted rates: crossover={self.crossover_rate:.2f}, mutation={self.mutation_rate:.2f}, random={self.random_rate:.2f}"
             )
 
         # Track rate history
@@ -323,10 +324,8 @@ class EvolutionaryEngine:
                 )
             next_generation_civs[new_civ_id] = civ_data
 
-        print(
-            f"   Offspring: {offspring_sources['crossover']} crossover, "
-            f"{offspring_sources['mutation']} mutation, "
-            f"{offspring_sources['random']} random"
+        logger.info(
+            f"Offspring distribution: {offspring_sources['crossover']} crossover, {offspring_sources['mutation']} mutation, {offspring_sources['random']} random"
         )
 
         self.civilizations = next_generation_civs
