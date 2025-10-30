@@ -2,6 +2,8 @@
 
 from src.comparison import BaselineStrategyGenerator, ComparisonEngine
 from src.config import Config
+from src.crucible import FactorizationCrucible
+from src.strategy import SMALL_PRIMES
 
 
 class TestBaselineConsistency:
@@ -11,8 +13,6 @@ class TestBaselineConsistency:
         self, test_crucible, baseline_strategies
     ):
         """Test that baseline evaluation is deterministic across calls."""
-        from src.comparison import ComparisonEngine
-
         config = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
         engine = ComparisonEngine(
             crucible=test_crucible,
@@ -40,8 +40,6 @@ class TestBaselineConsistency:
 
     def test_baseline_fitness_non_negative(self, baseline_strategies):
         """Test that all baseline strategies are valid and evaluable."""
-        from src.crucible import FactorizationCrucible
-
         crucible = FactorizationCrucible(961730063)
 
         for name, strategy in baseline_strategies.items():
@@ -110,8 +108,6 @@ class TestBestStrategyValidation:
         assert 2 <= strategy.power <= 5
         assert len(strategy.modulus_filters) <= 4
         # smoothness_bound can be any value from SMALL_PRIMES (after normalization)
-        from src.strategy import SMALL_PRIMES
-
         assert strategy.smoothness_bound in SMALL_PRIMES
         assert 1 <= strategy.min_small_prime_hits <= 6
 

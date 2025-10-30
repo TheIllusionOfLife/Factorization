@@ -9,7 +9,7 @@ class TestTimingOverhead:
     """Test timing measurement overhead and accuracy."""
 
     def test_timing_overhead_under_threshold(self, test_crucible):
-        """Test that timing overhead is < 40% of actual duration.
+        """Test that timing overhead is < 50% of actual duration.
 
         Note: The timing breakdown captures time inside specific code blocks,
         but doesn't capture loop overhead, function call overhead, etc.
@@ -36,7 +36,7 @@ class TestTimingOverhead:
         overhead = actual_time - measured_time
         overhead_pct = (overhead / actual_time) * 100
 
-        # Overhead should be < 40% (documents actual behavior)
+        # Overhead should be < 50% (documents actual behavior)
         assert overhead_pct < 50.0, (
             f"Timing overhead too high: {overhead_pct:.2f}% "
             f"(actual={actual_time:.4f}s, measured={measured_time:.4f}s)"

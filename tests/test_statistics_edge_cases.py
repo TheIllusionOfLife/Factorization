@@ -157,11 +157,11 @@ class TestConvergenceDetector:
         detector = ConvergenceDetector(window_size=5, threshold=0.05)
 
         # Oscillating but within threshold
+        # Mean=100.8, var=1.2, rel_var=0.000118 < 0.05 → converged
         fitness_history = [100.0, 102.0, 100.0, 102.0, 100.0]
 
         result = detector.has_converged(fitness_history)
-        # May or may not converge depending on relative variance
-        assert isinstance(result, bool)
+        assert result is True  # Relative variance is very low despite oscillation
 
     def test_insufficient_history(self):
         """Test with history shorter than window size."""
@@ -207,31 +207,33 @@ class TestConvergenceDetector:
         detector = ConvergenceDetector(window_size=3, threshold=0.05)
 
         # Converged at negative values
+        # Mean=-100.5, var=0.25, rel_var=0.000025 < 0.05 → converged
         fitness_history = [-100.0, -101.0, -100.5]
 
         result = detector.has_converged(fitness_history)
-        assert isinstance(result, bool)
+        assert result is True  # Low relative variance even with negative values
 
     def test_very_small_threshold(self):
         """Test with very strict convergence threshold."""
         detector = ConvergenceDetector(window_size=3, threshold=0.001)
 
-        # Small variance but may not meet strict threshold
+        # Small variance meets even strict threshold
+        # Mean=100.5, var=0.25, rel_var=0.000025 < 0.001 → converged
         fitness_history = [100.0, 101.0, 100.5]
 
         result = detector.has_converged(fitness_history)
-        # Likely not converged with strict threshold
-        assert isinstance(result, bool)
+        assert result is True  # Relative variance is extremely low
 
     def test_very_large_threshold(self):
         """Test with very lenient convergence threshold."""
         detector = ConvergenceDetector(window_size=3, threshold=0.5)
 
-        # Even with variance, should converge with lenient threshold
+        # Even with high variance, converges with lenient threshold
+        # Mean=110, var=100, rel_var=0.008264 < 0.5 → converged
         fitness_history = [100.0, 120.0, 110.0]
 
         result = detector.has_converged(fitness_history)
-        assert isinstance(result, bool)
+        assert result is True  # Relative variance well below lenient threshold
 
 
 class TestConfidenceIntervals:
