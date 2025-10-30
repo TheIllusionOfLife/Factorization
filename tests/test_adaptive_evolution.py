@@ -28,8 +28,8 @@ class TestMetaLearningEngineIntegration:
     def test_engine_initialization_without_meta_learning(self):
         """Test engine initializes without meta-learning by default."""
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
         config = Config(api_key="", llm_enabled=False, evaluation_duration=0.01)
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
@@ -42,10 +42,11 @@ class TestMetaLearningEngineIntegration:
     def test_engine_initialization_with_meta_learning(self):
         """Test engine initializes with meta-learning enabled."""
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
         config = Config(
             api_key="", llm_enabled=False, evaluation_duration=0.01, adaptation_window=3
         )
+
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
@@ -61,12 +62,13 @@ class TestMetaLearningEngineIntegration:
         """Test that all civilizations have operator metadata after generation."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
+        config = Config(api_key="", llm_enabled=False, evaluation_duration=0.01)
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=8,
-            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
+            config=config,
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -89,12 +91,13 @@ class TestMetaLearningEngineIntegration:
         """Test that generation 0 has all random operators."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
+        config = Config(api_key="", llm_enabled=False, evaluation_duration=0.01)
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=5,
-            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
+            config=config,
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -111,12 +114,13 @@ class TestMetaLearningEngineIntegration:
         """Test that operators are tracked correctly across multiple generations."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
+        config = Config(api_key="", llm_enabled=False, evaluation_duration=0.01)
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=10,
-            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
+            config=config,
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -145,17 +149,18 @@ class TestMetaLearningEngineIntegration:
         """Test that rates change after adaptation window."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
+        config = Config(
+            api_key="",
+            llm_enabled=False,
+            evaluation_duration=0.01,
+            adaptation_window=3,
+        )
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=10,
-            config=Config(
-                api_key="",
-                llm_enabled=False,
-                evaluation_duration=0.01,
-                adaptation_window=3,
-            ),
+            config=config,
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -193,17 +198,18 @@ class TestMetaLearningEngineIntegration:
         """Test that adapted rates always sum to 1.0."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
+        config = Config(
+            api_key="",
+            llm_enabled=False,
+            evaluation_duration=0.01,
+            adaptation_window=2,
+        )
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=10,
-            config=Config(
-                api_key="",
-                llm_enabled=False,
-                evaluation_duration=0.01,
-                adaptation_window=2,
-            ),
+            config=config,
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -225,17 +231,18 @@ class TestMetaLearningEngineIntegration:
         """Test that operator history is exported to JSON."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
+        config = Config(
+            api_key="",
+            llm_enabled=False,
+            evaluation_duration=0.01,
+            adaptation_window=2,
+        )
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=8,
-            config=Config(
-                api_key="",
-                llm_enabled=False,
-                evaluation_duration=0.01,
-                adaptation_window=2,
-            ),
+            config=config,
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -279,12 +286,13 @@ class TestMetaLearningEngineIntegration:
         """Test that operator history is None when meta-learning disabled."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
+        config = Config(api_key="", llm_enabled=False, evaluation_duration=0.01)
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=5,
-            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
+            config=config,
             enable_meta_learning=False,
             random_seed=42,
         )
@@ -313,12 +321,13 @@ class TestMetaLearningEngineIntegration:
         """Test that parent fitness is tracked in operator metadata."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
+        config = Config(api_key="", llm_enabled=False, evaluation_duration=0.01)
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=10,
-            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.01),
+            config=config,
             enable_meta_learning=True,
             random_seed=42,
         )
@@ -345,10 +354,11 @@ class TestMetaLearningEngineIntegration:
         """Test meta-learning works with small population (edge case)."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
         config = Config(
             api_key="", llm_enabled=False, evaluation_duration=0.01, adaptation_window=2
         )
+
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
@@ -370,17 +380,18 @@ class TestMetaLearningEngineIntegration:
         """Test that rate history is tracked over generations."""
         random.seed(42)
         crucible = FactorizationCrucible(961730063)
-        generator = StrategyGenerator()
+        config = Config(
+            api_key="",
+            llm_enabled=False,
+            evaluation_duration=0.01,
+            adaptation_window=2,
+        )
+        generator = StrategyGenerator(config=config)
         engine = EvolutionaryEngine(
             crucible=crucible,
             generator=generator,
             population_size=10,
-            config=Config(
-                api_key="",
-                llm_enabled=False,
-                evaluation_duration=0.01,
-                adaptation_window=2,
-            ),
+            config=config,
             enable_meta_learning=True,
             random_seed=42,
         )
