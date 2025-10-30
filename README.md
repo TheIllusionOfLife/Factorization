@@ -365,17 +365,24 @@ pytest tests/test_integration.py -v
 # CLI end-to-end tests
 pytest tests/test_cli.py -v
 
+# Edge case tests
+pytest tests/test_meta_learning_edge_cases.py -v
+pytest tests/test_timing_accuracy.py -v
+pytest tests/test_comparison_integration.py -v
+pytest tests/test_statistics_edge_cases.py -v
+
 # Real API integration test (requires GEMINI_API_KEY)
 GEMINI_API_KEY=your_key pytest tests/test_llm_provider.py::test_real_gemini_call -v
 ```
 
-**CLI Testing:**
-The test suite includes 27 comprehensive CLI tests covering:
-- Command-line argument parsing and validation
-- JSON export functionality
-- Reproducibility with `--seed`
-- Error handling and user feedback
-- All major workflow modes (basic, meta-learning, comparison, LLM)
+**Test Coverage Overview:**
+The test suite includes **339 comprehensive tests** covering:
+- **CLI Testing** (27 tests): Command-line argument parsing, JSON export, reproducibility, error handling
+- **Meta-Learning Edge Cases** (25 tests): UCB1 algorithm, rate normalization, statistics tracking
+- **Timing & Performance** (13 tests): Overhead measurement, extreme durations, consistency validation
+- **Comparison Mode Integration** (11 tests): Baseline strategies, RNG isolation, convergence detection
+- **Statistical Analysis** (24 tests): t-tests, effect sizes, confidence intervals, convergence
+- **Core Functionality** (239 tests): Config, strategies, evolution, crossover, baseline, etc.
 
 ---
 
