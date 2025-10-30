@@ -25,7 +25,9 @@ class TestConfigPropagationToGenerator:
 
         # All should have power=3 (min=max=3)
         for strategy in strategies:
-            assert strategy.power == 3, f"Strategy power {strategy.power} outside bounds [3, 3]"
+            assert strategy.power == 3, (
+                f"Strategy power {strategy.power} outside bounds [3, 3]"
+            )
 
     def test_generator_respects_power_range(self):
         """Test that generated strategies stay within power range."""
@@ -36,7 +38,9 @@ class TestConfigPropagationToGenerator:
         strategies = [generator.random_strategy() for _ in range(50)]
 
         for strategy in strategies:
-            assert 2 <= strategy.power <= 4, f"Strategy power {strategy.power} outside bounds [2, 4]"
+            assert 2 <= strategy.power <= 4, (
+                f"Strategy power {strategy.power} outside bounds [2, 4]"
+            )
 
     def test_generator_respects_max_filters(self):
         """Test that generated strategies respect max_filters limit."""
@@ -46,8 +50,9 @@ class TestConfigPropagationToGenerator:
         strategies = [generator.random_strategy() for _ in range(20)]
 
         for strategy in strategies:
-            assert len(strategy.modulus_filters) <= 2, \
+            assert len(strategy.modulus_filters) <= 2, (
                 f"Strategy has {len(strategy.modulus_filters)} filters, max is 2"
+            )
 
     def test_generator_respects_min_hits_bounds(self):
         """Test that generated strategies respect min_hits bounds."""
@@ -57,8 +62,9 @@ class TestConfigPropagationToGenerator:
         strategies = [generator.random_strategy() for _ in range(30)]
 
         for strategy in strategies:
-            assert 3 <= strategy.min_small_prime_hits <= 5, \
+            assert 3 <= strategy.min_small_prime_hits <= 5, (
                 f"Strategy min_hits {strategy.min_small_prime_hits} outside bounds [3, 5]"
+            )
 
 
 class TestConfigPropagationToEngine:
@@ -72,15 +78,12 @@ class TestConfigPropagationToEngine:
             llm_enabled=False,
             power_min=4,
             power_max=4,
-            evaluation_duration=0.01
+            evaluation_duration=0.01,
         )
 
         # Engine creates its own generator
         engine = EvolutionaryEngine(
-            crucible=crucible,
-            population_size=5,
-            config=config,
-            random_seed=42
+            crucible=crucible, population_size=5, config=config, random_seed=42
         )
 
         # Initialize population to generate strategies
@@ -89,8 +92,9 @@ class TestConfigPropagationToEngine:
         # All civilizations should have power=4 (from config bounds)
         for civ_data in engine.civilizations.values():
             strategy = civ_data["strategy"]
-            assert strategy.power == 4, \
+            assert strategy.power == 4, (
                 f"Engine-generated strategy has power {strategy.power}, expected 4"
+            )
 
     def test_meta_learning_uses_config_fallback_rates(self):
         """Test that meta-learning engine receives and uses config fallback rates."""
@@ -100,7 +104,7 @@ class TestConfigPropagationToEngine:
             llm_enabled=False,
             evaluation_duration=0.01,
             fallback_inf_rate=0.9,  # Non-default value
-            fallback_finite_rate=0.1
+            fallback_finite_rate=0.1,
         )
 
         engine = EvolutionaryEngine(
@@ -108,7 +112,7 @@ class TestConfigPropagationToEngine:
             population_size=5,
             config=config,
             enable_meta_learning=True,
-            random_seed=42
+            random_seed=42,
         )
 
         # Verify meta-learner was created with correct fallback rates
@@ -123,7 +127,7 @@ class TestConfigPropagationToEngine:
             api_key="",
             llm_enabled=False,
             evaluation_duration=0.01,
-            adaptation_window=3  # Non-default value
+            adaptation_window=3,  # Non-default value
         )
 
         engine = EvolutionaryEngine(
@@ -131,7 +135,7 @@ class TestConfigPropagationToEngine:
             population_size=5,
             config=config,
             enable_meta_learning=True,
-            random_seed=42
+            random_seed=42,
         )
 
         assert engine.meta_learner is not None
@@ -145,7 +149,7 @@ class TestConfigPropagationToEngine:
             llm_enabled=False,
             evaluation_duration=0.01,
             meta_learning_min_rate=0.15,  # Non-default
-            meta_learning_max_rate=0.6    # Non-default
+            meta_learning_max_rate=0.6,  # Non-default
         )
 
         engine = EvolutionaryEngine(
@@ -153,7 +157,7 @@ class TestConfigPropagationToEngine:
             population_size=5,
             config=config,
             enable_meta_learning=True,
-            random_seed=42
+            random_seed=42,
         )
 
         assert engine.meta_learner is not None
@@ -187,7 +191,7 @@ class TestConfigFromArgsAndEnv:
             mutation_prob_filter=None,
             mutation_prob_modulus=None,
             mutation_prob_residue=None,
-            mutation_prob_add_filter=None
+            mutation_prob_add_filter=None,
         )
 
         config = Config.from_args_and_env(args, use_llm=False)
@@ -198,7 +202,7 @@ class TestConfigFromArgsAndEnv:
 
         # Verify defaults used
         assert config.crossover_rate == 0.3  # Default
-        assert config.mutation_rate == 0.5   # Default
+        assert config.mutation_rate == 0.5  # Default
 
     def test_factory_method_validates_combined_config(self):
         """Test that factory method validates combined config."""
@@ -223,7 +227,7 @@ class TestConfigFromArgsAndEnv:
             mutation_prob_filter=None,
             mutation_prob_modulus=None,
             mutation_prob_residue=None,
-            mutation_prob_add_filter=None
+            mutation_prob_add_filter=None,
         )
 
         with pytest.raises(ValueError, match="Sum of crossover_rate"):
@@ -244,14 +248,11 @@ class TestEndToEndConfigFlow:
             max_filters=2,
             min_hits_min=2,
             min_hits_max=4,
-            evaluation_duration=0.01
+            evaluation_duration=0.01,
         )
 
         engine = EvolutionaryEngine(
-            crucible=crucible,
-            population_size=8,
-            config=config,
-            random_seed=42
+            crucible=crucible, population_size=8, config=config, random_seed=42
         )
 
         engine.initialize_population()
@@ -262,16 +263,19 @@ class TestEndToEndConfigFlow:
             strategy = civ_data["strategy"]
 
             # Power bounds
-            assert 3 <= strategy.power <= 4, \
+            assert 3 <= strategy.power <= 4, (
                 f"Strategy power {strategy.power} outside [3, 4]"
+            )
 
             # Max filters
-            assert len(strategy.modulus_filters) <= 2, \
+            assert len(strategy.modulus_filters) <= 2, (
                 f"Strategy has {len(strategy.modulus_filters)} filters, max is 2"
+            )
 
             # Min hits bounds
-            assert 2 <= strategy.min_small_prime_hits <= 4, \
+            assert 2 <= strategy.min_small_prime_hits <= 4, (
                 f"Strategy min_hits {strategy.min_small_prime_hits} outside [2, 4]"
+            )
 
     def test_mutation_respects_config_bounds(self):
         """Test that mutated strategies respect config bounds."""
@@ -282,14 +286,11 @@ class TestEndToEndConfigFlow:
             power_min=2,
             power_max=3,
             max_filters=3,
-            evaluation_duration=0.01
+            evaluation_duration=0.01,
         )
 
         engine = EvolutionaryEngine(
-            crucible=crucible,
-            population_size=10,
-            config=config,
-            random_seed=42
+            crucible=crucible, population_size=10, config=config, random_seed=42
         )
 
         # Run multiple generations to trigger mutations
