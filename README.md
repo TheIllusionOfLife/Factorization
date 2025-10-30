@@ -354,24 +354,40 @@ jupyter notebook analysis/visualize_comparison.ipynb
 pytest tests/ -v
 ```
 
-**Run specific test categories:**
+### Running Specific Test Categories
+
+**Unit tests** (configuration, metrics, core components):
 ```bash
-# Unit tests only
 pytest tests/test_config.py tests/test_metrics.py -v
+```
 
-# Integration tests
+**Integration tests** (LLM mutations, strategy generators):
+```bash
 pytest tests/test_integration.py -v
+```
 
-# CLI end-to-end tests
+**CLI end-to-end tests** (command-line workflows):
+```bash
 pytest tests/test_cli.py -v
+```
 
-# Edge case tests
+**Edge case tests** (boundary conditions, stress tests):
+```bash
+# Meta-learning edge cases (UCB1, rate adaptation)
 pytest tests/test_meta_learning_edge_cases.py -v
-pytest tests/test_timing_accuracy.py -v
-pytest tests/test_comparison_integration.py -v
-pytest tests/test_statistics_edge_cases.py -v
 
-# Real API integration test (requires GEMINI_API_KEY)
+# Timing accuracy and performance
+pytest tests/test_timing_accuracy.py -v
+
+# Comparison mode integration
+pytest tests/test_comparison_integration.py -v
+
+# Statistical analysis edge cases
+pytest tests/test_statistics_edge_cases.py -v
+```
+
+**Real API integration test** (requires `GEMINI_API_KEY`):
+```bash
 GEMINI_API_KEY=your_key pytest tests/test_llm_provider.py::test_real_gemini_call -v
 ```
 

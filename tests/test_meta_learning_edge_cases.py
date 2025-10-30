@@ -68,7 +68,7 @@ class TestUCB1EdgeCases:
         total = rates.crossover_rate + rates.mutation_rate + rates.random_rate
         assert abs(total - 1.0) < 1e-6
 
-    def test_zero_total_trials_returns_uniform(self):
+    def test_zero_total_trials_uniform_distribution(self):
         """Test UCB1 with zero total trials (no offspring created)."""
         engine = MetaLearningEngine(adaptation_window=1)
         engine.current_generation = 0
