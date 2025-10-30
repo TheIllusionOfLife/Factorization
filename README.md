@@ -465,7 +465,7 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 ### Last Updated: October 31, 2025 12:09 AM JST
 
 #### Recently Completed
-- ✅ **PR #28**: CLI Automated Testing (27 comprehensive tests) - Subprocess-based end-to-end testing for all CLI workflows, argument validation, JSON exports, security checks, reproducibility verification
+- ✅ **PR #28**: CLI Automated Testing (27 comprehensive tests) - Added subprocess-based end-to-end testing for all CLI workflows
 - ✅ **PR #27**: Documentation Condensation - Streamlined README and CLAUDE.md for clarity
 - ✅ **PR #25**: Production Logging System - Centralized logging with env/CLI config
 

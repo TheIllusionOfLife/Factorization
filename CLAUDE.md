@@ -399,7 +399,7 @@ assert "ERROR" in (result.stdout + result.stderr)
 
 **Local vs CI Environment Differences**:
 - **Pattern**: Tests may behave differently locally vs CI due to `.env` file presence
-- **Example**: `test_llm_mode_without_api_key` removes `GEMINI_API_KEY` from environment but the app still loads it from `.env` file locally
+- **Example**: `test_llm_mode_without_api_key` removes `GEMINI_API_KEY` from its test environment, but the application's startup logic reloads it from a local `.env` file if one exists
 - **Solution**: This is expected behavior - tests should pass in CI (where `.env` doesn't exist) which validates the actual error handling
 - **Why**: Local development legitimately uses `.env` for configuration; CI validates the error path when no configuration exists
 
