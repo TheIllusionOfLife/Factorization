@@ -639,6 +639,18 @@ For production factorization, use established tools like [CADO-NFS](https://cado
   - Removed attribution, focused on actionable tasks
   - Plan: Modular refactoring (Task 1 - completed in PR #21), config management, logging, CLI testing
 
+- ✅ [PR #23](https://github.com/TheIllusionOfLife/Factorization/pull/23): Centralized Configuration Management System
+  - Centralized all 23 tunable parameters in Config dataclass (src/config.py: +257 lines)
+  - Implemented immutable construction pattern via Config.from_args_and_env() factory method
+  - Added comprehensive validation: 4 validation methods with fail-fast error handling
+  - Fixed critical bugs: EPSILON ClassVar serialization (Python 3.9-3.10), fallback rate validation
+  - Propagated config to all components: StrategyGenerator, MetaLearningEngine, LLMStrategyGenerator
+  - 65 new tests (229 total): 53 unit tests (test_config.py), 12 integration tests (test_config_integration.py)
+  - Complete documentation: 100+ lines README, 193+ lines CLAUDE.md with architecture and examples
+  - Fixed 2 syntax errors (line joining), 1 CI failure (Ruff formatting)
+  - All 7 CI checks passing: Lint, Type check, Tests (3.9/3.10/3.11), claude-review, CodeRabbit
+  - Approved by claude-review with minor follow-up suggestions (see Next Priority Tasks)
+
 - ✅ [PR #18](https://github.com/TheIllusionOfLife/Factorization/pull/18): Meta-Learning for Adaptive Operator Selection (Week 7)
   - Implemented adaptive operator rate selection using UCB1 algorithm for exploration-exploitation balance
   - Added MetaLearningEngine with comprehensive bounds validation and iterative rate adjustment
@@ -705,17 +717,17 @@ For production factorization, use established tools like [CADO-NFS](https://cado
    - Fixed in commit `010fac1`
 
 #### Next Priority Tasks
-1. **Task 2: Config Management System** (High Priority from plan_20251029.md)
-   - Source: Post-PR #21 from development plan
-   - Context: Currently configuration scattered across CLI args, .env, and defaults
+1. **Config Management Refinements** (Short-term follow-ups from PR #23 review)
+   - Source: PR #23 review comment #3465780171 (claude-review)
+   - Context: Core functionality complete, minor improvements suggested
    - Tasks:
-     - Create centralized config system (pydantic BaseSettings or similar)
-     - Unify LLM config, evolutionary params, meta-learning settings
-     - Support config file + environment variables + CLI overrides (precedence)
-     - Add validation for interdependent parameters
-   - Approach: config.py with Settings class, load hierarchy, validation
-   - Priority: HIGH (enables better user experience and maintainability)
-   - Estimated: 5-7 hours
+     - Refactor `from_args_and_env()` to use mapping pattern (39 lines → ~5 lines)
+     - Add explicit test for `load_config()` function
+     - Enhance epsilon documentation (why 1% vs 1e-9)
+     - Add troubleshooting section to README
+   - Approach: Create ARG_TO_CONFIG_FIELD mapping, add test, update comments
+   - Priority: MEDIUM (code quality improvements, not blocking)
+   - Estimated: 1-2 hours
 
 2. **Task 3: Production Logging System** (High Priority from plan_20251029.md)
    - Source: Post-PR #21 from development plan
@@ -742,14 +754,13 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 - None currently blocking development
 
 #### Session Learnings
+- **Config Propagation to Test Components** (PR #23): Always pass config to all test components - 12 test files created `StrategyGenerator()` without config, using different config in EvolutionaryEngine. Pattern: Extract inline `Config()` to named variable, pass `config=config` to all components. Prevents bugs from config mismatches.
+- **Integration Tests for Config** (PR #23): Created test_config_integration.py with 12 tests verifying full chain (Config → Engine → Generator → Strategies). Catches propagation bugs that unit tests miss.
+- **Immutable Configuration Pattern** (PR #23): Use factory method `Config.from_args_and_env()` to prevent mutation. Anti-pattern: `config = Config(); config.field = value; config.__post_init__()` (fragile). Correct: Build overrides dict → Merge → Construct once with validation.
+- **ClassVar Serialization Bug** (PR #23): Python 3.9-3.10 include ClassVars in `asdict()`. Solution: Explicitly exclude in `to_dict()`: `config_dict.pop("EPSILON", None)`. Always test round-trip serialization.
+- **Ruff Formatting Before Push** (PR #23): CI failed due to unformatted test file. Pattern: Run `ruff format .` before every commit to prevent CI failures.
 - **Modular Refactoring Workflow** (PR #21): Bottom-up extraction (foundation → dependent → high-level) + compatibility shim = zero breaking changes. Test imports after each module. All 164 tests passed via re-export shim.
-- **Conditional Dependency Imports** (PR #21): Import heavy dependencies (scipy, numpy) only when features used, not at module top. Pattern: `if feature_enabled: from heavy_module import Class`. Fixes: basic mode works without scipy.
-- **CLI Validation for Core Params** (PR #21): Add validation AFTER argparse for parameters that cause crashes (generations/population >= 1). Pattern: `if args.param < 1: sys.exit("❌ ERROR: param must be >= 1")`. Prevents IndexError, assertion failures, division by zero.
-- **Semantic Consistency Across Paths** (PR #21): Same edge case must behave identically in all code paths (simple/detailed, fast/slow). Fixed: candidate==0 returns False in both `__call__` and `evaluate_detailed` for comparable results.
-- **GraphQL for Complete PR Feedback** (PR #18): Use single GraphQL query instead of multiple REST calls - REST returns 404 on empty collections, GraphQL returns empty arrays. Created `/tmp/pr_feedback_query.gql` with atomic query fetching comments, reviews, line comments, CI annotations - zero missed feedback
-- **Incremental Post-Commit Review** (PR #18): Always check for NEW feedback after pushing fixes using `/fix_pr_since_commit_graphql` - claude-review posted 6 comments AFTER initial fixes pushed
-- **Warning Testing Pattern** (PR #18): Test warning mechanisms with mock patching - `pytest.warns()` + forced non-convergence path. Use `stacklevel=2` in `warnings.warn()` for proper source tracking (prevents B028 lint error)
-- **Bounds Validation Testing** (PR #18): Always test initialization validators with `pytest.raises(ValueError, match="regex")` - validation can exist but remain untested and break silently
+- **GraphQL for Complete PR Feedback** (PR #18): Use single GraphQL query instead of multiple REST calls - REST returns 404 on empty collections, GraphQL returns empty arrays. Zero missed feedback with atomic query.
 
 ---
 

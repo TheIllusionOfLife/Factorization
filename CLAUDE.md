@@ -782,3 +782,51 @@ Typical prototype costs:
    - Solution: Both paths now return False for candidate==0
    - Why: Inconsistent semantics make simple vs detailed evaluation incomparable
    - Impact: Consistent behavior enables reliable benchmarking
+
+## Critical Learnings from PR #23
+
+1. **Config Propagation to Test Components**: Always pass config to all components in tests
+   - Issue: 12 test files created `StrategyGenerator()` without config parameter, using different config in EvolutionaryEngine
+   - Solution: Extract inline `Config()` to named variable before generator instantiation, pass `config=config` to all components
+   - Pattern: Define config first, then pass to all components that need it
+   - Impact: Ensures test components use consistent config, prevents bugs from config mismatches
+   - Example:
+     ```python
+     # Wrong: Generator uses default config, engine uses custom config
+     generator = StrategyGenerator()
+     engine = EvolutionaryEngine(..., config=Config(power_min=3, power_max=3))
+
+     # Correct: Both use same config
+     config = Config(api_key="", llm_enabled=False, power_min=3, power_max=3)
+     generator = StrategyGenerator(config=config)
+     engine = EvolutionaryEngine(..., config=config)
+     ```
+
+2. **Integration Tests for Config Propagation**: Verify full chain behavior
+   - Created `test_config_integration.py` with 12 tests covering:
+     - StrategyGenerator respects config bounds (power, filters, min_hits)
+     - EvolutionaryEngine passes config to all components
+     - MetaLearningEngine receives config parameters
+     - Full evolution cycle respects bounds end-to-end
+   - Impact: Catches config propagation bugs that unit tests miss
+
+3. **Immutable Configuration Pattern**: Use factory method to prevent mutation
+   - Issue: Direct field mutation bypassed validation, creating invalid states
+   - Solution: `Config.from_args_and_env()` factory method that constructs once with validation
+   - Pattern: Build overrides dict → Merge with base → Construct once
+   - Anti-pattern: `config = Config(); config.field = value; config.__post_init__()` (fragile)
+   - Impact: Eliminated 42-line mutation block, removed re-validation pattern
+   - Example in `src/config.py:203-269`
+
+4. **ClassVar Serialization Bug**: Python 3.9-3.10 include ClassVars in asdict()
+   - Issue: `EPSILON: ClassVar[float]` appeared in exported configs, broke `from_dict()`
+   - Solution: Explicitly exclude in `to_dict()`: `config_dict.pop("EPSILON", None)`
+   - Pattern: Always exclude ClassVars from dataclass serialization
+   - Impact: Fixed round-trip serialization, added tests to prevent regression
+   - Reference: `src/config.py:183`
+
+5. **Ruff Formatting in CI**: Always format before pushing
+   - Issue: CI failed because new test file wasn't formatted with Ruff
+   - Solution: Run `ruff format tests/test_config_integration.py` locally
+   - Pattern: Run `ruff format .` before every commit
+   - Impact: Prevents CI failures from formatting issues
