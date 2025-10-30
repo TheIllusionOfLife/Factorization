@@ -661,9 +661,20 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 
 ## Session Handover
 
-### Last Updated: October 29, 2025 11:12 PM JST
+### Last Updated: October 30, 2025 03:18 PM JST
 
 #### Recently Completed
+- ✅ [PR #25](https://github.com/TheIllusionOfLife/Factorization/pull/25): Production Logging System
+  - Implemented centralized logging configuration (src/logging_config.py: +85 lines)
+  - Converted 15 internal print() statements to logging (INFO/DEBUG levels)
+  - Added environment variable (LOG_LEVEL, LOG_FILE) and CLI argument support (--log-level, --log-file)
+  - 9 comprehensive tests with test isolation fixtures for global state management
+  - Fixed duplicate llm_enabled parameter bug in Config.from_args_and_env()
+  - Addressed all code review feedback: test isolation, PEP 8 imports, invalid input testing, uv.lock removal
+  - Complete documentation: README Logging section, .env.example, CLAUDE.md learnings
+  - All 239 tests passing (238 passed, 1 skipped), all 6 CI checks passing
+  - User-tested 5 scenarios: DEBUG/INFO/WARNING levels, file output, LLM mode, comparison mode
+
 - ✅ [PR #21](https://github.com/TheIllusionOfLife/Factorization/pull/21): Modular Architecture Refactoring (Week 8)
   - Split monolithic prototype.py (1449 lines) into 6 focused modules (36-379 lines each)
   - Created modular structure: metrics, strategy, crucible, evolution, comparison, main.py
@@ -771,17 +782,16 @@ For production factorization, use established tools like [CADO-NFS](https://cado
    - Priority: MEDIUM (code quality improvements, not blocking)
    - Estimated: 1-2 hours
 
-2. **Task 3: Production Logging System** (High Priority from plan_20251029.md)
-   - Source: Post-PR #21 from development plan
-   - Context: Logger exists but not configured; no structured logging
+2. **Logging Enhancements** (Follow-up from PR #25)
+   - Source: PR #25 review comment #3465912866 (gemini-code-assist)
+   - Context: Core logging complete, future improvements suggested
    - Tasks:
-     - Configure log levels (DEBUG/INFO/WARNING/ERROR)
-     - Add structured logging (JSON output option)
-     - Environment-based configuration (dev vs production)
-     - Log rotation and file output
-   - Approach: logging.config, handler setup, format strings
-   - Priority: HIGH (critical for debugging and production deployment)
-   - Estimated: 2-3 hours
+     - Per-module log level control (e.g., DEBUG for src.evolution only)
+     - Example log output in README
+     - Consider structured logging (JSON format) for production
+     - --quiet flag as alias for --log-level WARNING
+   - Priority: LOW (core functionality complete, these are enhancements)
+   - Estimated: 1-2 hours
 
 3. **Documentation Clarity Improvements** (Low Priority - Polish)
    - Source: PR #18 post-merge review feedback
@@ -796,13 +806,12 @@ For production factorization, use established tools like [CADO-NFS](https://cado
 - None currently blocking development
 
 #### Session Learnings
+- **Test Isolation for Global State** (PR #25): Global singletons (loggers, random seeds, env vars) persist across tests causing pollution. Solution: Use `autouse` pytest fixture to reset state before/after each test. Pattern: `@pytest.fixture(autouse=True)` with setup → yield → teardown. Symptoms: Different behavior in suite vs individually, unreliable CI. Reference: tests/test_logging_config.py:12-29
+- **PEP 8 Import Organization** (PR #25): Keep all imports at module top, even for conditional features. Wrong: `args = parse(); import os; from x import y`. Correct: Import at top → use conditionally. Makes dependencies discoverable. Reference: main.py:1-12
+- **Lock File Management** (PR #25): Accidentally committed uv.lock. Solution: `git rm uv.lock && echo "uv.lock" >> .gitignore`. Always intentional, documented in README if used for reproducibility.
+- **Invalid Input Handling** (PR #25): Test edge cases for user config. Added test_setup_logging_invalid_level() verifying fallback to INFO. Pattern: Test invalid/malformed input for all user parameters.
 - **Config Propagation to Test Components** (PR #23): Always pass config to all test components. 12 test files created `StrategyGenerator()` without config, using different config in EvolutionaryEngine. Pattern: Extract inline `Config()` to named variable, pass `config=config` to all components. Prevents bugs from config mismatches.
-- **Integration Tests for Config** (PR #23): Created test_config_integration.py with 12 tests verifying full chain (Config → Engine → Generator → Strategies). Catches propagation bugs that unit tests miss.
-- **Immutable Configuration Pattern** (PR #23): Use factory method `Config.from_args_and_env()` to prevent mutation. Anti-pattern: `config = Config(); config.field = value; config.__post_init__()` (fragile). Correct: Build overrides dict → Merge → Construct once with validation.
-- **ClassVar Serialization Bug** (PR #23): Python 3.9-3.10 include ClassVars in `asdict()` (fixed in Python 3.11). Solution: Explicitly exclude in `to_dict()`: `config_dict.pop("EPSILON", None)`. Always test round-trip serialization.
-- **Ruff Formatting Before Push** (PR #23): CI failed due to unformatted test file. Pattern: Run `ruff format .` before every commit to prevent CI failures.
 - **Modular Refactoring Workflow** (PR #21): Bottom-up extraction (foundation → dependent → high-level) + compatibility shim = zero breaking changes. Test imports after each module. All 164 tests passed via re-export shim.
-- **GraphQL for Complete PR Feedback** (PR #18): Use single GraphQL query instead of multiple REST calls - REST returns 404 on empty collections, GraphQL returns empty arrays. Zero missed feedback with atomic query.
 
 ---
 
