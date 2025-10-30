@@ -6,13 +6,13 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
-
 from src.config import Config
 from src.crucible import FactorizationCrucible
 from src.evolution import EvolutionaryEngine
 from src.statistics import ConvergenceDetector, StatisticalAnalyzer
 from src.strategy import SMALL_PRIMES, Strategy
+
+logger = logging.getLogger(__name__)
 
 
 class BaselineStrategyGenerator:
@@ -173,7 +173,9 @@ class ComparisonEngine:
         for run_idx in range(self.num_runs):
             seed = base_seed + run_idx if base_seed is not None else None
             seed_info = f" (seed={seed})" if seed is not None else ""
-            logger.info(f"Starting comparison run {run_idx + 1}/{self.num_runs}{seed_info}")
+            logger.info(
+                f"Starting comparison run {run_idx + 1}/{self.num_runs}{seed_info}"
+            )
 
             run_result = self._run_single_comparison(seed)
             runs.append(run_result)

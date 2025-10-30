@@ -4,8 +4,6 @@ import logging
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from src.logging_config import get_logger, setup_logging
 
 
@@ -29,7 +27,9 @@ def test_setup_logging_with_file():
         logger = setup_logging(log_file=str(log_file))
 
         # Check handlers
-        file_handlers = [h for h in logger.handlers if isinstance(h, logging.FileHandler)]
+        file_handlers = [
+            h for h in logger.handlers if isinstance(h, logging.FileHandler)
+        ]
         assert len(file_handlers) == 1
 
         # Test actual logging
@@ -76,11 +76,16 @@ def test_setup_logging_no_console():
 
         # Should only have file handler, no console handler
         console_handlers = [
-            h for h in logger.handlers if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+            h
+            for h in logger.handlers
+            if isinstance(h, logging.StreamHandler)
+            and not isinstance(h, logging.FileHandler)
         ]
         assert len(console_handlers) == 0
 
-        file_handlers = [h for h in logger.handlers if isinstance(h, logging.FileHandler)]
+        file_handlers = [
+            h for h in logger.handlers if isinstance(h, logging.FileHandler)
+        ]
         assert len(file_handlers) == 1
 
 

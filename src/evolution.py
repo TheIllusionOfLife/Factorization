@@ -6,8 +6,6 @@ import random
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger(__name__)
-
 from src.config import Config
 from src.crucible import FactorizationCrucible
 from src.metrics import EvaluationMetrics
@@ -17,6 +15,8 @@ from src.strategy import (
     StrategyGenerator,
     crossover_strategies,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class EvolutionaryEngine:
@@ -150,7 +150,9 @@ class EvolutionaryEngine:
             logger.debug(
                 f"Civilization {civ_id}: Fitness={metrics.candidate_count} | Strategy: {strategy.describe()}"
             )
-            logger.debug(f"  Timing: Filter {filter_pct:.0f}%, Smooth {smooth_pct:.0f}%")
+            logger.debug(
+                f"  Timing: Filter {filter_pct:.0f}%, Smooth {smooth_pct:.0f}%"
+            )
 
             # Show smoothness quality
             if metrics.smoothness_scores:
