@@ -368,7 +368,7 @@ if len(self.generator.fitness_history) > 5:
 
 **Purpose**: Validate complete user workflows via subprocess calls to main.py
 
-**26 tests across 8 categories**:
+**27 tests across 8 categories**:
 1. **Help & Version** - Verify --help documentation
 2. **Basic Workflows** - Rule-based mode, custom numbers, quiet mode
 3. **JSON Export** - File creation, structure validation, security (API key exclusion)

@@ -518,8 +518,8 @@ def test_seed_with_export_reproducible():
         assert len(data1["metrics_history"]) == len(data2["metrics_history"])
 
 
-def test_no_seed_non_deterministic():
-    """Test runs without --seed produce different results with exports."""
+def test_no_seed_records_no_seed():
+    """Test runs without --seed don't record a seed value (allows true randomness)."""
     with tempfile.TemporaryDirectory() as tmpdir:
         path1 = Path(tmpdir) / "run1.json"
         path2 = Path(tmpdir) / "run2.json"
@@ -682,8 +682,9 @@ def test_comparison_with_seed():
 
 def test_llm_mode_without_api_key():
     """Test --llm without API key shows clear error message."""
-    # Temporarily unset API key
-    env = {"GEMINI_API_KEY": ""}
+    # Temporarily unset API key from environment
+    env = os.environ.copy()
+    env.pop("GEMINI_API_KEY", None)
 
     result = run_cli(
         "--llm",

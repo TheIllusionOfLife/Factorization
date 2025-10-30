@@ -370,7 +370,7 @@ GEMINI_API_KEY=your_key pytest tests/test_llm_provider.py::test_real_gemini_call
 ```
 
 **CLI Testing:**
-The test suite includes 26 comprehensive CLI tests covering:
+The test suite includes 27 comprehensive CLI tests covering:
 - Command-line argument parsing and validation
 - JSON export functionality
 - Reproducibility with `--seed`
