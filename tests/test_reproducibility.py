@@ -3,13 +3,15 @@
 import json
 
 from prototype import EvolutionaryEngine, FactorizationCrucible
+from src.config import Config
 
 
 def test_same_seed_produces_identical_initial_population():
     """Verify same seed produces identical initial population."""
+    config = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     crucible1 = FactorizationCrucible(961730063)
     engine1 = EvolutionaryEngine(
-        crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible1, population_size=5, config=config, random_seed=42
     )
     engine1.initialize_population()
     strategies1 = [
@@ -18,8 +20,9 @@ def test_same_seed_produces_identical_initial_population():
     ]
 
     crucible2 = FactorizationCrucible(961730063)
+    config2 = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     engine2 = EvolutionaryEngine(
-        crucible2, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible2, population_size=5, config=config2, random_seed=42
     )
     engine2.initialize_population()
     strategies2 = [
@@ -34,8 +37,9 @@ def test_same_seed_produces_identical_initial_population():
 def test_same_seed_produces_identical_fitness_scores():
     """Verify same seed produces identical fitness scores after one generation."""
     crucible1 = FactorizationCrucible(961730063)
+    config1 = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     engine1 = EvolutionaryEngine(
-        crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible1, population_size=5, config=config1, random_seed=42
     )
     engine1.initialize_population()
     _best_fitness, _best_strategy = engine1.run_evolutionary_cycle()
@@ -44,8 +48,9 @@ def test_same_seed_produces_identical_fitness_scores():
     )
 
     crucible2 = FactorizationCrucible(961730063)
+    config2 = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     engine2 = EvolutionaryEngine(
-        crucible2, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible2, population_size=5, config=config2, random_seed=42
     )
     engine2.initialize_population()
     _best_fitness2, _best_strategy2 = engine2.run_evolutionary_cycle()
@@ -60,8 +65,9 @@ def test_same_seed_produces_identical_fitness_scores():
 def test_same_seed_multiple_generations_reproducible():
     """Verify same seed produces identical results across multiple generations."""
     crucible1 = FactorizationCrucible(961730063)
+    config1 = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     engine1 = EvolutionaryEngine(
-        crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible1, population_size=5, config=config1, random_seed=42
     )
     engine1.initialize_population()
 
@@ -73,8 +79,9 @@ def test_same_seed_multiple_generations_reproducible():
         )
 
     crucible2 = FactorizationCrucible(961730063)
+    config2 = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     engine2 = EvolutionaryEngine(
-        crucible2, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible2, population_size=5, config=config2, random_seed=42
     )
     engine2.initialize_population()
 
@@ -92,8 +99,9 @@ def test_same_seed_multiple_generations_reproducible():
 def test_different_seeds_produce_different_results():
     """Verify different seeds produce different fitness scores."""
     crucible1 = FactorizationCrucible(961730063)
+    config1 = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     engine1 = EvolutionaryEngine(
-        crucible1, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible1, population_size=5, config=config1, random_seed=42
     )
     engine1.initialize_population()
     strategies_seed42 = [
@@ -102,8 +110,9 @@ def test_different_seeds_produce_different_results():
     ]
 
     crucible2 = FactorizationCrucible(961730063)
+    config2 = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     engine2 = EvolutionaryEngine(
-        crucible2, population_size=5, evaluation_duration=0.05, random_seed=99
+        crucible2, population_size=5, config=config2, random_seed=99
     )
     engine2.initialize_population()
     strategies_seed99 = [
@@ -118,8 +127,9 @@ def test_different_seeds_produce_different_results():
 def test_seed_stored_in_engine():
     """Verify seed is stored in engine for export."""
     crucible = FactorizationCrucible(961730063)
+    config = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     engine = EvolutionaryEngine(
-        crucible, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible, population_size=5, config=config, random_seed=42
     )
     assert engine.random_seed == 42
 
@@ -127,15 +137,17 @@ def test_seed_stored_in_engine():
 def test_seed_none_by_default():
     """Verify seed is None by default when not provided."""
     crucible = FactorizationCrucible(961730063)
-    engine = EvolutionaryEngine(crucible, population_size=5, evaluation_duration=0.05)
+    config = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
+    engine = EvolutionaryEngine(crucible, population_size=5, config=config)
     assert engine.random_seed is None
 
 
 def test_seed_included_in_metrics_export(tmp_path):
     """Verify seed is exported in metrics JSON."""
     crucible = FactorizationCrucible(961730063)
+    config = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
     engine = EvolutionaryEngine(
-        crucible, population_size=5, evaluation_duration=0.05, random_seed=42
+        crucible, population_size=5, config=config, random_seed=42
     )
     engine.initialize_population()
     engine.run_evolutionary_cycle()
@@ -153,7 +165,8 @@ def test_seed_included_in_metrics_export(tmp_path):
 def test_seed_none_exported_when_not_set(tmp_path):
     """Verify seed is exported as None when not set."""
     crucible = FactorizationCrucible(961730063)
-    engine = EvolutionaryEngine(crucible, population_size=5, evaluation_duration=0.05)
+    config = Config(api_key="", llm_enabled=False, evaluation_duration=0.05)
+    engine = EvolutionaryEngine(crucible, population_size=5, config=config)
     engine.initialize_population()
     engine.run_evolutionary_cycle()
 
@@ -186,12 +199,17 @@ def test_crossover_reproducible_with_seed():
     - Evolutionary trajectory across generations (depends on fitness)
     """
     crucible1 = FactorizationCrucible(961730063)
-    engine1 = EvolutionaryEngine(
-        crucible1,
-        population_size=10,
+    config1 = Config(
+        api_key="",
+        llm_enabled=False,
         evaluation_duration=0.05,
         crossover_rate=0.5,
         mutation_rate=0.3,
+    )
+    engine1 = EvolutionaryEngine(
+        crucible1,
+        population_size=10,
+        config=config1,
         random_seed=42,
     )
     engine1.initialize_population()
@@ -205,12 +223,17 @@ def test_crossover_reproducible_with_seed():
     ]
 
     crucible2 = FactorizationCrucible(961730063)
-    engine2 = EvolutionaryEngine(
-        crucible2,
-        population_size=10,
+    config2 = Config(
+        api_key="",
+        llm_enabled=False,
         evaluation_duration=0.05,
         crossover_rate=0.5,
         mutation_rate=0.3,
+    )
+    engine2 = EvolutionaryEngine(
+        crucible2,
+        population_size=10,
+        config=config2,
         random_seed=42,
     )
     engine2.initialize_population()

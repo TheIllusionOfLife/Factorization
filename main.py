@@ -34,8 +34,8 @@ def main():
     parser.add_argument(
         "--duration",
         type=float,
-        default=0.1,
-        help="Evaluation duration in seconds (default: 0.1)",
+        metavar="SECS",
+        help="Evaluation duration in seconds (default: 0.1, overrides config if provided)",
     )
     parser.add_argument(
         "--llm",
@@ -48,19 +48,57 @@ def main():
         metavar="PATH",
         help="Export detailed metrics to JSON file (e.g., metrics/run_001.json)",
     )
+
+    # Evolution parameters
+    parser.add_argument(
+        "--elite-rate",
+        type=float,
+        metavar="RATE",
+        help="Elite selection rate: fraction of top performers that become parents (default: 0.2)",
+    )
     parser.add_argument(
         "--crossover-rate",
         type=float,
-        default=0.3,
         metavar="RATE",
         help="Crossover rate: fraction of offspring from two parents (default: 0.3)",
     )
     parser.add_argument(
         "--mutation-rate",
         type=float,
-        default=0.5,
         metavar="RATE",
         help="Mutation rate: fraction of offspring from single parent (default: 0.5)",
+    )
+
+    # Strategy bounds
+    parser.add_argument(
+        "--power-min",
+        type=int,
+        metavar="N",
+        help="Minimum polynomial power (default: 2, range: 2-5)",
+    )
+    parser.add_argument(
+        "--power-max",
+        type=int,
+        metavar="N",
+        help="Maximum polynomial power (default: 5, range: 2-5)",
+    )
+    parser.add_argument(
+        "--max-filters",
+        type=int,
+        metavar="N",
+        help="Maximum number of modulus filters per strategy (default: 4)",
+    )
+    parser.add_argument(
+        "--min-hits-min",
+        type=int,
+        metavar="N",
+        help="Minimum required small prime hits (default: 1)",
+    )
+    parser.add_argument(
+        "--min-hits-max",
+        type=int,
+        metavar="N",
+        help="Maximum required small prime hits (default: 6)",
     )
     parser.add_argument(
         "--seed",
@@ -78,9 +116,64 @@ def main():
     parser.add_argument(
         "--adaptation-window",
         type=int,
-        default=5,
         metavar="N",
         help="Generations to consider for rate adaptation (default: 5)",
+    )
+    parser.add_argument(
+        "--meta-min-rate",
+        type=float,
+        metavar="RATE",
+        help="Meta-learning minimum operator rate (default: 0.1)",
+    )
+    parser.add_argument(
+        "--meta-max-rate",
+        type=float,
+        metavar="RATE",
+        help="Meta-learning maximum operator rate (default: 0.7)",
+    )
+    parser.add_argument(
+        "--fallback-inf-rate",
+        type=float,
+        metavar="RATE",
+        help="Rate split for untried operators in meta-learning (default: 0.8)",
+    )
+    parser.add_argument(
+        "--fallback-finite-rate",
+        type=float,
+        metavar="RATE",
+        help="Rate split for tried operators in meta-learning (default: 0.2)",
+    )
+
+    # Mutation probability arguments
+    parser.add_argument(
+        "--mutation-prob-power",
+        type=float,
+        metavar="PROB",
+        help="Probability of mutating power parameter (default: 0.3)",
+    )
+    parser.add_argument(
+        "--mutation-prob-filter",
+        type=float,
+        metavar="PROB",
+        help="Probability of mutating filter parameter (default: 0.3)",
+    )
+    parser.add_argument(
+        "--mutation-prob-modulus",
+        type=float,
+        metavar="PROB",
+        help="Probability of changing modulus in filter mutation (default: 0.5)",
+    )
+    parser.add_argument(
+        "--mutation-prob-residue",
+        type=float,
+        metavar="PROB",
+        help="Probability of changing residues in filter mutation (default: 0.5)",
+    )
+    parser.add_argument(
+        "--mutation-prob-add-filter",
+        type=float,
+        metavar="PROB",
+        help="Probability of adding a new filter during mutation (default: 0.15)",
     )
 
     # Comparison mode arguments
@@ -112,24 +205,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Validate reproduction rates
-    if args.crossover_rate < 0 or args.crossover_rate > 1:
-        print(
-            f"❌ ERROR: crossover-rate must be between 0 and 1 (got {args.crossover_rate})"
-        )
-        sys.exit(1)
-    if args.mutation_rate < 0 or args.mutation_rate > 1:
-        print(
-            f"❌ ERROR: mutation-rate must be between 0 and 1 (got {args.mutation_rate})"
-        )
-        sys.exit(1)
-    if args.crossover_rate + args.mutation_rate > 1.0:
-        print("❌ ERROR: crossover-rate + mutation-rate must be <= 1.0")
-        print(
-            f"   (got {args.crossover_rate} + {args.mutation_rate} = {args.crossover_rate + args.mutation_rate})"
-        )
-        sys.exit(1)
-
     # Validate core loop sizes
     if args.generations < 1:
         print(f"❌ ERROR: generations must be >= 1 (got {args.generations})")
@@ -143,15 +218,29 @@ def main():
         )
         sys.exit(1)
 
+    # Build config from environment and CLI overrides
+    from src.config import Config
+
+    try:
+        # Create config from CLI args and environment (immutable construction pattern)
+        # Validation happens once in Config.__post_init__() - no mutation after construction
+        config = Config.from_args_and_env(args, use_llm=args.llm)
+
+    except ValueError as e:
+        print(f"❌ ERROR: Invalid configuration: {e}")
+        sys.exit(1)
+    except ImportError as e:
+        print(f"❌ ERROR: Missing dependencies: {e}")
+        print("Please run: pip install -r requirements.txt")
+        sys.exit(1)
+
     # Initialize LLM provider if requested
     llm_provider = None
     if args.llm:
         try:
             from src.comparison import print_llm_summary
-            from src.config import load_config
             from src.llm.gemini import GeminiProvider
 
-            config = load_config()
             if not config.api_key:
                 print("❌ ERROR: GEMINI_API_KEY not set in .env file")
                 print("Please create .env file with your API key (see .env.example)")
@@ -182,7 +271,7 @@ def main():
         # Comparison mode: Run vs baselines with statistical analysis
         print(f"\n🎯 Target number: {args.number}")
         print(f"🧬 Generations: {args.generations}, Population: {args.population}")
-        print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
+        print(f"⏱️  Evaluation duration: {config.evaluation_duration}s per strategy")
         print(f"📊 Comparison runs: {args.num_comparison_runs}")
         print(f"🔍 Convergence window: {args.convergence_window} generations")
         if args.seed is not None:
@@ -194,9 +283,10 @@ def main():
             num_runs=args.num_comparison_runs,
             max_generations=args.generations,
             population_size=args.population,
-            evaluation_duration=args.duration,
+            evaluation_duration=config.evaluation_duration,
             convergence_window=args.convergence_window,
             llm_provider=llm_provider,
+            config=config,
         )
 
         runs = comparison_engine.run_comparison(base_seed=args.seed)
@@ -290,28 +380,25 @@ def main():
         engine = EvolutionaryEngine(
             crucible,
             population_size=args.population,
+            config=config,
             llm_provider=llm_provider,
-            evaluation_duration=args.duration,
-            crossover_rate=args.crossover_rate,
-            mutation_rate=args.mutation_rate,
             random_seed=args.seed,
             enable_meta_learning=args.meta_learning,
-            adaptation_window=args.adaptation_window,
         )
 
         print(f"\n🎯 Target number: {args.number}")
         print(f"🧬 Generations: {args.generations}, Population: {args.population}")
-        print(f"⏱️  Evaluation duration: {args.duration}s per strategy")
+        print(f"⏱️  Evaluation duration: {config.evaluation_duration}s per strategy")
         if args.meta_learning:
             print(
-                f"🔀 Reproduction: {args.crossover_rate:.0%} crossover (initial), {args.mutation_rate:.0%} mutation (initial), {engine.random_rate:.0%} random (initial)"
+                f"🔀 Reproduction: {config.crossover_rate:.0%} crossover (initial), {config.mutation_rate:.0%} mutation (initial), {engine.random_rate:.0%} random (initial)"
             )
             print(
-                f"🧠 Meta-learning enabled: Rates will adapt based on performance (window={args.adaptation_window})"
+                f"🧠 Meta-learning enabled: Rates will adapt based on performance (window={config.adaptation_window})"
             )
         else:
             print(
-                f"🔀 Reproduction: {args.crossover_rate:.0%} crossover, {args.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random"
+                f"🔀 Reproduction: {config.crossover_rate:.0%} crossover, {config.mutation_rate:.0%} mutation, {engine.random_rate:.0%} random"
             )
         if args.seed is not None:
             print(f"🎲 Random seed: {args.seed} (reproducible run)")

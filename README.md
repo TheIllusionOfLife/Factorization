@@ -98,6 +98,106 @@ Comparison Mode Options:
   --export-comparison PATH     Export comparison results to JSON file
 ```
 
+### Configuration System
+
+The system uses a centralized `Config` dataclass that manages all tunable parameters. Configuration can be set via:
+1. **Environment variables** (`.env` file) for LLM settings
+2. **CLI arguments** for runtime overrides
+3. **Programmatic Config objects** for testing and integration
+
+#### All Configuration Parameters
+
+**Evolution Parameters**:
+- `--elite-rate RATE`: Elite selection rate (default: 0.2) - Top 20% become parents
+- `--crossover-rate RATE`: Crossover operator rate (default: 0.3) - 30% from two parents
+- `--mutation-rate RATE`: Mutation operator rate (default: 0.5) - 50% from single parent
+- `--duration SECS`: Evaluation duration per strategy (default: 0.1)
+- Random newcomers: Automatically calculated as 1.0 - crossover - mutation (default: 0.2)
+
+**Strategy Bounds**:
+- `--power-min N`: Minimum polynomial power (default: 2, range: 2-5)
+- `--power-max N`: Maximum polynomial power (default: 5, range: 2-5)
+- `--max-filters N`: Maximum modulus filters per strategy (default: 4)
+- `--min-hits-min N`: Minimum required small prime hits (default: 1)
+- `--min-hits-max N`: Maximum required small prime hits (default: 6)
+
+**Meta-Learning Parameters**:
+- `--meta-learning`: Enable adaptive operator selection (rates auto-adjust based on performance)
+- `--adaptation-window N`: Generations to analyze for rate adaptation (default: 5)
+- `--meta-min-rate RATE`: Minimum allowed operator rate (default: 0.1)
+- `--meta-max-rate RATE`: Maximum allowed operator rate (default: 0.7)
+- `--fallback-inf-rate RATE`: Rate for untried operators (default: 0.8)
+- `--fallback-finite-rate RATE`: Rate for tried operators (default: 0.2)
+
+**Mutation Probabilities** (fine-tune mutation behavior):
+- `--mutation-prob-power PROB`: Probability of mutating power (default: 0.3)
+- `--mutation-prob-filter PROB`: Probability of mutating filters (default: 0.3)
+- `--mutation-prob-modulus PROB`: Probability of changing modulus (default: 0.5)
+- `--mutation-prob-residue PROB`: Probability of changing residues (default: 0.5)
+- `--mutation-prob-add-filter PROB`: Probability of adding filter (default: 0.15)
+
+**LLM Configuration** (via `.env` file):
+- `GEMINI_API_KEY`: Your Gemini API key (required for `--llm` mode)
+- `LLM_ENABLED`: Enable/disable LLM (default: true if API key set)
+- `MAX_LLM_CALLS_PER_RUN`: Limit API calls per run (default: 100)
+
+#### Configuration Examples
+
+**Custom evolution parameters**:
+```bash
+# More aggressive evolution: high crossover, low mutation
+python prototype.py --elite-rate 0.3 --crossover-rate 0.6 --mutation-rate 0.2 --generations 10
+```
+
+**Custom strategy search space**:
+```bash
+# Narrow search: only power 3-4, max 2 filters
+python prototype.py --power-min 3 --power-max 4 --max-filters 2 --generations 5
+```
+
+**Meta-learning with custom bounds**:
+```bash
+# Wider adaptation range, slower adaptation
+python prototype.py --meta-learning --meta-min-rate 0.05 --meta-max-rate 0.8 --adaptation-window 10
+```
+
+**Fine-tuned mutation behavior**:
+```bash
+# Focus mutations on power changes, rarely add filters
+python prototype.py --mutation-prob-power 0.7 --mutation-prob-add-filter 0.05 --generations 8
+```
+
+**Comprehensive custom configuration**:
+```bash
+python prototype.py \
+  --generations 15 --population 20 --duration 0.15 \
+  --elite-rate 0.25 --crossover-rate 0.4 --mutation-rate 0.4 \
+  --power-min 2 --power-max 4 --max-filters 3 \
+  --seed 42 --export-metrics results/custom_config.json
+```
+
+#### Configuration Export
+
+When using `--export-metrics`, the complete configuration (excluding sensitive data like API keys) is exported to the JSON file for reproducibility:
+
+```json
+{
+  "target_number": 961730063,
+  "generation_count": 5,
+  "config": {
+    "elite_selection_rate": 0.2,
+    "crossover_rate": 0.3,
+    "mutation_rate": 0.5,
+    "evaluation_duration": 0.1,
+    "power_min": 2,
+    "power_max": 5,
+    "max_filters": 4,
+    ...
+  },
+  "metrics_history": [...]
+}
+```
+
 ### Example Usage
 
 **Quick test with LLM** (3 generations, small population):

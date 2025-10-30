@@ -3,7 +3,9 @@
 import logging
 import random
 from dataclasses import dataclass
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
+
+from src.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +19,10 @@ class Strategy:
     modulus_filters: List[Tuple[int, List[int]]]
     smoothness_bound: int
     min_small_prime_hits: int
+    _config: Optional[Config] = None  # Store config for normalization
 
     def __post_init__(self) -> None:
-        self._normalize()
+        self._normalize(self._config)
 
     def copy(self) -> "Strategy":
         return Strategy(
@@ -29,6 +32,7 @@ class Strategy:
             ],
             smoothness_bound=self.smoothness_bound,
             min_small_prime_hits=self.min_small_prime_hits,
+            _config=self._config,
         )
 
     def describe(self) -> str:
@@ -55,17 +59,23 @@ class Strategy:
 
         return self._count_small_prime_hits(candidate) >= self.min_small_prime_hits
 
-    def _normalize(self) -> None:
-        self.power = max(2, min(5, self.power))
+    def _normalize(self, config=None) -> None:
+        if config is None:
+            config = Config(api_key="", llm_enabled=False)
+
+        # Use config bounds
+        self.power = max(config.power_min, min(config.power_max, self.power))
         normalized_filters: List[Tuple[int, List[int]]] = []
         for modulus, residues in self.modulus_filters:
             modulus = max(2, modulus)
             residues = sorted({residue % modulus for residue in residues})
             if residues:
                 normalized_filters.append((modulus, residues))
-        self.modulus_filters = normalized_filters[:4]
+        self.modulus_filters = normalized_filters[: config.max_filters]
         self.smoothness_bound = max(3, min(self.smoothness_bound, SMALL_PRIMES[-1]))
-        self.min_small_prime_hits = max(1, min(self.min_small_prime_hits, 6))
+        self.min_small_prime_hits = max(
+            config.min_hits_min, min(self.min_small_prime_hits, config.min_hits_max)
+        )
 
     def _count_small_prime_hits(self, candidate: int) -> int:
         hits = 0
@@ -119,7 +129,7 @@ def blend_modulus_filters(
     return blended[:max_filters]
 
 
-def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
+def crossover_strategies(parent1: Strategy, parent2: Strategy, config=None) -> Strategy:
     """
     Uniform crossover: combine strategies from two parents.
 
@@ -134,10 +144,16 @@ def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
     Args:
         parent1: First parent strategy
         parent2: Second parent strategy
+        config: Optional Config object for max_filters limit (default: None uses default Config)
 
     Returns:
         New strategy combining traits from both parents
     """
+    from src.config import Config
+
+    if config is None:
+        config = Config(api_key="", llm_enabled=False)
+
     # Randomly select discrete parameters from either parent
     power = random.choice([parent1.power, parent2.power])
     smoothness_bound = random.choice(
@@ -149,7 +165,7 @@ def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
 
     # Blend modulus filters from both parents
     modulus_filters = blend_modulus_filters(
-        parent1.modulus_filters, parent2.modulus_filters, max_filters=4
+        parent1.modulus_filters, parent2.modulus_filters, max_filters=config.max_filters
     )
 
     # Create new strategy (automatically normalized)
@@ -158,16 +174,23 @@ def crossover_strategies(parent1: Strategy, parent2: Strategy) -> Strategy:
         modulus_filters=modulus_filters,
         smoothness_bound=smoothness_bound,
         min_small_prime_hits=min_small_prime_hits,
+        _config=config,
     )
 
 
 class StrategyGenerator:
-    def __init__(self, primes: Sequence[int] = SMALL_PRIMES) -> None:
+    def __init__(self, primes: Sequence[int] = SMALL_PRIMES, config=None) -> None:
         self.primes = list(primes)
+        self.config = (
+            config if config is not None else Config(api_key="", llm_enabled=False)
+        )
 
     def random_strategy(self) -> Strategy:
-        power = random.choice([2, 2, 2, 3, 3, 4])
-        filter_count = random.randint(1, 3)
+        # Use config bounds for power
+        power = random.randint(self.config.power_min, self.config.power_max)
+
+        # Use config.max_filters for filter count
+        filter_count = random.randint(1, min(3, self.config.max_filters))
         filters: List[Tuple[int, List[int]]] = []
         for _ in range(filter_count):
             modulus = random.choice(self.primes)
@@ -176,30 +199,47 @@ class StrategyGenerator:
             filters.append((modulus, residues))
 
         smoothness_bound = random.choice(self.primes[3:])
-        min_hits = random.randint(1, 4)
+
+        # Use config bounds for min_hits
+        min_hits = random.randint(self.config.min_hits_min, self.config.min_hits_max)
 
         return Strategy(
             power=power,
             modulus_filters=filters,
             smoothness_bound=smoothness_bound,
             min_small_prime_hits=min_hits,
+            _config=self.config,
         )
 
     def mutate_strategy(self, parent: Strategy) -> Strategy:
         child = parent.copy()
         mutation_roll = random.random()
 
-        if mutation_roll < 0.3:
-            child.power = random.choice([2, 2, 3, 3, 4, 5])
-        elif mutation_roll < 0.6 and child.modulus_filters:
+        # Use config.mutation_prob_power
+        if mutation_roll < self.config.mutation_prob_power:
+            # Generate power within config bounds
+            power_choices = list(
+                range(self.config.power_min, self.config.power_max + 1)
+            )
+            child.power = random.choice(power_choices)
+        elif (
+            mutation_roll
+            < self.config.mutation_prob_power + self.config.mutation_prob_filter
+            and child.modulus_filters
+        ):
             index = random.randrange(len(child.modulus_filters))
             modulus, residues = child.modulus_filters[index]
-            if random.random() < 0.5:
+            # Use config.mutation_prob_modulus
+            if random.random() < self.config.mutation_prob_modulus:
                 modulus = random.choice(self.primes)
                 residues = [r % modulus for r in residues]
             else:
                 choices = list(range(modulus))
-                if random.random() < 0.5 and len(residues) > 1:
+                # Use config.mutation_prob_residue
+                if (
+                    random.random() < self.config.mutation_prob_residue
+                    and len(residues) > 1
+                ):
                     residues.pop(random.randrange(len(residues)))
                 else:
                     candidate = random.choice(choices)
@@ -210,17 +250,22 @@ class StrategyGenerator:
             adjustment = random.choice([-2, -1, 1, 2])
             child.smoothness_bound = child.smoothness_bound + adjustment
             child.min_small_prime_hits = max(
-                1, child.min_small_prime_hits + random.choice([-1, 0, 1])
+                self.config.min_hits_min,
+                child.min_small_prime_hits + random.choice([-1, 0, 1]),
             )
 
-        if random.random() < 0.15 and len(child.modulus_filters) < 4:
+        # Use config.mutation_prob_add_filter and config.max_filters
+        if (
+            random.random() < self.config.mutation_prob_add_filter
+            and len(child.modulus_filters) < self.config.max_filters
+        ):
             modulus = random.choice(self.primes)
             residues = random.sample(range(modulus), random.randint(1, min(3, modulus)))
             child.modulus_filters.append((modulus, residues))
         elif random.random() < 0.05 and len(child.modulus_filters) > 1:
             child.modulus_filters.pop(random.randrange(len(child.modulus_filters)))
 
-        child._normalize()
+        child._normalize(self.config)
         return child
 
 
@@ -230,10 +275,10 @@ class LLMStrategyGenerator(StrategyGenerator):
     LLMによる戦略提案を試み、失敗時は従来のルールベース手法にフォールバックする。
     """
 
-    def __init__(self, llm_provider=None, primes=SMALL_PRIMES):
+    def __init__(self, llm_provider=None, primes=SMALL_PRIMES, config=None):
         if not primes:
             raise ValueError("primes list cannot be empty")
-        super().__init__(primes)
+        super().__init__(primes, config)
         self.llm_provider = llm_provider
         self.fitness_history = []
 
@@ -277,6 +322,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=parent.modulus_filters[:],
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
+                _config=self.config,
             )
 
         elif mutation_type == "add_filter":
@@ -292,6 +338,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=new_filters,
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
+                _config=self.config,
             )
 
         elif mutation_type == "modify_filter":
@@ -308,6 +355,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=new_filters,
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
+                _config=self.config,
             )
 
         elif mutation_type == "remove_filter":
@@ -329,6 +377,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=new_filters,
                 smoothness_bound=parent.smoothness_bound,
                 min_small_prime_hits=parent.min_small_prime_hits,
+                _config=self.config,
             )
 
         elif mutation_type == "adjust_smoothness":
@@ -347,6 +396,7 @@ class LLMStrategyGenerator(StrategyGenerator):
                 modulus_filters=parent.modulus_filters[:],
                 smoothness_bound=new_bound,
                 min_small_prime_hits=new_hits,
+                _config=self.config,
             )
 
         # 未知の変異タイプの場合は親をそのまま返す

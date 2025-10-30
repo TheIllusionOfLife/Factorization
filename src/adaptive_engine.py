@@ -32,6 +32,8 @@ class MetaLearningEngine:
         adaptation_window: int = 5,
         min_rate: float = 0.1,
         max_rate: float = 0.7,
+        fallback_inf_rate: float = 0.8,
+        fallback_finite_rate: float = 0.2,
     ):
         """Initialize meta-learning engine.
 
@@ -39,6 +41,8 @@ class MetaLearningEngine:
             adaptation_window: Generations to consider for adaptation (default: 5)
             min_rate: Minimum rate for any operator (default: 0.1)
             max_rate: Maximum rate for any operator (default: 0.7)
+            fallback_inf_rate: Rate split for untried operators (default: 0.8)
+            fallback_finite_rate: Rate split for tried operators (default: 0.2)
 
         Raises:
             ValueError: If rate bounds are invalid or infeasible
@@ -62,9 +66,26 @@ class MetaLearningEngine:
                 f"Cannot distribute rates with max_rate={max_rate} for all 3 operators."
             )
 
+        # Validate fallback split for untried vs tried operators
+        if not (0.0 <= fallback_inf_rate <= 1.0) or not (
+            0.0 <= fallback_finite_rate <= 1.0
+        ):
+            raise ValueError(
+                f"fallback rates must be in [0,1], got inf={fallback_inf_rate}, finite={fallback_finite_rate}"
+            )
+        # Use tight epsilon (1e-9) for exact equality check - these must sum to exactly 1.0
+        # (unlike Config which uses 0.01 for edge cases like 3*0.33 = 0.99)
+        if not abs(fallback_inf_rate + fallback_finite_rate - 1.0) < 1e-9:
+            raise ValueError(
+                f"fallback_inf_rate + fallback_finite_rate must equal 1.0, got "
+                f"{fallback_inf_rate + fallback_finite_rate:.6f}"
+            )
+
         self.adaptation_window = adaptation_window
         self.min_rate = min_rate
         self.max_rate = max_rate
+        self.fallback_inf_rate = fallback_inf_rate
+        self.fallback_finite_rate = fallback_finite_rate
         self.current_generation = 0
         self.operator_history: List[Dict[str, OperatorStatistics]] = []
 
@@ -262,10 +283,10 @@ class MetaLearningEngine:
                 # All operators untried - use uniform distribution
                 return {"crossover": 1 / 3, "mutation": 1 / 3, "random": 1 / 3}
 
-            # Some operators untried - give them priority (80% total)
+            # Some operators untried - give them priority (fallback_inf_rate total)
             finite_count = 3 - inf_count
-            inf_rate = 0.8 / inf_count
-            finite_rate = 0.2 / finite_count
+            inf_rate = self.fallback_inf_rate / inf_count
+            finite_rate = self.fallback_finite_rate / finite_count
 
             rates = {
                 operator: inf_rate if math.isinf(score) else finite_rate

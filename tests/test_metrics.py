@@ -11,6 +11,7 @@ from prototype import (
     FactorizationCrucible,
     Strategy,
 )
+from src.config import Config
 
 
 class TestEvaluationMetrics:
@@ -170,7 +171,10 @@ class TestMetricsHistoryTracking:
         """Test that metrics history is initialized."""
         crucible = FactorizationCrucible(961730063)
         engine = EvolutionaryEngine(
-            crucible, population_size=3, llm_provider=None, evaluation_duration=0.05
+            crucible,
+            population_size=3,
+            llm_provider=None,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.05),
         )
 
         assert hasattr(engine, "metrics_history")
@@ -181,7 +185,10 @@ class TestMetricsHistoryTracking:
         """Test that metrics are tracked for each generation."""
         crucible = FactorizationCrucible(961730063)
         engine = EvolutionaryEngine(
-            crucible, population_size=3, llm_provider=None, evaluation_duration=0.05
+            crucible,
+            population_size=3,
+            llm_provider=None,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.05),
         )
 
         engine.initialize_population()
@@ -202,7 +209,10 @@ class TestMetricsHistoryTracking:
         """Test that metrics accumulate across multiple generations."""
         crucible = FactorizationCrucible(961730063)
         engine = EvolutionaryEngine(
-            crucible, population_size=3, llm_provider=None, evaluation_duration=0.05
+            crucible,
+            population_size=3,
+            llm_provider=None,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.05),
         )
 
         engine.initialize_population()
@@ -226,7 +236,10 @@ class TestMetricsExport:
         """Test exporting metrics history to JSON file."""
         crucible = FactorizationCrucible(961730063)
         engine = EvolutionaryEngine(
-            crucible, population_size=2, llm_provider=None, evaluation_duration=0.05
+            crucible,
+            population_size=2,
+            llm_provider=None,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.05),
         )
 
         engine.initialize_population()
@@ -263,7 +276,10 @@ class TestMetricsExport:
         """Test that exported JSON includes all metric fields."""
         crucible = FactorizationCrucible(961730063)
         engine = EvolutionaryEngine(
-            crucible, population_size=2, llm_provider=None, evaluation_duration=0.05
+            crucible,
+            population_size=2,
+            llm_provider=None,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.05),
         )
 
         engine.initialize_population()
@@ -314,7 +330,10 @@ class TestIntegrationWithExistingCode:
         """Test full evolution cycle with detailed metrics enabled."""
         crucible = FactorizationCrucible(961730063)
         engine = EvolutionaryEngine(
-            crucible, population_size=3, llm_provider=None, evaluation_duration=0.05
+            crucible,
+            population_size=3,
+            llm_provider=None,
+            config=Config(api_key="", llm_enabled=False, evaluation_duration=0.05),
         )
 
         engine.initialize_population()

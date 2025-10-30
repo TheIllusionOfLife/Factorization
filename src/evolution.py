@@ -5,6 +5,7 @@ import random
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.config import Config
 from src.crucible import FactorizationCrucible
 from src.metrics import EvaluationMetrics
 from src.strategy import (
@@ -24,21 +25,23 @@ class EvolutionaryEngine:
         self,
         crucible: FactorizationCrucible,
         population_size: int = 10,
+        config: Optional[Config] = None,
         llm_provider=None,
-        evaluation_duration: float = 0.1,
-        crossover_rate: float = 0.3,
-        mutation_rate: float = 0.5,
         random_seed: Optional[int] = None,
         enable_meta_learning: bool = False,
-        adaptation_window: int = 5,
         generator: Optional["StrategyGenerator"] = None,
     ):
+        # Use config values or create default config
+        if config is None:
+            config = Config(api_key="", llm_enabled=False)
+
+        self.config = config
         self.crucible = crucible
         self.population_size = population_size
-        self.evaluation_duration = evaluation_duration
-        self.crossover_rate = crossover_rate
-        self.mutation_rate = mutation_rate
-        self.random_rate = 1.0 - crossover_rate - mutation_rate
+        self.evaluation_duration = config.evaluation_duration
+        self.crossover_rate = config.crossover_rate
+        self.mutation_rate = config.mutation_rate
+        self.random_rate = 1.0 - config.crossover_rate - config.mutation_rate
 
         # Apply random seed for reproducibility
         if random_seed is not None:
@@ -52,10 +55,12 @@ class EvolutionaryEngine:
         if generator:
             self.generator = generator
         elif llm_provider:
-            self.generator = LLMStrategyGenerator(llm_provider=llm_provider)
+            self.generator = LLMStrategyGenerator(
+                llm_provider=llm_provider, config=config
+            )
         else:
-            self.generator = (
-                LLMStrategyGenerator()
+            self.generator = LLMStrategyGenerator(
+                config=config
             )  # llm_provider=None で従来と同じ動作
 
         # Meta-learning for adaptive operator selection
@@ -64,7 +69,11 @@ class EvolutionaryEngine:
             from src.adaptive_engine import MetaLearningEngine
 
             self.meta_learner: Optional[MetaLearningEngine] = MetaLearningEngine(
-                adaptation_window=adaptation_window
+                adaptation_window=config.adaptation_window,
+                min_rate=config.meta_learning_min_rate,
+                max_rate=config.meta_learning_max_rate,
+                fallback_inf_rate=config.fallback_inf_rate,
+                fallback_finite_rate=config.fallback_finite_rate,
             )
         else:
             self.meta_learner = None
@@ -150,13 +159,15 @@ class EvolutionaryEngine:
         # Store metrics history
         self.metrics_history.append(generation_metrics)
 
-        # 選択: フィットネスが高い上位20%の文明を選択
+        # 選択: フィットネスが高い上位X%の文明を選択 (config.elite_selection_rate)
         sorted_civs = sorted(
             self.civilizations.items(),
             key=lambda item: item[1]["fitness"],
             reverse=True,
         )
-        num_elites = max(1, int(self.population_size * 0.2))
+        num_elites = max(
+            1, int(self.population_size * self.config.elite_selection_rate)
+        )
         elites = sorted_civs[:num_elites]
 
         # IMPORTANT: Capture best fitness and strategy BEFORE civilizations is replaced
@@ -251,7 +262,7 @@ class EvolutionaryEngine:
                     parent1_strategy = parent1_civ[1]["strategy"]
                     parent2_strategy = parent2_civ[1]["strategy"]
                     new_strategy = crossover_strategies(
-                        parent1_strategy, parent2_strategy
+                        parent1_strategy, parent2_strategy, config=self.config
                     )
                     offspring_sources["crossover"] += 1
                     operator_used = "crossover"
@@ -331,6 +342,7 @@ class EvolutionaryEngine:
             "population_size": self.population_size,
             "evaluation_duration": self.evaluation_duration,
             "random_seed": self.random_seed,
+            "config": self.config.to_dict(),  # Export config (excluding api_key)
             "metrics_history": [
                 [metrics.to_dict() for metrics in generation]
                 for generation in self.metrics_history
