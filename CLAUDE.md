@@ -385,7 +385,8 @@ import sys
 cmd = [sys.executable, "main.py"] + list(args)
 
 # Validate JSON structure after export
-data = json.load(open(export_path))
+with open(export_path) as f:
+    data = json.load(f)
 assert "target_number" in data
 assert "metrics_history" in data
 assert "api_key" not in data["config"]  # Security check

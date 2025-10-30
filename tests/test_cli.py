@@ -554,23 +554,13 @@ def test_no_seed_non_deterministic():
         seed1 = data1.get("random_seed")
         seed2 = data2.get("random_seed")
 
-        assert seed1 is None and seed2 is None, (
-            "Runs without --seed should not record seed"
-        )
+        assert seed1 is None, f"Run without --seed should not record seed, got: {seed1}"
+        assert seed2 is None, f"Run without --seed should not record seed, got: {seed2}"
 
-        # The actual metrics should differ due to different random initialization
-        # Compare at least one generation's candidate counts (fitness)
-        candidate_counts1 = [
-            civ["candidate_count"] for civ in data1["metrics_history"][0]
-        ]
-        candidate_counts2 = [
-            civ["candidate_count"] for civ in data2["metrics_history"][0]
-        ]
-
-        # Very unlikely all candidate counts are identical across 5 civilizations with different seeds
-        assert candidate_counts1 != candidate_counts2, (
-            f"All candidate counts identical without seed: {candidate_counts1} == {candidate_counts2}"
-        )
+        # NOTE: We only verify that no seed is recorded. We don't compare metrics
+        # between runs because with short evaluation durations (0.1s), runs often
+        # produce identical zero counts, causing flaky tests (chatgpt-codex-connector review).
+        # The key verification is that random_seed=None, which allows true randomness.
 
 
 # =============================================================================
