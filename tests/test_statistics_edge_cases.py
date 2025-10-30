@@ -1,9 +1,8 @@
 """Edge case tests for statistical analysis functions."""
 
-import math
 import pytest
 
-from src.statistics import StatisticalAnalyzer, ConvergenceDetector
+from src.statistics import ConvergenceDetector, StatisticalAnalyzer
 
 
 class TestStatisticalAnalyzer:
@@ -248,10 +247,9 @@ class TestConfidenceIntervals:
 
         # CI should not include zero (significant difference)
         ci_lower, ci_upper = result.confidence_interval
-        if ci_lower is not None and ci_upper is not None:
+        if ci_lower is not None and ci_upper is not None and ci_lower > 0:
             # If lower > 0, upper must also be > 0 (excludes zero)
-            if ci_lower > 0:
-                assert ci_upper > 0
+            assert ci_upper > 0
 
     def test_ci_includes_zero_not_significant(self):
         """Test that CI including zero indicates no significance."""

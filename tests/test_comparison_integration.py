@@ -1,8 +1,6 @@
 """Integration tests for comparison mode and baseline strategies."""
 
-import pytest
-
-from src.comparison import ComparisonEngine, BaselineStrategyGenerator
+from src.comparison import BaselineStrategyGenerator, ComparisonEngine
 from src.config import Config
 
 
@@ -195,20 +193,10 @@ class TestRNGIsolation:
         runs2 = engine2.run_comparison(base_seed=100)
 
         # Final strategies should likely be different (different seeds)
-        strat1 = runs1[0].final_best_strategy
-        strat2 = runs2[0].final_best_strategy
-
-        # At least one parameter should differ
-        different = (
-            strat1.power != strat2.power
-            or strat1.modulus_filters != strat2.modulus_filters
-            or strat1.smoothness_bound != strat2.smoothness_bound
-            or strat1.min_small_prime_hits != strat2.min_small_prime_hits
-        )
-
         # May occasionally be same by chance, so we just verify code runs
         # without asserting difference (would be flaky)
-        assert True  # Test completes successfully
+        assert runs1[0].final_best_strategy is not None
+        assert runs2[0].final_best_strategy is not None
 
     def test_comparison_runs_independent(self, test_crucible):
         """Test that multiple runs are independent."""

@@ -1,14 +1,15 @@
 """Shared test fixtures for all test files."""
 
-import pytest
 from unittest.mock import AsyncMock
 
+import pytest
+
+from src.adaptive_engine import MetaLearningEngine
+from src.comparison import BaselineStrategyGenerator
 from src.config import Config
 from src.crucible import FactorizationCrucible
-from src.strategy import Strategy
-from src.comparison import BaselineStrategyGenerator
-from src.adaptive_engine import MetaLearningEngine
 from src.llm.base import LLMProvider, LLMResponse
+from src.strategy import Strategy
 
 
 @pytest.fixture
@@ -104,13 +105,13 @@ def meta_learning_engine_with_history():
     for gen in range(3):
         engine.current_generation = gen
         # Crossover: 5 offspring, 4 elite (80% success)
-        for i in range(5):
-            engine.update_statistics("crossover", 50.0, i < 4)
+        for _i in range(5):
+            engine.update_statistics("crossover", 50.0, _i < 4)
         # Mutation: 3 offspring, 1 elite (33% success)
-        for i in range(3):
-            engine.update_statistics("mutation", 20.0, i < 1)
+        for _i in range(3):
+            engine.update_statistics("mutation", 20.0, _i < 1)
         # Random: 2 offspring, 0 elite (0% success)
-        for i in range(2):
+        for _i in range(2):
             engine.update_statistics("random", 10.0, False)
         engine.finalize_generation()
 

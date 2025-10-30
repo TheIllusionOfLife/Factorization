@@ -1,6 +1,5 @@
 """Edge case tests for meta-learning system (UCB1, rate normalization, statistics)."""
 
-import math
 import pytest
 
 from src.adaptive_engine import MetaLearningEngine
@@ -202,7 +201,7 @@ class TestUCB1EdgeCases:
         engine.current_generation = 0
 
         # All operators: offspring but no elites
-        for i in range(10):
+        for _i in range(10):
             engine.update_statistics("crossover", 20.0, False)
             engine.update_statistics("mutation", 20.0, False)
             engine.update_statistics("random", 10.0, False)
@@ -268,13 +267,13 @@ class TestRateNormalizationEdgeCases:
         engine.current_generation = 0
 
         # Crossover: Very high success (90%)
-        for i in range(10):
-            engine.update_statistics("crossover", 50.0, i < 9)
+        for _i in range(10):
+            engine.update_statistics("crossover", 50.0, _i < 9)
         # Mutation: Low success (10%)
-        for i in range(10):
-            engine.update_statistics("mutation", 20.0, i < 1)
+        for _i in range(10):
+            engine.update_statistics("mutation", 20.0, _i < 1)
         # Random: No success (0%)
-        for i in range(10):
+        for _i in range(10):
             engine.update_statistics("random", 10.0, False)
         engine.finalize_generation()
 
@@ -507,7 +506,7 @@ class TestStatisticsEdgeCases:
         current = engine.get_current_statistics()
 
         # All operators should have zero stats
-        for operator, stats in current.items():
+        for _operator, stats in current.items():
             assert stats.total_offspring == 0
             assert stats.elite_offspring == 0
             assert stats.total_fitness_improvement == 0.0

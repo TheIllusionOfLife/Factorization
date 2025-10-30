@@ -1,9 +1,7 @@
 """Timing accuracy and performance validation tests."""
 
 import time
-import pytest
 
-from src.crucible import FactorizationCrucible
 from src.strategy import Strategy
 
 
@@ -227,12 +225,12 @@ class TestPerformanceBenchmarks:
 
         # Measure with detailed metrics
         start = time.perf_counter()
-        metrics_detailed = test_crucible.evaluate_strategy_detailed(strategy, 0.2)
+        test_crucible.evaluate_strategy_detailed(strategy, 0.2)
         time_detailed = time.perf_counter() - start
 
         # Measure with simple evaluation
         start = time.perf_counter()
-        count_simple = test_crucible.evaluate_strategy(strategy, 0.2)
+        test_crucible.evaluate_strategy(strategy, 0.2)
         time_simple = time.perf_counter() - start
 
         # Detailed metrics shouldn't add more than 20% overhead
