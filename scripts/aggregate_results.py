@@ -15,20 +15,21 @@ Date: 2025-10-31
 import argparse
 import json
 import sys
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
+from typing import Any, Dict, List, Optional
+
 import numpy as np
-from scipy import stats
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from src.statistics import StatisticalAnalyzer, ConvergenceDetector
+from src.statistics import StatisticalAnalyzer
 
 
 @dataclass
 class AggregatedCondition:
     """Statistics for a single experimental condition."""
+
     condition_name: str
     n_runs: int
     n_valid: int  # Runs without errors
@@ -56,6 +57,7 @@ class AggregatedCondition:
 @dataclass
 class ComparisonResult:
     """Results of statistical comparison between two conditions."""
+
     condition_a: str
     condition_b: str
     mean_difference: float
@@ -82,7 +84,9 @@ def load_comparison_results(results_dir: Path, pattern: str) -> List[Dict[str, A
     result_files = sorted(results_dir.glob(pattern))
 
     if not result_files:
-        print(f"⚠️  Warning: No files found matching pattern '{pattern}' in {results_dir}")
+        print(
+            f"⚠️  Warning: No files found matching pattern '{pattern}' in {results_dir}"
+        )
         return []
 
     print(f"📁 Loading {len(result_files)} files matching '{pattern}'...")
@@ -92,7 +96,7 @@ def load_comparison_results(results_dir: Path, pattern: str) -> List[Dict[str, A
 
     for file_path in result_files:
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path) as f:
                 data = json.load(f)
                 results.append(data)
         except json.JSONDecodeError as e:
@@ -125,10 +129,10 @@ def extract_fitness_values(results: List[Dict[str, Any]]) -> List[float]:
         try:
             # Each result has multiple comparison runs, we want the final best fitness
             # Structure: result['runs'][run_index]['evolved_fitness'][-1]
-            runs = result.get('runs', [])
+            runs = result.get("runs", [])
             if runs:
                 # Take the first run's final fitness (each file should have 1 run)
-                evolved_fitness = runs[0].get('evolved_fitness', [])
+                evolved_fitness = runs[0].get("evolved_fitness", [])
                 if evolved_fitness:
                     fitness_values.append(evolved_fitness[-1])
         except (KeyError, IndexError, TypeError) as e:
@@ -151,9 +155,9 @@ def extract_convergence_info(results: List[Dict[str, Any]]) -> List[Optional[int
 
     for result in results:
         try:
-            runs = result.get('runs', [])
+            runs = result.get("runs", [])
             if runs:
-                gen = runs[0].get('generations_to_convergence')
+                gen = runs[0].get("generations_to_convergence")
                 convergence_gens.append(gen)
         except (KeyError, IndexError, TypeError):
             convergence_gens.append(None)
@@ -167,9 +171,9 @@ def extract_seeds(results: List[Dict[str, Any]]) -> List[int]:
 
     for result in results:
         try:
-            runs = result.get('runs', [])
+            runs = result.get("runs", [])
             if runs:
-                seed = runs[0].get('random_seed')
+                seed = runs[0].get("random_seed")
                 if seed is not None:
                     seeds.append(seed)
         except (KeyError, IndexError, TypeError):
@@ -179,8 +183,7 @@ def extract_seeds(results: List[Dict[str, Any]]) -> List[int]:
 
 
 def compute_aggregated_stats(
-    condition_name: str,
-    results: List[Dict[str, Any]]
+    condition_name: str, results: List[Dict[str, Any]]
 ) -> AggregatedCondition:
     """
     Compute aggregated statistics for a condition.
@@ -222,7 +225,9 @@ def compute_aggregated_stats(
 
     if converged_runs:
         mean_gens = float(np.mean(converged_runs))
-        std_gens = float(np.std(converged_runs, ddof=1)) if len(converged_runs) > 1 else 0.0
+        std_gens = (
+            float(np.std(converged_runs, ddof=1)) if len(converged_runs) > 1 else 0.0
+        )
     else:
         mean_gens = None
         std_gens = None
@@ -243,14 +248,14 @@ def compute_aggregated_stats(
         std_generations_to_converge=std_gens,
         fitness_values=fitness_values,
         convergence_generations=convergence_gens,
-        seeds=seeds
+        seeds=seeds,
     )
 
 
 def compare_conditions(
     condition_a: AggregatedCondition,
     condition_b: AggregatedCondition,
-    alpha: float = 0.05
+    alpha: float = 0.05,
 ) -> ComparisonResult:
     """
     Perform statistical comparison between two conditions.
@@ -268,7 +273,7 @@ def compare_conditions(
     # Perform Welch's t-test and compute effect size
     result = analyzer.compare_fitness_distributions(
         evolved_scores=condition_a.fitness_values,
-        baseline_scores=condition_b.fitness_values
+        baseline_scores=condition_b.fitness_values,
     )
 
     # Compute improvement percentage
@@ -276,10 +281,10 @@ def compare_conditions(
     if condition_b.fitness_mean > 0:
         improvement_pct = (mean_diff / condition_b.fitness_mean) * 100
     else:
-        improvement_pct = float('inf') if mean_diff > 0 else 0.0
+        improvement_pct = float("inf") if mean_diff > 0 else 0.0
 
     # Effect size interpretation
-    d = result['effect_size']
+    d = result["effect_size"]
     if abs(d) < 0.2:
         interpretation = "Negligible"
     elif abs(d) < 0.5:
@@ -294,41 +299,53 @@ def compare_conditions(
         condition_b=condition_b.condition_name,
         mean_difference=mean_diff,
         improvement_pct=improvement_pct,
-        p_value=result['p_value'],
+        p_value=result["p_value"],
         effect_size=d,
-        ci_lower=result['confidence_interval'][0],
-        ci_upper=result['confidence_interval'][1],
-        significant=result['p_value'] < alpha,
-        interpretation=interpretation
+        ci_lower=result["confidence_interval"][0],
+        ci_upper=result["confidence_interval"][1],
+        significant=result["p_value"] < alpha,
+        interpretation=interpretation,
     )
 
 
 def print_summary_table(conditions: Dict[str, AggregatedCondition]):
     """Print formatted summary table of all conditions."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("DESCRIPTIVE STATISTICS SUMMARY")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
-    print(f"{'Condition':<20} {'N':<6} {'Mean':<12} {'SD':<12} {'Median':<12} {'95% CI':<25}")
+    print(
+        f"{'Condition':<20} {'N':<6} {'Mean':<12} {'SD':<12} {'Median':<12} {'95% CI':<25}"
+    )
     print("-" * 80)
 
     for cond_name, cond in conditions.items():
         ci_str = f"[{cond.fitness_ci_lower:.1f}, {cond.fitness_ci_upper:.1f}]"
-        print(f"{cond_name:<20} {cond.n_valid:<6} "
-              f"{cond.fitness_mean:<12.1f} {cond.fitness_std:<12.1f} "
-              f"{cond.fitness_median:<12.1f} {ci_str:<25}")
+        print(
+            f"{cond_name:<20} {cond.n_valid:<6} "
+            f"{cond.fitness_mean:<12.1f} {cond.fitness_std:<12.1f} "
+            f"{cond.fitness_median:<12.1f} {ci_str:<25}"
+        )
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("CONVERGENCE STATISTICS")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
     print(f"{'Condition':<20} {'Conv. Rate':<15} {'Mean Gens':<15} {'SD Gens':<15}")
     print("-" * 80)
 
     for cond_name, cond in conditions.items():
-        conv_rate_str = f"{cond.convergence_rate*100:.1f}% ({int(cond.convergence_rate*cond.n_valid)}/{cond.n_valid})"
-        mean_str = f"{cond.mean_generations_to_converge:.1f}" if cond.mean_generations_to_converge else "N/A"
-        std_str = f"{cond.std_generations_to_converge:.1f}" if cond.std_generations_to_converge else "N/A"
+        conv_rate_str = f"{cond.convergence_rate * 100:.1f}% ({int(cond.convergence_rate * cond.n_valid)}/{cond.n_valid})"
+        mean_str = (
+            f"{cond.mean_generations_to_converge:.1f}"
+            if cond.mean_generations_to_converge
+            else "N/A"
+        )
+        std_str = (
+            f"{cond.std_generations_to_converge:.1f}"
+            if cond.std_generations_to_converge
+            else "N/A"
+        )
         print(f"{cond_name:<20} {conv_rate_str:<15} {mean_str:<15} {std_str:<15}")
 
     print()
@@ -336,21 +353,38 @@ def print_summary_table(conditions: Dict[str, AggregatedCondition]):
 
 def print_comparison_table(comparisons: List[ComparisonResult]):
     """Print formatted comparison table."""
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("STATISTICAL COMPARISONS")
-    print("="*100 + "\n")
+    print("=" * 100 + "\n")
 
-    print(f"{'Comparison':<30} {'Δ Mean':<12} {'Improve %':<12} {'p-value':<12} "
-          f"{'Cohen\'s d':<12} {'Sig?':<8} {'Effect':<12}")
+    cohens_d_label = "Cohen's d"
+    print(
+        f"{'Comparison':<30} {'Δ Mean':<12} {'Improve %':<12} {'p-value':<12} "
+        f"{cohens_d_label:<12} {'Sig?':<8} {'Effect':<12}"
+    )
     print("-" * 100)
 
     for comp in comparisons:
         comparison_str = f"{comp.condition_a} vs {comp.condition_b}"
-        sig_str = "***" if comp.p_value < 0.001 else "**" if comp.p_value < 0.01 else "*" if comp.significant else "ns"
-        improve_str = f"+{comp.improvement_pct:.1f}%" if comp.improvement_pct != float('inf') else "+∞%"
+        sig_str = (
+            "***"
+            if comp.p_value < 0.001
+            else "**"
+            if comp.p_value < 0.01
+            else "*"
+            if comp.significant
+            else "ns"
+        )
+        improve_str = (
+            f"+{comp.improvement_pct:.1f}%"
+            if comp.improvement_pct != float("inf")
+            else "+∞%"
+        )
 
-        print(f"{comparison_str:<30} {comp.mean_difference:<12.1f} {improve_str:<12} "
-              f"{comp.p_value:<12.4f} {comp.effect_size:<12.2f} {sig_str:<8} {comp.interpretation:<12}")
+        print(
+            f"{comparison_str:<30} {comp.mean_difference:<12.1f} {improve_str:<12} "
+            f"{comp.p_value:<12.4f} {comp.effect_size:<12.2f} {sig_str:<8} {comp.interpretation:<12}"
+        )
 
     print("\nSignificance: *** p<0.001, ** p<0.01, * p<0.05, ns = not significant")
     print()
@@ -364,57 +398,69 @@ def main():
         "--results-dir",
         type=Path,
         default=Path("results"),
-        help="Directory containing result JSON files (default: results/)"
+        help="Directory containing result JSON files (default: results/)",
     )
     parser.add_argument(
         "--output",
         type=Path,
         default=Path("results/aggregated_results.json"),
-        help="Output file for aggregated results (default: results/aggregated_results.json)"
+        help="Output file for aggregated results (default: results/aggregated_results.json)",
     )
     parser.add_argument(
         "--summary",
         type=Path,
         default=Path("results/statistical_summary.txt"),
-        help="Output file for human-readable summary (default: results/statistical_summary.txt)"
+        help="Output file for human-readable summary (default: results/statistical_summary.txt)",
     )
 
     args = parser.parse_args()
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("EXPERIMENTAL RESULTS AGGREGATION")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
     # Load results for each condition
     conditions = {}
 
     # Rule-based results
-    rulebased_results = load_comparison_results(args.results_dir, "rulebased_run_*.json")
+    rulebased_results = load_comparison_results(
+        args.results_dir, "rulebased_run_*.json"
+    )
     if rulebased_results:
-        conditions['Rule-Based'] = compute_aggregated_stats('Rule-Based', rulebased_results)
+        conditions["Rule-Based"] = compute_aggregated_stats(
+            "Rule-Based", rulebased_results
+        )
 
     # LLM results
     llm_results = load_comparison_results(args.results_dir, "llm_run_*.json")
     if llm_results:
-        conditions['LLM-Guided'] = compute_aggregated_stats('LLM-Guided', llm_results)
+        conditions["LLM-Guided"] = compute_aggregated_stats("LLM-Guided", llm_results)
 
     # Meta-learning results
     meta_results = load_comparison_results(args.results_dir, "metalearning_run_*.json")
     if meta_results:
-        conditions['LLM+Meta'] = compute_aggregated_stats('LLM+Meta', meta_results)
+        conditions["LLM+Meta"] = compute_aggregated_stats("LLM+Meta", meta_results)
 
     # Baseline validation results (Phase 1 pilot)
-    baseline_results = load_comparison_results(args.results_dir, "baseline_validation.json")
+    baseline_results = load_comparison_results(
+        args.results_dir, "baseline_validation.json"
+    )
     if baseline_results:
-        conditions['Baseline-Pilot'] = compute_aggregated_stats('Baseline-Pilot', baseline_results)
+        conditions["Baseline-Pilot"] = compute_aggregated_stats(
+            "Baseline-Pilot", baseline_results
+        )
 
     # LLM pilot results (Phase 1)
     llm_pilot_results = load_comparison_results(args.results_dir, "llm_pilot.json")
     if llm_pilot_results:
-        conditions['LLM-Pilot'] = compute_aggregated_stats('LLM-Pilot', llm_pilot_results)
+        conditions["LLM-Pilot"] = compute_aggregated_stats(
+            "LLM-Pilot", llm_pilot_results
+        )
 
     if not conditions:
-        print("❌ Error: No valid conditions found. Check that result files exist in the specified directory.")
+        print(
+            "❌ Error: No valid conditions found. Check that result files exist in the specified directory."
+        )
         sys.exit(1)
 
     # Print summary tables
@@ -424,18 +470,18 @@ def main():
     comparisons = []
 
     # Primary comparison: LLM vs Rule-Based
-    if 'LLM-Guided' in conditions and 'Rule-Based' in conditions:
-        comp = compare_conditions(conditions['LLM-Guided'], conditions['Rule-Based'])
+    if "LLM-Guided" in conditions and "Rule-Based" in conditions:
+        comp = compare_conditions(conditions["LLM-Guided"], conditions["Rule-Based"])
         comparisons.append(comp)
 
     # Secondary comparison: LLM+Meta vs LLM
-    if 'LLM+Meta' in conditions and 'LLM-Guided' in conditions:
-        comp = compare_conditions(conditions['LLM+Meta'], conditions['LLM-Guided'])
+    if "LLM+Meta" in conditions and "LLM-Guided" in conditions:
+        comp = compare_conditions(conditions["LLM+Meta"], conditions["LLM-Guided"])
         comparisons.append(comp)
 
     # Pilot comparisons
-    if 'LLM-Pilot' in conditions and 'Baseline-Pilot' in conditions:
-        comp = compare_conditions(conditions['LLM-Pilot'], conditions['Baseline-Pilot'])
+    if "LLM-Pilot" in conditions and "Baseline-Pilot" in conditions:
+        comp = compare_conditions(conditions["LLM-Pilot"], conditions["Baseline-Pilot"])
         comparisons.append(comp)
 
     if comparisons:
@@ -443,20 +489,19 @@ def main():
 
     # Save aggregated results to JSON
     output_data = {
-        'conditions': {name: asdict(cond) for name, cond in conditions.items()},
-        'comparisons': [asdict(comp) for comp in comparisons]
+        "conditions": {name: asdict(cond) for name, cond in conditions.items()},
+        "comparisons": [asdict(comp) for comp in comparisons],
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.output, 'w') as f:
+    with open(args.output, "w") as f:
         json.dump(output_data, f, indent=2)
 
     print(f"💾 Aggregated results saved to: {args.output}")
 
     # Save human-readable summary
-    with open(args.summary, 'w') as f:
+    with open(args.summary, "w") as f:
         # Redirect print to file
-        import sys
         old_stdout = sys.stdout
         sys.stdout = f
 
