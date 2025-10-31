@@ -521,6 +521,158 @@ Typical prototype costs:
 5. **Push to GitHub** and create PR (never push to main)
 6. **Verify CI passes** before requesting review
 
+## Research Validation Workflow
+
+### Overview
+Systematic hypothesis verification following pre-registered methodology to validate LLM-guided evolution vs rule-based approaches.
+
+### Documentation Structure
+
+**Pre-Experiment Documentation** (Phase 2):
+- `research_methodology.md`: Formal hypotheses, experimental design, power analysis, pre-registered analysis plan
+- `theoretical_foundation.md`: GNFS background, evolutionary algorithm theory, LLM rationale, parameter interactions
+- `results_template.md`: Template for reporting results with standardized tables, figures, interpretation guidelines
+
+**Post-Experiment Documentation** (Phase 4):
+- `results_summary.md`: Executive summary with key findings, conclusions, practical recommendations
+- `figures/`: Publication-quality visualizations (6 core figures: trajectories, comparisons, effect sizes, convergence, learning curves, cost-benefit)
+- Filled `results_template.md`: Complete statistical analysis with all [FILL] placeholders replaced
+
+### Experimental Phases
+
+**Phase 1: Quick Validation** (Days 1-3)
+- **Baseline validation**: 10 runs × 20 gen × 20 pop, rule-based only ($0 cost)
+- **LLM proof-of-concept**: 5 runs × 15 gen × 15 pop (~$0.10-0.20)
+- **Decision point**: Proceed if p<0.2 OR d>0.3 (positive signal)
+
+**Phase 2: Documentation Sprint** (Days 4-10, parallel with Phase 1)
+- Pre-register hypotheses and analysis plan BEFORE Phase 3
+- Document theoretical foundation and expected mechanisms
+- Prepare results template for systematic reporting
+
+**Phase 3: Full Validation** (Days 11-21)
+- **Rule-based comprehensive**: 30 runs × 30 gen × 30 pop × 1.0s ($0)
+- **LLM strategic sampling**: 15 runs × 30 gen × 30 pop × 1.0s (~$1.50-2.00)
+- **Meta-learning test**: 10 runs × 30 gen × 30 pop × 1.0s (~$1.00)
+- **Total budget**: ~$2.50-3.50 (well under $20 limit)
+
+**Phase 4: Analysis & Reporting** (Days 22-28)
+- Aggregate results, statistical tests (Welch's t-test, Cohen's d, 95% CI)
+- Generate all 6 publication-quality figures
+- Fill results template, write executive summary
+- Document limitations and future directions
+
+### Statistical Analysis Workflow
+
+**Primary Hypothesis Testing**:
+```bash
+# Using StatisticalAnalyzer from src/statistics.py
+result = StatisticalAnalyzer().compare_fitness_distributions(
+    evolved_scores=[final_fitness for run in llm_runs],
+    baseline_scores=[final_fitness for run in rulebased_runs]
+)
+# Returns: p_value, effect_size (Cohen's d), confidence_interval, significance
+```
+
+**Decision Rules**:
+- Reject H₀ if: p < 0.05 AND d ≥ 0.5 (medium effect)
+- Report both statistical (p-value) and practical (effect size) significance
+- Use Bonferroni correction for multiple baseline comparisons (α/3 = 0.0167)
+
+**Convergence Analysis**:
+```bash
+# Using ConvergenceDetector from src/statistics.py
+detector = ConvergenceDetector(window_size=5, threshold=0.05)
+gen_converged = detector.generations_to_convergence(fitness_history)
+```
+
+### Reproducibility Requirements
+
+**Seed Management**:
+- Phase 1 Rule-based: seeds 42-51 (10 runs)
+- Phase 1 LLM: seeds 100-104 (5 runs)
+- Phase 3 Rule-based: seeds 1000-1029 (30 runs)
+- Phase 3 LLM: seeds 2000-2014 (15 runs)
+- Phase 3 Meta: seeds 3000-3009 (10 runs)
+
+**Environment Specification**:
+- Python 3.9+ (CI tests on 3.9, 3.10, 3.11)
+- Key dependencies: google-genai>=0.2.0, scipy>=1.9.0, pydantic>=2.0.0
+- Hardware: Apple Silicon M-series, 16GB+ RAM recommended
+
+**Data Archival**:
+- All results stored in `results/` directory (git-ignored)
+- Naming convention: `{mode}_run_{seed}.json`
+- Includes full config, metrics_history, operator_history for reproducibility
+
+### Success Criteria
+
+**Minimum Success** (validates framework):
+- Rule-based evolution beats ≥2/3 baselines (p<0.05)
+- Results reproducible (same seed → same outcome)
+- Documentation complete and clear
+
+**Target Success** (validates LLM hypothesis):
+- LLM beats rule-based with d≥0.5 (medium effect)
+- p<0.05 statistical significance
+- Results hold across multiple baselines
+
+**Exceptional Success** (publication-ready):
+- LLM beats rule-based with d≥0.8 (large effect)
+- p<0.01 strong significance
+- Meta-learning shows additional benefit
+- Novel strategy patterns discovered
+
+### Common Commands
+
+**Run experiments**:
+```bash
+# Phase 1: Baseline validation
+python main.py --compare-baseline --num-comparison-runs 10 \
+  --generations 20 --population 20 --duration 0.5 --seed 42 \
+  --export-comparison results/baseline_validation.json
+
+# Phase 1: LLM pilot
+python main.py --llm --compare-baseline --num-comparison-runs 5 \
+  --generations 15 --population 15 --duration 0.5 --seed 100 \
+  --export-comparison results/llm_pilot.json
+
+# Phase 3: Rule-based comprehensive (loop over seeds 1000-1029)
+for seed in {1000..1029}; do
+  python main.py --compare-baseline --num-comparison-runs 1 \
+    --generations 30 --population 30 --duration 1.0 --seed $seed \
+    --export-comparison results/rulebased_run_${seed}.json
+done
+
+# Phase 3: LLM strategic sampling (loop over seeds 2000-2014)
+for seed in {2000..2014}; do
+  python main.py --llm --compare-baseline --num-comparison-runs 1 \
+    --generations 30 --population 30 --duration 1.0 --seed $seed \
+    --export-comparison results/llm_run_${seed}.json
+done
+```
+
+**Analyze results**:
+```bash
+# Create aggregation script
+python scripts/aggregate_results.py
+
+# Open Jupyter notebooks for visualization
+jupyter notebook analysis/visualize_comparison.ipynb
+```
+
+### Critical Validation Checks
+
+Before declaring experiments complete:
+- [ ] All planned runs completed (check N_valid = N_planned)
+- [ ] No systematic failures (failed runs <10%)
+- [ ] Normality assumptions checked (Shapiro-Wilk test)
+- [ ] Outliers identified and policy documented
+- [ ] All statistical tests run with correct parameters
+- [ ] All figures generated and interpretable
+- [ ] Results template completely filled (no [FILL] remaining)
+- [ ] Conclusions directly answer pre-registered hypotheses
+
 ## Critical Learnings
 
 ### Temperature Calculation & LLM Patterns (PR #2)
