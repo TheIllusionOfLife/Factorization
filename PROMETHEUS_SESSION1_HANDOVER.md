@@ -175,11 +175,18 @@ a1a5c26 feat: implement Prometheus Phase 1 MVP foundation - core agents
 
 ## Technical Debt & TODOs
 
-### Immediate (Session 2)
-- [ ] LLM-guided strategy generation in SearchSpecialist (currently uses rule-based)
-- [ ] Implement PrometheusExperiment orchestrator
-- [ ] Add CLI arguments for Prometheus mode
-- [ ] Update README with Prometheus usage
+### Immediate (Session 2) - ✅ COMPLETED
+- [ ] LLM-guided strategy generation in SearchSpecialist (currently uses rule-based) - **Deferred to Phase 2**
+- [x] Implement PrometheusExperiment orchestrator - **DONE in PR #36**
+- [x] Add CLI arguments for Prometheus mode - **DONE in PR #36**
+- [x] Update README with Prometheus usage - **DONE in PR #36**
+
+### Next Actions (Session 3)
+- [ ] Add integration tests for PrometheusExperiment with real workflows
+- [ ] Add CLI usage examples for all prometheus modes
+- [ ] Validate cross-platform CLI argument parsing
+- [ ] Run pilot experiments to validate infrastructure
+- [ ] Performance benchmarks for Prometheus components
 
 ### Medium-Term (Session 3+)
 - [ ] Implement feedback-driven LLM prompts
@@ -199,8 +206,8 @@ a1a5c26 feat: implement Prometheus Phase 1 MVP foundation - core agents
 
 ### Issues
 1. **Test flakiness**: `test_llm_mode_without_api_key` fails locally (`.env` exists) but passes in CI (expected)
-2. **LLM integration**: SearchSpecialist uses rule-based mutations, LLM TODO added
-3. **No experiment runner yet**: Can't run Prometheus mode from CLI
+2. **LLM integration**: SearchSpecialist uses rule-based mutations (Phase 1 MVP design choice, LLM deferred to Phase 2)
+3. **Feedback infrastructure unused**: Feedback collection exists but not consumed in Phase 1 (waiting for LLM integration)
 
 ### Risks
 1. **API costs**: May exceed $1 budget if runs increase
