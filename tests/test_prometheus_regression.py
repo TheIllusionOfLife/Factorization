@@ -120,11 +120,6 @@ def test_collaborative_vs_search_only_competitive():
     should produce fitness values in the same order of magnitude as
     search_only mode, indicating both are functioning correctly.
     """
-    # Common experiment parameters
-    target_number = 961730063
-    seed = 42
-    run_args = {"generations": 3, "population_size": 3}
-
     config = Config(
         api_key="test",
         prometheus_enabled=True,
@@ -132,20 +127,27 @@ def test_collaborative_vs_search_only_competitive():
         llm_enabled=False,
     )
 
-    def create_experiment():
-        """Creates a new experiment instance to ensure a fresh RNG state."""
-        return PrometheusExperiment(
-            config=config,
-            target_number=target_number,
-            random_seed=seed,
-        )
+    # Run collaborative mode (creates new experiment instance for fresh RNG state)
+    exp_collab = PrometheusExperiment(
+        config=config,
+        target_number=961730063,
+        random_seed=42,
+    )
+    fitness_collab, _, _ = exp_collab.run_collaborative_evolution(
+        generations=3,
+        population_size=3,
+    )
 
-    # Run collaborative mode
-    fitness_collab, _, _ = create_experiment().run_collaborative_evolution(**run_args)
-
-    # Run search_only mode
-    fitness_search, _ = create_experiment().run_independent_baseline(
-        agent_type="search_only", **run_args
+    # Run search_only mode (creates new experiment instance for fresh RNG state)
+    exp_search = PrometheusExperiment(
+        config=config,
+        target_number=961730063,
+        random_seed=42,
+    )
+    fitness_search, _ = exp_search.run_independent_baseline(
+        agent_type="search_only",
+        generations=3,
+        population_size=3,
     )
 
     # Both should be non-zero
