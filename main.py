@@ -203,10 +203,10 @@ def main():
     parser.add_argument(
         "--prometheus-mode",
         type=str,
-        choices=["collaborative", "search_only", "eval_only"],
+        choices=["collaborative", "search_only", "eval_only", "rulebased"],
         default="collaborative",
         metavar="MODE",
-        help="Prometheus mode: collaborative (default), search_only, eval_only",
+        help="Prometheus mode: collaborative (default), search_only, eval_only, rulebased",
     )
     parser.add_argument(
         "--max-api-cost",
