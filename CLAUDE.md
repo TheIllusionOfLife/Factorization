@@ -770,3 +770,24 @@ Before declaring experiments complete:
   - Correctness > Compliance - reject false positives even from authoritative sources
 - **Transitive Dependencies**: pyyaml available via jupyter dependency chain, no explicit requirement needed
 - **Makefile-based CI**: Convenient targets (`make ci`, `make ci-fast`) reduce friction for local validation
+
+### Prometheus Phase 1 Integration & Benchmarking (PR #39)
+- **Resource Initialization Pattern**: Always check state before initializing stateful resources
+  - **Critical Bug**: `tracemalloc.start()` crashes with RuntimeError if called when already tracing
+  - **Fix**: `if not tracemalloc.is_tracing(): tracemalloc.start()`
+  - **Applies to**: File handles, database connections, any non-idempotent initialization
+  - **Pattern**: Check state → initialize → track lifecycle
+- **Test Reproducibility Documentation**: Document what tests verify vs what users assume
+  - Don't claim "consistent results" when tests only verify "structural validity"
+  - Timing-based evaluation means fitness varies - test structure (strategy params, message counts)
+  - Pattern: Be explicit about documented variance in test docstrings
+- **Zero Fitness Edge Cases**: Accept legitimate edge cases in timing-based evaluation
+  - search_only/eval_only modes may produce zero fitness with unlucky random strategies
+  - Solution: `assert fitness >= 0` not `fitness > 0`
+  - Applies whenever: random initialization + short evaluation duration + strict criteria
+- **Magic Number Documentation**: All magic numbers → named constants with explanatory comments
+  - Example: Seed offsets (0, 1000, 2000, 3000) → `MODE_SEED_OFFSETS` dict with RNG independence comment
+  - Pattern: Extract constant, add comment explaining why these specific values
+- **Review Iteration Efficiency**: Group fixes by priority, test locally, push once per iteration
+  - PR #39: 3 iterations (initial fixes → CI fix → tracemalloc fix) = efficient resolution
+  - Pattern: Critical → medium → low priority; run full test suite locally before push
