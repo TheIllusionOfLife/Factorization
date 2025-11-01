@@ -150,6 +150,10 @@ class PrometheusExperiment:
                 )
                 strategy_response = channel.send_message(strategy_msg)
                 strategy = strategy_response.payload["strategy"]
+                print(
+                    f"[Collab] Gen {gen}, Civ {i}: Strategy generated - power={strategy.power}, "
+                    f"filters={strategy.modulus_filters}"
+                )
 
                 # Request evaluation from EvaluationSpecialist
                 eval_msg = Message(
@@ -167,6 +171,9 @@ class PrometheusExperiment:
 
                 fitness = eval_response.payload["fitness"]
                 feedback = eval_response.payload["feedback"]
+                print(
+                    f"[Collab] Gen {gen}, Civ {i}: Fitness={fitness}, best_so_far={best_fitness}"
+                )
 
                 generation_strategies.append((fitness, strategy))
 
