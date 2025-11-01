@@ -1,0 +1,109 @@
+{
+  "benchmark_config": {
+    "modes": [
+      "collaborative",
+      "search_only",
+      "eval_only",
+      "rulebased"
+    ],
+    "generations": 20,
+    "population": 15,
+    "evaluation_duration": 1.0,
+    "seed": 1003
+  },
+  "mode_results": {
+    "collaborative": {
+      "mode": "collaborative",
+      "config": {
+        "generations": 20,
+        "population": 15,
+        "evaluation_duration": 1.0,
+        "seed": 1003
+      },
+      "performance": {
+        "total_time_seconds": 300.161,
+        "time_per_generation": 15.008,
+        "time_per_evaluation": 1.001,
+        "memory_delta_mb": 0.06,
+        "memory_peak_mb": 6.1,
+        "time_per_message_ms": 250.13
+      },
+      "results": {
+        "best_fitness": 85524,
+        "total_messages": 1200,
+        "emergence_factor": null,
+        "synergy_score": null,
+        "communication_efficiency": null
+      }
+    },
+    "search_only": {
+      "mode": "search_only",
+      "config": {
+        "generations": 20,
+        "population": 15,
+        "evaluation_duration": 1.0,
+        "seed": 2003
+      },
+      "performance": {
+        "total_time_seconds": 300.131,
+        "time_per_generation": 15.007,
+        "time_per_evaluation": 1.0,
+        "memory_delta_mb": 0.01,
+        "memory_peak_mb": 5.72
+      },
+      "results": {
+        "best_fitness": 81603,
+        "total_messages": 0,
+        "emergence_factor": null,
+        "synergy_score": null,
+        "communication_efficiency": null
+      }
+    },
+    "eval_only": {
+      "mode": "eval_only",
+      "config": {
+        "generations": 20,
+        "population": 15,
+        "evaluation_duration": 1.0,
+        "seed": 3003
+      },
+      "performance": {
+        "total_time_seconds": 300.166,
+        "time_per_generation": 15.008,
+        "time_per_evaluation": 1.001,
+        "memory_delta_mb": 0.01,
+        "memory_peak_mb": 5.94
+      },
+      "results": {
+        "best_fitness": 85796,
+        "total_messages": 0,
+        "emergence_factor": null,
+        "synergy_score": null,
+        "communication_efficiency": null
+      }
+    },
+    "rulebased": {
+      "mode": "rulebased",
+      "config": {
+        "generations": 20,
+        "population": 15,
+        "evaluation_duration": 1.0,
+        "seed": 4003
+      },
+      "performance": {
+        "total_time_seconds": 301.383,
+        "time_per_generation": 15.069,
+        "time_per_evaluation": 1.005,
+        "memory_delta_mb": 0.03,
+        "memory_peak_mb": 6.16
+      },
+      "results": {
+        "best_fitness": 83924,
+        "total_messages": 0,
+        "emergence_factor": null,
+        "synergy_score": null,
+        "communication_efficiency": null
+      }
+    }
+  }
+}

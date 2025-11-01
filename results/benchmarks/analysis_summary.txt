@@ -1,0 +1,91 @@
+✅ Loaded 4 benchmark result(s)
+
+======================================================================
+📊 PROMETHEUS PHASE 1 BENCHMARK RESULTS
+======================================================================
+
+Number of runs: 4
+
+Best Fitness Statistics (across runs):
+
+  collaborative  : mean=  77,891.8, std=   9,574.9
+                   median=82,062.0, min=  61,919.0, max=  85,524.0
+
+  search_only    : mean=  81,309.2, std=   9,914.9
+                   median=85,081.5, min=  65,045.0, max=  90,029.0
+
+  eval_only      : mean=  81,138.0, std=   6,556.8
+                   median=83,992.0, min=  70,133.0, max=  86,435.0
+
+  rulebased      : mean=  86,115.8, std=   1,463.1
+                   median=86,541.5, min=  83,924.0, max=  87,456.0
+
+
+Emergence Metrics:
+
+  Emergence Factor (collaborative / max_baseline):
+    mean=0.8920, std=0.1208
+    median=0.9418, min=0.6878, max=0.9968
+    ⚠️  WARNING: Emergence factor < 1.0 indicates collaborative UNDERPERFORMS
+
+  Synergy Score (collaborative - max_baseline):
+    mean=  -9,616.2, std=  10,911.5
+    median=-5,041.5
+
+======================================================================
+📈 STATISTICAL SIGNIFICANCE TESTS
+======================================================================
+
+Collaborative vs SEARCH_ONLY:
+  Collaborative mean:   77,891.8
+  search_only     mean:   81,309.2
+  Improvement:             -4.2%
+  p-value:            0.682608 (not significant)
+  Cohen's d:             -0.304
+  95% CI:             [ -22,895.5,   16,060.5]
+  Significant:        False
+
+Collaborative vs EVAL_ONLY:
+  Collaborative mean:   77,891.8
+  eval_only       mean:   81,138.0
+  Improvement:             -4.0%
+  p-value:            0.647363 (not significant)
+  Cohen's d:             -0.343
+  95% CI:             [ -20,174.4,   13,681.9]
+  Significant:        False
+
+Collaborative vs RULEBASED:
+  Collaborative mean:   77,891.8
+  rulebased       mean:   86,115.8
+  Improvement:             -9.5%
+  p-value:            0.233847 (not significant)
+  Cohen's d:             -1.040
+  95% CI:             [ -25,580.4,    9,132.4]
+  Significant:        False
+
+
+======================================================================
+🎯 PHASE 2 DECISION RECOMMENDATION
+======================================================================
+
+Key Metrics:
+  Emergence Factor: 0.8920
+  p-value (vs rulebased): 0.233847
+  Cohen's d (vs rulebased): -1.040
+
+Decision Matrix Application:
+
+❌ **NEGATIVE RESULT** → Analyze Failure
+   - Collaborative UNDERPERFORMS baselines
+   - Emergence factor < 1.0 indicates systematic issue
+   - Next Steps: Root cause analysis, possible redesign
+   - Estimated Cost: $0
+   - Timeline: 3-5 days investigation
+
+   Possible Issues:
+     • Agent communication overhead too high
+     • Feedback loop not improving strategies
+     • SearchSpecialist not utilizing EvaluationSpecialist feedback
+     • Message passing introducing errors/noise
+
+📋 DECISION: ANALYZE_FAILURE
