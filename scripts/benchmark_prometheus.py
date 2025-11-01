@@ -24,6 +24,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.config import Config
 from src.prometheus.experiment import PrometheusExperiment
 
+# Seed offsets ensure independent RNG streams per mode for fair comparison
+# Each mode gets unique offset to prevent correlation in random number generation
+MODE_SEED_OFFSETS = {
+    "collaborative": 0,
+    "search_only": 1000,
+    "eval_only": 2000,
+    "rulebased": 3000,
+}
+
 
 def measure_experiment(
     mode: str,
@@ -42,7 +51,8 @@ def measure_experiment(
 
     # Start memory tracking
     if track_memory:
-        tracemalloc.start()
+        if not tracemalloc.is_tracing():
+            tracemalloc.start()
         mem_start = tracemalloc.get_traced_memory()[0]
 
     # Measure wall clock time
@@ -194,13 +204,7 @@ def run_benchmark_suite(
                 generations=generations,
                 population=population,
                 duration=duration,
-                seed=seed
-                + {
-                    "collaborative": 0,
-                    "search_only": 1000,
-                    "eval_only": 2000,
-                    "rulebased": 3000,
-                }[mode],
+                seed=seed + MODE_SEED_OFFSETS[mode],
             )
             all_results["mode_results"][mode] = mode_metrics
         except Exception as e:

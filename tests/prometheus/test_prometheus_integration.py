@@ -140,11 +140,11 @@ class TestPrometheusExperimentIntegration:
         assert best_strategy is not None
 
     def test_seed_reproducibility_collaborative(self):
-        """Test that same seed produces consistent results in collaborative mode.
+        """Test that same seed produces structurally valid results in collaborative mode.
 
-        Note: Due to the complex interaction between agents and timing-based evaluation,
-        exact reproducibility is not guaranteed. This test verifies that runs with the
-        same seed complete successfully and produce valid results.
+        Note: Timing-based evaluation means fitness values may vary between runs even with
+        the same seed. This test verifies structural validity (valid strategy parameters,
+        message counts) rather than exact reproducibility, which is documented behavior.
         """
         config1 = Config(
             api_key="test_key",
@@ -187,11 +187,11 @@ class TestPrometheusExperimentIntegration:
         assert 2 <= strategy2.power <= 5
 
     def test_seed_reproducibility_baseline(self):
-        """Test that same seed produces consistent results in baseline modes.
+        """Test that same seed produces structurally valid results in baseline modes.
 
-        Note: Due to timing-based evaluation and random agent behavior,
-        exact reproducibility is not guaranteed. This test verifies that runs with the
-        same seed complete successfully and produce valid results.
+        Note: Timing-based evaluation means fitness values may vary between runs even with
+        the same seed. This test verifies structural validity (valid strategies returned)
+        rather than exact reproducibility, which is documented behavior.
         """
         config = Config(
             api_key="test_key",
