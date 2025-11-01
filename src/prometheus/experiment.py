@@ -85,13 +85,18 @@ class PrometheusExperiment:
         self.crucible = FactorizationCrucible(target_number)
 
     def run_collaborative_evolution(
-        self, generations: int, population_size: int
+        self,
+        generations: int,
+        population_size: int,
+        seed_override: Optional[int] = None,
     ) -> Tuple[float, Strategy, Dict]:
         """Run collaborative evolution with SearchSpecialist and EvaluationSpecialist.
 
         Args:
             generations: Number of generations to evolve
             population_size: Population size per generation
+            seed_override: Optional seed to use instead of self.random_seed
+                          (for independent RNG state in comparisons)
 
         Returns:
             Tuple of (best_fitness, best_strategy, communication_stats)
@@ -109,6 +114,11 @@ class PrometheusExperiment:
             raise ValueError(f"generations must be >= 1, got {generations}")
         if population_size < 1:
             raise ValueError(f"population_size must be >= 1, got {population_size}")
+
+        # Seed RNG if provided (for reproducible experiments)
+        seed_to_use = seed_override if seed_override is not None else self.random_seed
+        if seed_to_use is not None:
+            random.seed(seed_to_use)
 
         # Create agents
         search_agent = SearchSpecialist(agent_id="search-1", config=self.config)
@@ -364,21 +374,19 @@ class PrometheusExperiment:
             EmergenceMetrics with all fitness values and calculated metrics
         """
         # Run all modes with INDEPENDENT seeds for unbiased comparison
-        # Each mode gets unique RNG state to prevent correlation
-        # Seed offsets ensure reproducibility: same base seed → same results
-        # This is critical for experimental validity
+        # Each mode gets unique RNG state via seed offsets to prevent correlation
+        # Offsets ensure reproducibility: same base seed → same results
+        # Seeding happens inside each method (not global) per PR #12 learning
 
-        # Run collaborative evolution (base seed)
-        if self.random_seed is not None:
-            random.seed(self.random_seed)
+        # Run collaborative evolution (base seed, no offset)
         collab_fitness, _, comm_stats = self.run_collaborative_evolution(
-            generations=generations, population_size=population_size
+            generations=generations,
+            population_size=population_size,
+            seed_override=self.random_seed,
         )
 
         # Run baselines with independent seeds (offset from base)
-        # Offsets prevent RNG correlation while maintaining reproducibility
-        if self.random_seed is not None:
-            random.seed(self.random_seed + 1000)
+        # Each baseline gets unique RNG state for fair comparison
         search_fitness, _ = self.run_independent_baseline(
             agent_type="search_only",
             generations=generations,
@@ -388,8 +396,6 @@ class PrometheusExperiment:
             else None,
         )
 
-        if self.random_seed is not None:
-            random.seed(self.random_seed + 2000)
         eval_fitness, _ = self.run_independent_baseline(
             agent_type="eval_only",
             generations=generations,
@@ -399,8 +405,6 @@ class PrometheusExperiment:
             else None,
         )
 
-        if self.random_seed is not None:
-            random.seed(self.random_seed + 3000)
         rulebased_fitness, _ = self.run_independent_baseline(
             agent_type="rulebased",
             generations=generations,

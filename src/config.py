@@ -178,7 +178,7 @@ class Config:
 
     def _validate_prometheus_params(self):
         """Validate Prometheus multi-agent parameters."""
-        valid_modes = ["collaborative", "search_only", "eval_only"]
+        valid_modes = ["collaborative", "search_only", "eval_only", "rulebased"]
         if self.prometheus_mode not in valid_modes:
             raise ValueError(
                 f"prometheus_mode must be one of {valid_modes}, got {self.prometheus_mode}"
