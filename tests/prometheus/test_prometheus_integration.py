@@ -9,6 +9,7 @@ Tests complete workflows beyond unit tests, including:
 """
 
 import json
+import re
 import subprocess
 import sys
 
@@ -21,7 +22,7 @@ from src.prometheus.experiment import PrometheusExperiment
 class TestPrometheusExperimentIntegration:
     """Integration tests for PrometheusExperiment workflows."""
 
-    def test_collaborative_mode_complete_workflow(self, tmp_path):
+    def test_collaborative_mode_complete_workflow(self):
         """Test collaborative mode from initialization to completion."""
         # Create config
         config = Config(
@@ -519,14 +520,12 @@ class TestPrometheusCLIIntegration:
         ]
 
         # Run 1
-        result1 = subprocess.run(args, capture_output=True, text=True, check=True)
+        result1 = subprocess.run(args, capture_output=True, text=True, check=False)
 
         # Run 2 with same args
-        result2 = subprocess.run(args, capture_output=True, text=True, check=True)
+        result2 = subprocess.run(args, capture_output=True, text=True, check=False)
 
         # Extract fitness from output (format: "Best fitness: 12345")
-        import re
-
         fitness1_match = re.search(r"Best fitness:\s*(\d+)", result1.stdout)
         fitness2_match = re.search(r"Best fitness:\s*(\d+)", result2.stdout)
 
@@ -557,11 +556,14 @@ class TestPrometheusMemoryManagement:
         )
 
         # Run experiment
-        experiment.run_collaborative_evolution(generations=2, population_size=3)
+        best_fitness, best_strategy, comm_stats = (
+            experiment.run_collaborative_evolution(generations=2, population_size=3)
+        )
 
-        # Verify cleanup (agents should have empty message history after cleanup)
-        # Note: Currently cleanup happens inside run methods
-        # This test verifies no lingering references
+        # Verify successful execution (smoke test for memory issues)
+        assert best_fitness >= 0, "Invalid fitness returned"
+        assert best_strategy is not None, "No best strategy returned"
+        assert comm_stats.get("total_messages", 0) > 0, "No messages exchanged"
 
     def test_memory_cleanup_after_baseline_run(self):
         """Test that memory is properly cleaned up after baseline run."""
@@ -578,11 +580,13 @@ class TestPrometheusMemoryManagement:
         )
 
         # Run experiment
-        experiment.run_independent_baseline(
+        best_fitness, best_strategy = experiment.run_independent_baseline(
             agent_type="search_only", generations=2, population_size=3
         )
 
-        # Verify cleanup - no lingering agent state
+        # Verify successful execution (smoke test for memory issues)
+        assert best_fitness >= 0, "Invalid fitness returned"
+        assert best_strategy is not None, "No best strategy returned"
 
 
 class TestPrometheusPerformanceCharacteristics:

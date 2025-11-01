@@ -16,7 +16,7 @@ import time
 import traceback
 import tracemalloc
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -112,9 +112,13 @@ def measure_experiment(
         },
         "performance": {
             "total_time_seconds": round(elapsed_time, 3),
-            "time_per_generation": round(elapsed_time / generations, 3),
-            "time_per_evaluation": round(elapsed_time / (generations * population), 3),
-            "memory_used_mb": round(mem_used / 1024 / 1024, 2),
+            "time_per_generation": round(elapsed_time / generations, 3)
+            if generations > 0
+            else 0,
+            "time_per_evaluation": round(elapsed_time / (generations * population), 3)
+            if (generations * population) > 0
+            else 0,
+            "memory_delta_mb": round(mem_used / 1024 / 1024, 2),
             "memory_peak_mb": round(mem_peak / 1024 / 1024, 2),
         },
         "results": {
@@ -137,7 +141,7 @@ def measure_experiment(
     print(f"  Total time: {metrics['performance']['total_time_seconds']}s")
     print(f"  Time per generation: {metrics['performance']['time_per_generation']}s")
     print(f"  Time per evaluation: {metrics['performance']['time_per_evaluation']}s")
-    print(f"  Memory used: {metrics['performance']['memory_used_mb']} MB")
+    print(f"  Memory delta: {metrics['performance']['memory_delta_mb']} MB")
     print(f"  Memory peak: {metrics['performance']['memory_peak_mb']} MB")
 
     if results.get("total_messages", 0) > 0:
@@ -158,7 +162,7 @@ def run_benchmark_suite(
     population: int,
     duration: float,
     seed: int,
-    output_file: str = None,
+    output_file: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Run benchmarks for all specified modes."""
 
@@ -191,7 +195,13 @@ def run_benchmark_suite(
                 generations=generations,
                 population=population,
                 duration=duration,
-                seed=seed + hash(mode) % 1000,  # Offset seed per mode
+                seed=seed
+                + {
+                    "collaborative": 0,
+                    "search_only": 1000,
+                    "eval_only": 2000,
+                    "rulebased": 3000,
+                }[mode],
             )
             all_results["mode_results"][mode] = mode_metrics
         except Exception as e:
