@@ -23,11 +23,12 @@ AI文明がどのようにして人間を超える解法を発見しうるか、
 
 ### Installation
 
-1. **Clone and install**:
+1. **Clone and install dependencies**:
    ```bash
    git clone <repository-url>
    cd Factorization
    pip install -r requirements.txt
+   pip install -r requirements-dev.txt
    ```
 
 2. **Configure API key** (for LLM mode):
@@ -37,6 +38,13 @@ AI文明がどのようにして人間を超える解法を発見しうるか、
    ```
 
    ⚠️ **Security**: Never commit `.env` file or share API key publicly.
+
+3. **Install pre-commit hooks** (for contributors):
+   ```bash
+   make install-hooks
+   ```
+
+   This installs Git hooks that automatically validate code before commits, preventing CI failures.
 
 ### Running the Prototype
 
@@ -579,4 +587,33 @@ See git history and `pilot_results_negative_finding.md` for complete analysis.
 
 ## Contributing
 
-[Add contribution guidelines]
+We welcome contributions! See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for complete guidelines.
+
+### Quick Start for Contributors
+
+1. **Fork and clone** the repository
+2. **Install dependencies**: `pip install -r requirements.txt -r requirements-dev.txt`
+3. **Install pre-commit hooks**: `make install-hooks`
+4. **Create feature branch**: `git checkout -b feature/your-feature`
+5. **Write tests first** (TDD approach)
+6. **Run local CI**: `make ci-fast` before committing
+7. **Make commits** - hooks run automatically to validate code
+8. **Push and create PR** - never push directly to main
+
+### Development Tools
+
+**Makefile targets**:
+- `make ci` - Run all CI checks locally
+- `make ci-fast` - Fast checks (lint + format + fast tests)
+- `make lint` - Run ruff linter
+- `make format` - Auto-fix formatting
+- `make test` - Run all tests
+- `make test-fast` - Fast tests only (exclude integration)
+- `make install-hooks` - Install pre-commit hooks
+
+**Pre-commit hooks** automatically run before each commit:
+- Ruff linting and formatting
+- Fast unit tests (integration tests excluded for speed)
+- YAML validation, trailing whitespace removal, etc.
+
+See `CONTRIBUTING.md` for detailed workflow, testing guidelines, and troubleshooting.
