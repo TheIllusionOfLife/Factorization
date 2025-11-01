@@ -93,8 +93,7 @@ def measure_experiment(
 
     # Measure memory
     if track_memory:
-        mem_end = tracemalloc.get_traced_memory()[0]
-        mem_peak = tracemalloc.get_traced_memory()[1]
+        mem_end, mem_peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
         mem_used = mem_end - mem_start
     else:

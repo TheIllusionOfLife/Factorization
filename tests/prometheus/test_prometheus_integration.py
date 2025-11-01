@@ -18,6 +18,12 @@ import pytest
 from src.config import Config
 from src.prometheus.experiment import PrometheusExperiment
 
+# Test constants for consistent configuration across all tests
+TEST_GENERATIONS = 2
+TEST_POPULATION = 3
+TEST_DURATION = 0.1
+TEST_NUMBER = 961730063
+
 
 class TestPrometheusExperimentIntegration:
     """Integration tests for PrometheusExperiment workflows."""
@@ -30,20 +36,20 @@ class TestPrometheusExperimentIntegration:
             llm_enabled=False,
             prometheus_enabled=True,
             prometheus_mode="collaborative",
-            evaluation_duration=0.1,
+            evaluation_duration=TEST_DURATION,
         )
 
         # Run experiment
         experiment = PrometheusExperiment(
             config=config,
-            target_number=961730063,
+            target_number=TEST_NUMBER,
             random_seed=42,
         )
 
         best_fitness, best_strategy, comm_stats = (
             experiment.run_collaborative_evolution(
-                generations=2,
-                population_size=3,
+                generations=TEST_GENERATIONS,
+                population_size=TEST_POPULATION,
             )
         )
 
@@ -278,6 +284,48 @@ class TestPrometheusExperimentIntegration:
 
         with pytest.raises(ValueError, match="prometheus_enabled must be True"):
             PrometheusExperiment(config=config, target_number=961730063)
+
+    @pytest.mark.slow
+    def test_compare_with_baselines_calculates_metrics(self):
+        """Test that compare_with_baselines returns valid EmergenceMetrics.
+
+        Marked as slow because it runs all 4 modes (collaborative + 3 baselines).
+        """
+        from src.prometheus.experiment import EmergenceMetrics
+
+        config = Config(
+            api_key="test_key",
+            llm_enabled=False,
+            prometheus_enabled=True,
+            prometheus_mode="collaborative",
+            evaluation_duration=TEST_DURATION,
+        )
+
+        experiment = PrometheusExperiment(
+            config=config, target_number=TEST_NUMBER, random_seed=42
+        )
+
+        # Run comparison (uses small parameters for speed)
+        metrics = experiment.compare_with_baselines(
+            generations=TEST_GENERATIONS, population_size=TEST_POPULATION
+        )
+
+        # Verify structure
+        assert isinstance(metrics, EmergenceMetrics)
+
+        # Verify all fitness values are non-negative
+        assert metrics.collaborative_fitness >= 0
+        assert metrics.search_only_fitness >= 0
+        assert metrics.eval_only_fitness >= 0
+        assert metrics.rulebased_fitness >= 0
+
+        # Verify emergence metrics are calculated
+        assert metrics.emergence_factor >= 0
+        assert isinstance(metrics.synergy_score, (int, float))
+        assert isinstance(metrics.communication_efficiency, (int, float))
+
+        # Verify collaborative mode sent messages
+        assert metrics.total_messages > 0, "Collaborative mode should send messages"
 
 
 class TestPrometheusCLIIntegration:
@@ -634,11 +682,14 @@ class TestPrometheusPerformanceCharacteristics:
 
         assert len(result) == 2  # Only fitness and strategy, no comm_stats
 
+    @pytest.mark.slow
     def test_all_modes_find_valid_strategies(self):
         """Test that all modes produce valid strategies.
 
         Note: eval_only mode may produce zero fitness when random strategies
         happen to be ineffective. This test verifies structural validity.
+
+        Marked as slow because it tests all 4 modes (4x longer than single-mode tests).
         """
         modes = ["collaborative", "search_only", "eval_only", "rulebased"]
 
