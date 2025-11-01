@@ -758,3 +758,15 @@ Before declaring experiments complete:
 - **Edge Case Categories**: Boundary conditions, extreme values, error cases, performance validation
 - **Test Count Evolution**: 164 tests (PR #27) → 339 tests (PR #30) - 175 new edge case tests
 - **Production Bug Discovery**: Tests found smoothness_bound normalization bug - not always from SMALL_PRIMES list
+
+### Pre-commit Hooks & Local CI (PR #33)
+- **Flaky Test Exclusion**: Exclude environment-dependent tests from hooks with `--deselect`
+  - Environment state tests (API key presence/absence)
+  - Timing-dependent tests (performance benchmarks with variance)
+  - Integration tests (marked, run in full CI only)
+- **Hook Performance**: `always_run: false` + `-m "not integration"` keeps hooks <10s
+- **AI Reviewer Verification**: Gemini claimed all package versions invalid - ALL verified correct via GitHub API/PyPI
+  - Pattern: Always verify factual claims (versions, dates, paths) before accepting
+  - Correctness > Compliance - reject false positives even from authoritative sources
+- **Transitive Dependencies**: pyyaml available via jupyter dependency chain, no explicit requirement needed
+- **Makefile-based CI**: Convenient targets (`make ci`, `make ci-fast`) reduce friction for local validation
