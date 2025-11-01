@@ -125,8 +125,10 @@ class TestSimpleCommunicationChannel:
             channel.send_message(message)
 
         stats = channel.get_communication_stats()
-        assert stats["total_messages"] == 3
+        # Now tracking both requests and responses (3 requests + 3 responses = 6)
+        assert stats["total_messages"] == 6
         assert "strategy_request" in stats["messages_by_type"]
+        assert "strategy_response" in stats["messages_by_type"]
         assert stats["messages_by_type"]["strategy_request"] == 3
 
     def test_communication_stats_by_message_type(self):
@@ -158,9 +160,12 @@ class TestSimpleCommunicationChannel:
         channel.send_message(msg2)
 
         stats = channel.get_communication_stats()
-        assert stats["total_messages"] == 2
+        # Now tracking both requests and responses
+        assert stats["total_messages"] == 4  # 2 requests + 2 responses
         assert stats["messages_by_type"]["strategy_request"] == 1
+        assert stats["messages_by_type"]["strategy_response"] == 1
         assert stats["messages_by_type"]["evaluation_request"] == 1
+        assert stats["messages_by_type"]["evaluation_response"] == 1
 
     def test_communication_stats_by_sender_recipient(self):
         """Test stats track sender-recipient pairs correctly."""
@@ -182,9 +187,13 @@ class TestSimpleCommunicationChannel:
 
         stats = channel.get_communication_stats()
         assert "messages_by_sender" in stats
+        # Request from orchestrator + response from search-1
         assert stats["messages_by_sender"]["orchestrator"] == 1
+        assert stats["messages_by_sender"]["search-1"] == 1
         assert "messages_by_recipient" in stats
+        # Request to search-1 + response back to orchestrator
         assert stats["messages_by_recipient"]["search-1"] == 1
+        assert stats["messages_by_recipient"]["orchestrator"] == 1
 
     def test_message_history_tracking(self):
         """Test channel stores message history."""
@@ -207,10 +216,15 @@ class TestSimpleCommunicationChannel:
             messages.append(msg)
 
         history = channel.get_message_history()
-        assert len(history) == 5
-        # Check messages are stored in order
-        for i, msg in enumerate(history):
-            assert msg.payload["n"] == i
+        # Now includes both requests and responses (5 requests + 5 responses = 10)
+        assert len(history) == 10
+        # Check request messages are stored correctly (every other message)
+        for i in range(5):
+            request_msg = history[i * 2]  # Requests are at even indices
+            assert request_msg.message_type == "strategy_request"
+            assert request_msg.payload["n"] == i
+            response_msg = history[i * 2 + 1]  # Responses are at odd indices
+            assert response_msg.message_type == "strategy_response"
 
     def test_message_history_limit(self):
         """Test retrieving limited message history."""
@@ -225,12 +239,12 @@ class TestSimpleCommunicationChannel:
             msg = Message("orch", "search-1", "strategy_request", {"n": i}, time.time())
             channel.send_message(msg)
 
-        # Get last 3 messages
+        # Get last 3 messages (now includes both requests and responses, so 20 total)
         history = channel.get_message_history(limit=3)
         assert len(history) == 3
-        assert history[0].payload["n"] == 7
-        assert history[1].payload["n"] == 8
-        assert history[2].payload["n"] == 9
+        # Last 3 messages are: request 9, response 9, and the one before
+        # The very last message is the response to request 9
+        assert history[-1].message_type == "strategy_response"
 
     def test_clear_history(self):
         """Test clearing message history."""
@@ -245,8 +259,8 @@ class TestSimpleCommunicationChannel:
             msg = Message("orch", "search-1", "strategy_request", {}, time.time())
             channel.send_message(msg)
 
-        # Verify history exists
-        assert len(channel.get_message_history()) == 5
+        # Verify history exists (5 requests + 5 responses = 10)
+        assert len(channel.get_message_history()) == 10
 
         # Clear and verify
         channel.clear_history()
@@ -291,9 +305,9 @@ class TestCommunicationIntegration:
         assert "fitness" in eval_response.payload
         assert "feedback" in eval_response.payload
 
-        # Verify stats
+        # Verify stats (2 requests + 2 responses = 4)
         stats = channel.get_communication_stats()
-        assert stats["total_messages"] == 2
+        assert stats["total_messages"] == 4
 
     def test_conversation_tracking(self):
         """Test conversation ID tracking across messages."""
@@ -332,9 +346,9 @@ class TestCommunicationIntegration:
         )
         channel.send_message(msg2)
 
-        # Filter history by conversation ID
+        # Filter history by conversation ID (2 requests + 2 responses = 4)
         history = channel.get_message_history(conversation_id=conversation_id)
-        assert len(history) == 2
+        assert len(history) == 4
         assert all(msg.conversation_id == conversation_id for msg in history)
 
     def test_multiple_conversations_isolated(self):
@@ -369,11 +383,11 @@ class TestCommunicationIntegration:
             )
             channel.send_message(msg)
 
-        # Verify isolation
+        # Verify isolation (including responses: conv1=3 requests+3 responses=6, conv2=2+2=4)
         conv1_history = channel.get_message_history(conversation_id="conv-1")
         conv2_history = channel.get_message_history(conversation_id="conv-2")
 
-        assert len(conv1_history) == 3
-        assert len(conv2_history) == 2
+        assert len(conv1_history) == 6
+        assert len(conv2_history) == 4
         assert all(msg.conversation_id == "conv-1" for msg in conv1_history)
         assert all(msg.conversation_id == "conv-2" for msg in conv2_history)

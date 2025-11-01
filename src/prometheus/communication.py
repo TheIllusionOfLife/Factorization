@@ -68,6 +68,13 @@ class SimpleCommunicationChannel:
         recipient = self._agents[message.recipient_id]
         response = recipient.process_request(message)
 
+        # Store response in history and update stats
+        self._message_history.append(response)
+        self._stats["total_messages"] += 1
+        self._stats["messages_by_type"][response.message_type] += 1
+        self._stats["messages_by_sender"][response.sender_id] += 1
+        self._stats["messages_by_recipient"][response.recipient_id] += 1
+
         return response
 
     def get_communication_stats(self) -> Dict[str, Any]:

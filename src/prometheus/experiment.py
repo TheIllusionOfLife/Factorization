@@ -314,6 +314,9 @@ class PrometheusExperiment:
                 )
                 best_strategy = search_agent.strategy_generator.random_strategy()
 
+            # Clean up memory to prevent leaks
+            search_agent.memory.clear()
+
             return best_fitness, best_strategy
 
         elif agent_type == "eval_only":
@@ -352,6 +355,9 @@ class PrometheusExperiment:
                     stacklevel=2,
                 )
                 best_strategy = generator.random_strategy()
+
+            # Clean up memory to prevent leaks
+            eval_agent.memory.clear()
 
             return best_fitness, best_strategy
 

@@ -17,6 +17,9 @@ from src.config import Config
 from src.crucible import FactorizationCrucible
 from src.strategy import Strategy, StrategyGenerator
 
+# Feedback context window for LLM-guided generation (Phase 2)
+FEEDBACK_HISTORY_LIMIT = 5
+
 
 @dataclass
 class Message:
@@ -178,7 +181,9 @@ class SearchSpecialist(CognitiveCell):
         """
         feedback_messages = [
             msg
-            for msg in self.memory.get_conversation_context(limit=5)
+            for msg in self.memory.get_conversation_context(
+                limit=FEEDBACK_HISTORY_LIMIT
+            )
             if msg.message_type == "feedback"
         ]
         return [msg.payload for msg in feedback_messages]
