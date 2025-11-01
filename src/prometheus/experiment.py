@@ -6,6 +6,7 @@ and EmergenceMetrics for quantifying collaborative benefits.
 
 import random
 import time
+import warnings
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
@@ -160,6 +161,9 @@ class PrometheusExperiment:
                 generation_strategies.append((fitness, strategy))
 
                 # Send feedback back to SearchSpecialist for next iteration
+                # Note: Added directly to memory (not through channel) because
+                # SearchSpecialist.process_request() only handles strategy_request.
+                # This feedback is for Phase 2 LLM-guided generation.
                 feedback_msg = Message(
                     sender_id="eval-1",
                     recipient_id="search-1",
@@ -175,15 +179,30 @@ class PrometheusExperiment:
                     best_fitness = fitness
                     best_strategy = strategy
 
-        # Get communication stats
+        # Get communication stats before cleanup
         comm_stats = channel.get_communication_stats()
+
+        # Clean up memory to prevent leaks in multi-run experiments
+        channel.clear_history()
+        search_agent.memory.clear()
+        eval_agent.memory.clear()
 
         # Ensure we have a strategy (fallback to last one if all fitness=0)
         if best_strategy is None and generation_strategies:
+            warnings.warn(
+                "Collaborative evolution: All strategies had fitness=0. "
+                "Falling back to last generated strategy.",
+                stacklevel=2,
+            )
             best_strategy = generation_strategies[-1][1]
 
         # Create default strategy if still None
         if best_strategy is None:
+            warnings.warn(
+                "Collaborative evolution: No strategies generated. "
+                "Creating random fallback strategy.",
+                stacklevel=2,
+            )
             generator = StrategyGenerator(config=self.config)
             best_strategy = generator.random_strategy()
 
@@ -236,6 +255,11 @@ class PrometheusExperiment:
 
             # Fallback if no strategy found
             if best_strategy is None:
+                warnings.warn(
+                    f"Baseline ({agent_type}): No strategy found during evolution. "
+                    "Creating random fallback strategy.",
+                    stacklevel=2,
+                )
                 generator = StrategyGenerator(config=self.config)
                 best_strategy = generator.random_strategy()
 
@@ -263,6 +287,11 @@ class PrometheusExperiment:
 
             # Fallback to last strategy if all fitness=0
             if best_strategy is None:
+                warnings.warn(
+                    f"Baseline ({agent_type}): All strategies had fitness=0. "
+                    "Creating random fallback strategy.",
+                    stacklevel=2,
+                )
                 best_strategy = search_agent.strategy_generator.random_strategy()
 
             return best_fitness, best_strategy
@@ -297,6 +326,11 @@ class PrometheusExperiment:
 
             # Fallback
             if best_strategy is None:
+                warnings.warn(
+                    f"Baseline ({agent_type}): All strategies had fitness=0. "
+                    "Creating random fallback strategy.",
+                    stacklevel=2,
+                )
                 best_strategy = generator.random_strategy()
 
             return best_fitness, best_strategy
@@ -319,18 +353,20 @@ class PrometheusExperiment:
         Returns:
             EmergenceMetrics with all fitness values and calculated metrics
         """
-        # Reset seed for collaborative evolution for reproducibility
-        if self.random_seed is not None:
-            random.seed(self.random_seed)
+        # Run all modes with SAME seed for fair comparison
+        # Each mode starts from identical initial conditions
+        # Note: Using same seed is critical for experimental validity
 
         # Run collaborative evolution
+        if self.random_seed is not None:
+            random.seed(self.random_seed)
         collab_fitness, _, comm_stats = self.run_collaborative_evolution(
             generations=generations, population_size=population_size
         )
 
-        # Run baselines (need to reset seed for each to ensure independence)
+        # Run baselines with same seed (fair comparison)
         if self.random_seed is not None:
-            random.seed(self.random_seed + 1000)
+            random.seed(self.random_seed)
         search_fitness, _ = self.run_independent_baseline(
             agent_type="search_only",
             generations=generations,
@@ -338,7 +374,7 @@ class PrometheusExperiment:
         )
 
         if self.random_seed is not None:
-            random.seed(self.random_seed + 2000)
+            random.seed(self.random_seed)
         eval_fitness, _ = self.run_independent_baseline(
             agent_type="eval_only",
             generations=generations,
@@ -346,7 +382,7 @@ class PrometheusExperiment:
         )
 
         if self.random_seed is not None:
-            random.seed(self.random_seed + 3000)
+            random.seed(self.random_seed)
         rulebased_fitness, _ = self.run_independent_baseline(
             agent_type="rulebased",
             generations=generations,

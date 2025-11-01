@@ -170,6 +170,11 @@ class SearchSpecialist(CognitiveCell):
 
         Returns:
             List of feedback dictionaries
+
+        Note:
+            This method is for Phase 2 LLM-guided strategy generation.
+            In Phase 1 MVP, all strategies are generated using rule-based methods.
+            The feedback collection infrastructure is in place for future use.
         """
         feedback_messages = [
             msg
