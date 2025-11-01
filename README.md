@@ -577,7 +577,7 @@ See `pilot_results_negative_finding.md` for detailed analysis, validity threats,
   - EmergenceMetrics: emergence_factor, synergy_score, communication_efficiency
   - Complete CLI integration with `--prometheus`, `--prometheus-mode`, `--max-api-cost`
   - 64 comprehensive tests (26 agent + 15 communication + 23 experiment)
-  - Total test count: 458 tests passing (395 existing + 63 new)
+  - Total test count: 459 tests passing (395 existing + 64 new)
   - Addressed 8 critical/high priority issues from multiple code reviews (claude, CodeRabbit)
   - Independent RNG seeding with offsets for reproducible baseline comparisons
   - Memory leak prevention with explicit cleanup in all modes
