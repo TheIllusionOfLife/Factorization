@@ -791,3 +791,20 @@ Before declaring experiments complete:
 - **Review Iteration Efficiency**: Group fixes by priority, test locally, push once per iteration
   - PR #39: 3 iterations (initial fixes → CI fix → tracemalloc fix) = efficient resolution
   - Pattern: Critical → medium → low priority; run full test suite locally before push
+
+### Prometheus Timing Variance Investigation (PR #XX)
+- **False Positive Bug Report**: Old benchmark file showed 0 fitness for collaborative mode with 0.1s evaluation duration
+- **Root Cause Analysis**: Timing-based evaluation combined with short duration can legitimately produce 0 fitness
+  - Random strategy generation + 0.1s evaluation + unlucky RNG seed = 0 candidates found (expected behavior)
+  - With 0.5-1.0s evaluation, same seeds consistently produce non-zero fitness
+  - Timing variance is documented, expected behavior for the system
+- **Pattern: Distinguishing Bugs from Expected Variance**:
+  - Short evaluation durations (0.1s) can produce high variance in results due to timing sensitivity
+  - Increase evaluation duration in regression tests (0.5-1.0s) to test fundamental correctness, not timing sensitivity
+  - Document timing variance as expected behavior in test docstrings
+  - Don't mistake legitimate edge cases for bugs - verify with multiple configurations first
+- **Regression Tests**: Added 4 tests with appropriate evaluation durations to prevent future false bug reports
+  - test_collaborative_mode_nonzero_fitness (0.5s) - verifies mode works with sufficient time
+  - test_search_only_mode_nonzero_fitness (0.1s) - baseline verification
+  - test_collaborative_mode_multiple_seeds (1.0s, 3 seeds) - robustness across RNG states
+  - test_collaborative_vs_search_only_competitive (0.2s) - comparative performance
