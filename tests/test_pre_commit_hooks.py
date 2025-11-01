@@ -59,12 +59,14 @@ class TestPreCommitHooksMatchCI:
 
         assert len(ruff_repos) > 0, "Ruff must be in pre-commit hooks"
 
-        # Find ruff-check hook
+        # Find ruff hook (linter) - id is "ruff", name is "ruff-check"
         ruff_hooks = []
         for repo in ruff_repos:
-            ruff_hooks.extend([h for h in repo.get("hooks", []) if "ruff" in h.get("id", "")])
+            ruff_hooks.extend(
+                [h for h in repo.get("hooks", []) if h.get("id") == "ruff"]
+            )
 
-        assert any("check" in h.get("id", "") for h in ruff_hooks), "ruff check hook must exist"
+        assert len(ruff_hooks) > 0, "ruff check hook (id: 'ruff') must exist"
 
     def test_ruff_format_hook_present(self, pre_commit_config):
         """Test ruff format hook is configured."""
@@ -73,12 +75,14 @@ class TestPreCommitHooksMatchCI:
 
         assert len(ruff_repos) > 0, "Ruff must be in pre-commit hooks"
 
-        # Find ruff-format hook
+        # Find ruff-format hook - id is "ruff-format"
         ruff_hooks = []
         for repo in ruff_repos:
-            ruff_hooks.extend([h for h in repo.get("hooks", []) if "ruff" in h.get("id", "")])
+            ruff_hooks.extend(
+                [h for h in repo.get("hooks", []) if h.get("id") == "ruff-format"]
+            )
 
-        assert any("format" in h.get("id", "") for h in ruff_hooks), "ruff format hook must exist"
+        assert len(ruff_hooks) > 0, "ruff format hook (id: 'ruff-format') must exist"
 
     def test_pytest_hook_present(self, pre_commit_config):
         """Test pytest hook is configured."""
@@ -88,7 +92,10 @@ class TestPreCommitHooksMatchCI:
         has_pytest = False
         for repo in repos:
             hooks = repo.get("hooks", [])
-            if any("pytest" in h.get("id", "").lower() or "test" in h.get("id", "").lower() for h in hooks):
+            if any(
+                "pytest" in h.get("id", "").lower() or "test" in h.get("id", "").lower()
+                for h in hooks
+            ):
                 has_pytest = True
                 break
 
@@ -101,7 +108,11 @@ class TestPreCommitHooksMatchCI:
         has_whitespace_hook = False
         for repo in repos:
             hooks = repo.get("hooks", [])
-            if any("trailing" in h.get("id", "").lower() and "whitespace" in h.get("id", "").lower() for h in hooks):
+            if any(
+                "trailing" in h.get("id", "").lower()
+                and "whitespace" in h.get("id", "").lower()
+                for h in hooks
+            ):
                 has_whitespace_hook = True
                 break
 
@@ -114,7 +125,10 @@ class TestPreCommitHooksMatchCI:
         has_eof_hook = False
         for repo in repos:
             hooks = repo.get("hooks", [])
-            if any("end" in h.get("id", "").lower() and "file" in h.get("id", "").lower() for h in hooks):
+            if any(
+                "end" in h.get("id", "").lower() and "file" in h.get("id", "").lower()
+                for h in hooks
+            ):
                 has_eof_hook = True
                 break
 
@@ -157,7 +171,9 @@ class TestMakefileTargets:
         with open(makefile_path) as f:
             content = f.read()
 
-        assert "lint:" in content or "lint " in content, "Makefile must have 'lint' target"
+        assert "lint:" in content or "lint " in content, (
+            "Makefile must have 'lint' target"
+        )
 
     def test_makefile_format_target(self, repo_root):
         """Test Makefile has 'format' target."""
@@ -165,7 +181,9 @@ class TestMakefileTargets:
         with open(makefile_path) as f:
             content = f.read()
 
-        assert "format:" in content or "format " in content, "Makefile must have 'format' target"
+        assert "format:" in content or "format " in content, (
+            "Makefile must have 'format' target"
+        )
 
     def test_makefile_test_target(self, repo_root):
         """Test Makefile has 'test' target."""
@@ -173,7 +191,9 @@ class TestMakefileTargets:
         with open(makefile_path) as f:
             content = f.read()
 
-        assert "test:" in content or "test " in content, "Makefile must have 'test' target"
+        assert "test:" in content or "test " in content, (
+            "Makefile must have 'test' target"
+        )
 
     def test_makefile_install_hooks_target(self, repo_root):
         """Test Makefile has 'install-hooks' target."""
@@ -181,8 +201,9 @@ class TestMakefileTargets:
         with open(makefile_path) as f:
             content = f.read()
 
-        assert "install-hooks:" in content or "install-hooks " in content, \
+        assert "install-hooks:" in content or "install-hooks " in content, (
             "Makefile must have 'install-hooks' target"
+        )
 
 
 @pytest.mark.integration
@@ -197,14 +218,18 @@ class TestPreCommitHooksIntegration:
                 cwd=repo_root,
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=60,
             )
             # Hooks may pass or fail, but command should not error
-            assert result.returncode in [0, 1], f"pre-commit run failed: {result.stderr}"
+            assert result.returncode in [0, 1], (
+                f"pre-commit run failed: {result.stderr}"
+            )
         except FileNotFoundError:
             pytest.skip("pre-commit not installed")
         except subprocess.TimeoutExpired:
-            pytest.fail("pre-commit hooks took >60s (requirement: <10s for typical commits)")
+            pytest.fail(
+                "pre-commit hooks took >60s (requirement: <10s for typical commits)"
+            )
 
     def test_pre_commit_hooks_fast_enough(self, repo_root):
         """Test pre-commit hooks run in <10 seconds on typical file."""
@@ -215,16 +240,19 @@ class TestPreCommitHooksIntegration:
             test_file = repo_root / "src" / "strategy.py"
 
             start = time.perf_counter()
-            result = subprocess.run(
+            subprocess.run(
                 ["pre-commit", "run", "--files", str(test_file)],
                 cwd=repo_root,
                 capture_output=True,
                 text=True,
-                timeout=15
+                timeout=15,
+                check=False,  # Don't raise on non-zero exit (hooks may fail)
             )
             elapsed = time.perf_counter() - start
 
-            assert elapsed < 10.0, f"Pre-commit hooks took {elapsed:.1f}s (requirement: <10s)"
+            assert elapsed < 10.0, (
+                f"Pre-commit hooks took {elapsed:.1f}s (requirement: <10s)"
+            )
         except FileNotFoundError:
             pytest.skip("pre-commit not installed")
 
@@ -244,8 +272,9 @@ class TestContributingGuide:
             content = f.read().lower()
 
         assert "pre-commit" in content, "CONTRIBUTING.md must mention pre-commit"
-        assert "install" in content or "setup" in content, \
+        assert "install" in content or "setup" in content, (
             "CONTRIBUTING.md must explain how to install hooks"
+        )
 
     def test_contributing_has_local_ci_section(self, repo_root):
         """Test CONTRIBUTING.md has local CI validation section."""
@@ -253,5 +282,6 @@ class TestContributingGuide:
         with open(contrib_path) as f:
             content = f.read().lower()
 
-        assert "local" in content and ("ci" in content or "validation" in content), \
+        assert "local" in content and ("ci" in content or "validation" in content), (
             "CONTRIBUTING.md must explain local CI validation"
+        )
