@@ -11,6 +11,7 @@ from src.prometheus.agents import (
     Message,
     SearchSpecialist,
 )
+from src.prometheus.communication import SimpleCommunicationChannel
 
 __all__ = [
     "CognitiveCell",
@@ -18,6 +19,7 @@ __all__ = [
     "EvaluationSpecialist",
     "Message",
     "AgentMemory",
+    "SimpleCommunicationChannel",
 ]
 
 __version__ = "0.1.0"
