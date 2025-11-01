@@ -1,0 +1,231 @@
+{
+  "target_number": 961730063,
+  "num_runs": 10,
+  "max_generations": 20,
+  "population_size": 20,
+  "evaluation_duration": 0.5,
+  "base_seed": 42,
+  "runs": [
+    {
+      "evolved_fitness": [
+        89104,
+        96429,
+        98197,
+        150378,
+        172206,
+        207236,
+        207853,
+        206797
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 150951.0,
+        "aggressive": 213779.0
+      },
+      "generations_to_convergence": 7,
+      "random_seed": 42
+    },
+    {
+      "evolved_fitness": [
+        77816,
+        271324,
+        276110,
+        266151,
+        266411,
+        267235
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 154767.0,
+        "aggressive": 207789.0
+      },
+      "generations_to_convergence": 5,
+      "random_seed": 43
+    },
+    {
+      "evolved_fitness": [
+        248737,
+        249872,
+        241606,
+        256078,
+        252064
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 160683.0,
+        "aggressive": 208660.0
+      },
+      "generations_to_convergence": 4,
+      "random_seed": 44
+    },
+    {
+      "evolved_fitness": [
+        78737,
+        78234,
+        168328,
+        243127,
+        237132,
+        256463,
+        256315
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 158310.0,
+        "aggressive": 218343.0
+      },
+      "generations_to_convergence": 6,
+      "random_seed": 45
+    },
+    {
+      "evolved_fitness": [
+        35746,
+        40693,
+        75107,
+        103765,
+        104459,
+        104922,
+        104305
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 160095.0,
+        "aggressive": 214222.0
+      },
+      "generations_to_convergence": 6,
+      "random_seed": 46
+    },
+    {
+      "evolved_fitness": [
+        50988,
+        90051,
+        98892,
+        216345,
+        220490,
+        218546,
+        220767,
+        226343
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 159431.0,
+        "aggressive": 218538.0
+      },
+      "generations_to_convergence": 7,
+      "random_seed": 47
+    },
+    {
+      "evolved_fitness": [
+        252486,
+        213723,
+        211623,
+        208596,
+        209729
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 152053.0,
+        "aggressive": 214022.0
+      },
+      "generations_to_convergence": 4,
+      "random_seed": 48
+    },
+    {
+      "evolved_fitness": [
+        24542,
+        9201,
+        31012,
+        47210,
+        105677,
+        106099,
+        134231,
+        174721,
+        218783,
+        255853,
+        257282,
+        257162
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 157659.0,
+        "aggressive": 198628.0
+      },
+      "generations_to_convergence": 11,
+      "random_seed": 49
+    },
+    {
+      "evolved_fitness": [
+        182354,
+        180517,
+        182110,
+        181614,
+        182466
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 158013.0,
+        "aggressive": 213829.0
+      },
+      "generations_to_convergence": 4,
+      "random_seed": 50
+    },
+    {
+      "evolved_fitness": [
+        31758,
+        237381,
+        223972,
+        264270,
+        261933,
+        264874
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 158993.0,
+        "aggressive": 215476.0
+      },
+      "generations_to_convergence": 5,
+      "random_seed": 51
+    }
+  ],
+  "analysis": {
+    "comparison_results": {
+      "conservative": {
+        "evolved_mean": 222729.0,
+        "baseline_mean": 0.0,
+        "p_value": 2.1430460251223722e-07,
+        "effect_size": 6.229194147969389,
+        "is_significant": true,
+        "confidence_interval": [
+          186556.1545994885,
+          258901.8454005115
+        ]
+      },
+      "balanced": {
+        "evolved_mean": 222729.0,
+        "baseline_mean": 157095.5,
+        "p_value": 0.0026451036599018686,
+        "effect_size": 1.8315501092753876,
+        "is_significant": true,
+        "confidence_interval": [
+          29429.026503105728,
+          101837.97349689426
+        ]
+      },
+      "aggressive": {
+        "evolved_mean": 222729.0,
+        "baseline_mean": 212328.6,
+        "p_value": 0.5339933391155391,
+        "effect_size": 0.2888898641386016,
+        "is_significant": false,
+        "confidence_interval": [
+          -25872.521189284183,
+          46673.32118928417
+        ]
+      }
+    },
+    "convergence_stats": {
+      "mean": 5.9,
+      "std": 2.0223748416156684,
+      "convergence_rate": 1.0
+    }
+  }
+}

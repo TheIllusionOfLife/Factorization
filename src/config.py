@@ -59,12 +59,20 @@ class Config:
     mutation_prob_residue: float = 0.5  # Probability of changing residues
     mutation_prob_add_filter: float = 0.15  # Probability of adding filter
 
+    # ===== Prometheus (Multi-Agent) Parameters =====
+    prometheus_enabled: bool = False  # Enable Prometheus multi-agent mode
+    prometheus_mode: str = (
+        "collaborative"  # Mode: collaborative, search_only, eval_only
+    )
+    max_api_cost: float = 1.0  # Maximum API cost in dollars (safety limit)
+
     def __post_init__(self):
         """Validate configuration after initialization."""
         self._validate_evolution_params()
         self._validate_meta_learning_params()
         self._validate_strategy_bounds()
         self._validate_mutation_probs()
+        self._validate_prometheus_params()
 
     def _validate_evolution_params(self):
         """Validate evolution parameters."""
@@ -168,6 +176,17 @@ class Config:
             if not 0.0 <= prob <= 1.0:
                 raise ValueError(f"{name} must be in [0, 1], got {prob}")
 
+    def _validate_prometheus_params(self):
+        """Validate Prometheus multi-agent parameters."""
+        valid_modes = ["collaborative", "search_only", "eval_only", "rulebased"]
+        if self.prometheus_mode not in valid_modes:
+            raise ValueError(
+                f"prometheus_mode must be one of {valid_modes}, got {self.prometheus_mode}"
+            )
+
+        if self.max_api_cost <= 0:
+            raise ValueError(f"max_api_cost must be > 0, got {self.max_api_cost}")
+
     def to_dict(self, include_sensitive: bool = False) -> Dict[str, Any]:
         """Convert config to dictionary.
 
@@ -266,6 +285,14 @@ class Config:
             overrides["mutation_prob_residue"] = args.mutation_prob_residue
         if args.mutation_prob_add_filter is not None:
             overrides["mutation_prob_add_filter"] = args.mutation_prob_add_filter
+
+        # Prometheus parameters
+        if hasattr(args, "prometheus") and args.prometheus:
+            overrides["prometheus_enabled"] = True
+        if hasattr(args, "prometheus_mode") and args.prometheus_mode is not None:
+            overrides["prometheus_mode"] = args.prometheus_mode
+        if hasattr(args, "max_api_cost") and args.max_api_cost is not None:
+            overrides["max_api_cost"] = args.max_api_cost
 
         # Merge base + overrides and construct once (validation happens in __post_init__)
         # llm_enabled is already in base_dict (either from load_config() or set above)

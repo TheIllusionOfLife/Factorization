@@ -194,6 +194,27 @@ def main():
         help="Write logs to file (default: from LOG_FILE env var or no file logging)",
     )
 
+    # Prometheus (multi-agent) arguments
+    parser.add_argument(
+        "--prometheus",
+        action="store_true",
+        help="Enable Prometheus multi-agent mode (dual-agent collaboration)",
+    )
+    parser.add_argument(
+        "--prometheus-mode",
+        type=str,
+        choices=["collaborative", "search_only", "eval_only", "rulebased"],
+        default="collaborative",
+        metavar="MODE",
+        help="Prometheus mode: collaborative (default), search_only, eval_only, rulebased",
+    )
+    parser.add_argument(
+        "--max-api-cost",
+        type=float,
+        metavar="DOLLARS",
+        help="Maximum API cost in dollars (safety limit, default: 1.0)",
+    )
+
     # Comparison mode arguments
     parser.add_argument(
         "--compare-baseline",
@@ -288,6 +309,122 @@ def main():
 
     # Create crucible
     crucible = FactorizationCrucible(args.number)
+
+    # Prometheus multi-agent mode
+    if args.prometheus:
+        from src.prometheus.experiment import PrometheusExperiment
+
+        print("\n🔬 Prometheus Multi-Agent Mode")
+        print(f"🎯 Target number: {args.number}")
+        print(f"🧬 Generations: {args.generations}, Population: {args.population}")
+        print(f"⏱️  Evaluation duration: {config.evaluation_duration}s per strategy")
+        print(f"🤖 Mode: {config.prometheus_mode}")
+        if args.llm:
+            print(f"💰 Max API cost: ${config.max_api_cost:.2f}")
+        if args.seed is not None:
+            print(f"🎲 Random seed: {args.seed} (reproducible run)")
+        print()
+
+        # Create experiment
+        experiment = PrometheusExperiment(
+            config=config,
+            target_number=args.number,
+            random_seed=args.seed,
+        )
+
+        # Run experiment based on mode
+        if config.prometheus_mode == "collaborative":
+            # Collaborative mode: dual-agent evolution
+            print("🔄 Running collaborative dual-agent evolution...")
+            best_fitness, best_strategy, comm_stats = (
+                experiment.run_collaborative_evolution(
+                    generations=args.generations,
+                    population_size=args.population,
+                )
+            )
+
+            print("\n✅ Evolution complete!")
+            print(f"📊 Best fitness: {best_fitness}")
+            print(f"📈 Total messages exchanged: {comm_stats['total_messages']}")
+            print(f"💬 Messages by type: {comm_stats['messages_by_type']}")
+            print("\n🏆 Best strategy:")
+            print(f"   Power: {best_strategy.power}")
+            print(f"   Modulus filters: {best_strategy.modulus_filters}")
+            print(f"   Smoothness bound: {best_strategy.smoothness_bound}")
+            print(f"   Min small prime hits: {best_strategy.min_small_prime_hits}")
+
+            # Export metrics if requested
+            if args.export_metrics:
+                print(f"\n📁 Exporting metrics to {args.export_metrics}...")
+                export_data = {
+                    "mode": "prometheus_collaborative",
+                    "target_number": args.number,
+                    "generations": args.generations,
+                    "population_size": args.population,
+                    "random_seed": args.seed,
+                    "config": config.to_dict(include_sensitive=False),
+                    "best_fitness": best_fitness,
+                    "best_strategy": {
+                        "power": best_strategy.power,
+                        "modulus_filters": best_strategy.modulus_filters,
+                        "smoothness_bound": best_strategy.smoothness_bound,
+                        "min_small_prime_hits": best_strategy.min_small_prime_hits,
+                    },
+                    "communication_stats": comm_stats,
+                }
+                Path(args.export_metrics).parent.mkdir(parents=True, exist_ok=True)
+                with open(args.export_metrics, "w") as f:
+                    json.dump(export_data, f, indent=2)
+                print("✅ Metrics exported successfully")
+
+        else:
+            # Baseline mode: single-agent or rule-based
+            print(f"🔄 Running {config.prometheus_mode} baseline...")
+            best_fitness, best_strategy = experiment.run_independent_baseline(
+                agent_type=config.prometheus_mode,
+                generations=args.generations,
+                population_size=args.population,
+            )
+
+            print("\n✅ Evolution complete!")
+            print(f"📊 Best fitness: {best_fitness}")
+            print("\n🏆 Best strategy:")
+            print(f"   Power: {best_strategy.power}")
+            print(f"   Modulus filters: {best_strategy.modulus_filters}")
+            print(f"   Smoothness bound: {best_strategy.smoothness_bound}")
+            print(f"   Min small prime hits: {best_strategy.min_small_prime_hits}")
+
+            # Export metrics if requested
+            if args.export_metrics:
+                print(f"\n📁 Exporting metrics to {args.export_metrics}...")
+                export_data = {
+                    "mode": f"prometheus_{config.prometheus_mode}",
+                    "target_number": args.number,
+                    "generations": args.generations,
+                    "population_size": args.population,
+                    "random_seed": args.seed,
+                    "config": config.to_dict(include_sensitive=False),
+                    "best_fitness": best_fitness,
+                    "best_strategy": {
+                        "power": best_strategy.power,
+                        "modulus_filters": best_strategy.modulus_filters,
+                        "smoothness_bound": best_strategy.smoothness_bound,
+                        "min_small_prime_hits": best_strategy.min_small_prime_hits,
+                    },
+                }
+                Path(args.export_metrics).parent.mkdir(parents=True, exist_ok=True)
+                with open(args.export_metrics, "w") as f:
+                    json.dump(export_data, f, indent=2)
+                print("✅ Metrics exported successfully")
+
+        # Display LLM cost summary if used
+        if llm_provider:
+            from src.comparison import print_llm_summary
+
+            print()
+            print_llm_summary(llm_provider)
+
+        sys.exit(0)
 
     # Comparison mode vs normal evolution mode
     if args.compare_baseline:
