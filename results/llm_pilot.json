@@ -1,0 +1,141 @@
+{
+  "target_number": 961730063,
+  "num_runs": 5,
+  "max_generations": 15,
+  "population_size": 15,
+  "evaluation_duration": 0.5,
+  "base_seed": 100,
+  "runs": [
+    {
+      "evolved_fitness": [
+        160785,
+        219628,
+        203284,
+        203269,
+        214076
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 155190.0,
+        "aggressive": 211036.0
+      },
+      "generations_to_convergence": 4,
+      "random_seed": 100
+    },
+    {
+      "evolved_fitness": [
+        32815,
+        57835,
+        57990,
+        59036,
+        59198
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 158813.0,
+        "aggressive": 215877.0
+      },
+      "generations_to_convergence": 4,
+      "random_seed": 101
+    },
+    {
+      "evolved_fitness": [
+        42236,
+        52581,
+        51951,
+        79553,
+        101907,
+        170019,
+        209969,
+        265814,
+        297350,
+        300035
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 158805.0,
+        "aggressive": 210543.0
+      },
+      "generations_to_convergence": 9,
+      "random_seed": 102
+    },
+    {
+      "evolved_fitness": [
+        48407,
+        150685,
+        118688,
+        89303,
+        217946,
+        192130,
+        200589,
+        256136,
+        265216
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 153242.0,
+        "aggressive": 213755.0
+      },
+      "generations_to_convergence": 8,
+      "random_seed": 103
+    },
+    {
+      "evolved_fitness": [
+        159146,
+        159266,
+        192860,
+        192419,
+        170570
+      ],
+      "baseline_fitness": {
+        "conservative": 0.0,
+        "balanced": 158730.0,
+        "aggressive": 216327.0
+      },
+      "generations_to_convergence": 4,
+      "random_seed": 104
+    }
+  ],
+  "analysis": {
+    "comparison_results": {
+      "conservative": {
+        "evolved_mean": 201819.0,
+        "baseline_mean": 0.0,
+        "p_value": 0.008552519428909026,
+        "effect_size": 3.0454336462082994,
+        "is_significant": true,
+        "confidence_interval": [
+          85451.42201069513,
+          318186.5779893049
+        ]
+      },
+      "balanced": {
+        "evolved_mean": 201819.0,
+        "baseline_mean": 156956.0,
+        "p_value": 0.34480859838964245,
+        "effect_size": 0.6767200431909605,
+        "is_significant": false,
+        "confidence_interval": [
+          -71478.93020529757,
+          161204.93020529757
+        ]
+      },
+      "aggressive": {
+        "evolved_mean": 201819.0,
+        "baseline_mean": 213507.6,
+        "p_value": 0.7942197779251,
+        "effect_size": -0.17630855010029087,
+        "is_significant": false,
+        "confidence_interval": [
+          -128029.01754726468,
+          104651.81754726467
+        ]
+      }
+    },
+    "convergence_stats": {
+      "mean": 5.8,
+      "std": 2.2271057451320084,
+      "convergence_rate": 1.0
+    }
+  }
+}
