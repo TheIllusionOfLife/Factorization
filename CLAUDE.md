@@ -61,38 +61,46 @@ pytest tests/test_integration.py -v
 GEMINI_API_KEY=your_key pytest tests/test_llm_provider.py::test_real_gemini_call -v
 ```
 
-### Continuous Integration
+### Local CI Validation
+
+**Makefile targets** for convenient local validation:
+```bash
+# Run all CI checks locally (recommended before pushing)
+make ci
+
+# Run fast CI checks (lint + format + fast tests)
+make ci-fast
+
+# Individual checks
+make lint          # Run ruff linter
+make format        # Auto-fix formatting issues
+make format-check  # Check formatting without modifying
+make test          # Run all tests
+make test-fast     # Run fast tests only (exclude integration)
+make type-check    # Run mypy type checking
+```
 
 **CI Workflow** runs automatically on PRs:
 ```bash
-# What CI checks
+# What CI checks (matches local `make ci`)
 - pytest: All unit and integration tests (Python 3.9, 3.10, 3.11)
 - ruff check: Linting (replaces Flake8, isort, pyupgrade)
 - ruff format --check: Code formatting (replaces Black)
 - mypy: Type checking (optional, may have false positives)
 ```
 
-**Local CI simulation**:
-```bash
-# Run all checks locally before pushing
-pytest tests/ -v
-ruff check .
-ruff format --check .
-mypy src/ --ignore-missing-imports
-```
-
-**Auto-fix issues**:
-```bash
-# Fix linting and formatting issues automatically
-ruff check . --fix
-ruff format .
-```
+**Pre-commit hooks** run automatically on `git commit`:
+- Hooks match CI checks exactly (except integration tests excluded for speed)
+- Block commits that would fail CI
+- Run in <10 seconds for typical commits
+- Bypass with `git commit --no-verify` (emergency only)
 
 ### Setup
 
 **Install dependencies**:
 ```bash
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 **Configure environment**:
@@ -100,6 +108,23 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env and add your GEMINI_API_KEY
 ```
+
+**Install pre-commit hooks** (required for contributors):
+```bash
+make install-hooks
+```
+
+This installs Git hooks that automatically run before each commit:
+- **ruff-check**: Linting with auto-fix
+- **ruff-format**: Code formatting
+- **pytest-fast**: Fast unit tests (excludes integration tests)
+- **trailing-whitespace**: Remove trailing spaces
+- **end-of-file-fixer**: Ensure files end with newline
+- **check-yaml**: Validate YAML files
+- **check-merge-conflict**: Prevent committing merge conflicts
+- **no-commit-to-branch**: Block direct commits to main/master
+
+Hooks run in <10 seconds for typical commits and prevent CI failures.
 
 ## Architecture
 
@@ -515,11 +540,23 @@ Typical prototype costs:
 ## Development Workflow
 
 1. **Create feature branch** before any changes
-2. **Write tests first** for new features (TDD)
-3. **Run tests locally** before committing
-4. **Commit at logical milestones** with conventional commit format
-5. **Push to GitHub** and create PR (never push to main)
-6. **Verify CI passes** before requesting review
+2. **Install pre-commit hooks**: `make install-hooks` (one-time setup)
+3. **Write tests first** for new features (TDD)
+4. **Run local CI checks**: `make ci-fast` before committing
+5. **Commit at logical milestones** with conventional commit format
+   - Pre-commit hooks run automatically (lint, format, fast tests)
+   - Hooks block commits that would fail CI
+   - Fix any issues and retry commit
+6. **Push to GitHub** and create PR (never push to main)
+7. **Verify CI passes** before requesting review
+
+**Pre-commit Hook Workflow**:
+- Hooks run automatically on `git commit`
+- If hooks fail, commit is blocked with error message
+- Fix the issues (use `make format`, `make lint`, or fix tests)
+- Stage fixes with `git add`
+- Retry commit (hooks will re-run)
+- Emergency bypass: `git commit --no-verify` (use sparingly)
 
 ## Research Validation Workflow
 
