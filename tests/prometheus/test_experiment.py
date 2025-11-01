@@ -283,12 +283,12 @@ class TestPrometheusExperiment:
         )
 
         # Allow small floating point error
-        expected_factor = (
-            metrics.collaborative_fitness / max_baseline
-            if max_baseline > 0
-            else float("inf")
-        )
-        assert abs(metrics.emergence_factor - expected_factor) < 0.01
+        if max_baseline > 0:
+            expected_factor = metrics.collaborative_fitness / max_baseline
+            assert abs(metrics.emergence_factor - expected_factor) < 0.01
+        else:
+            # Production clamps to 1.0 when all baselines are zero
+            assert metrics.emergence_factor == pytest.approx(1.0, abs=0.01)
 
     def test_compare_with_baselines_calculates_synergy_score_correctly(self):
         """Test synergy_score is collaborative - max(baselines)."""

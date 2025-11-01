@@ -209,7 +209,11 @@ class PrometheusExperiment:
         return best_fitness, best_strategy, comm_stats
 
     def run_independent_baseline(
-        self, agent_type: str, generations: int, population_size: int
+        self,
+        agent_type: str,
+        generations: int,
+        population_size: int,
+        seed_override: Optional[int] = None,
     ) -> Tuple[float, Strategy]:
         """Run independent baseline with single agent or rule-based evolution.
 
@@ -217,6 +221,8 @@ class PrometheusExperiment:
             agent_type: One of "search_only", "eval_only", "rulebased"
             generations: Number of generations
             population_size: Population size per generation
+            seed_override: Optional seed to use instead of self.random_seed
+                          (for independent RNG state in comparisons)
 
         Returns:
             Tuple of (best_fitness, best_strategy)
@@ -235,11 +241,15 @@ class PrometheusExperiment:
 
         if agent_type == "rulebased":
             # Use traditional EvolutionaryEngine
+            # Use seed_override if provided (for independent baseline RNG state)
+            seed_to_use = (
+                seed_override if seed_override is not None else self.random_seed
+            )
             engine = EvolutionaryEngine(
                 crucible=self.crucible,
                 population_size=population_size,
                 config=self.config,
-                random_seed=self.random_seed,
+                random_seed=seed_to_use,
             )
 
             # Initialize population
@@ -353,40 +363,51 @@ class PrometheusExperiment:
         Returns:
             EmergenceMetrics with all fitness values and calculated metrics
         """
-        # Run all modes with SAME seed for fair comparison
-        # Each mode starts from identical initial conditions
-        # Note: Using same seed is critical for experimental validity
+        # Run all modes with INDEPENDENT seeds for unbiased comparison
+        # Each mode gets unique RNG state to prevent correlation
+        # Seed offsets ensure reproducibility: same base seed → same results
+        # This is critical for experimental validity
 
-        # Run collaborative evolution
+        # Run collaborative evolution (base seed)
         if self.random_seed is not None:
             random.seed(self.random_seed)
         collab_fitness, _, comm_stats = self.run_collaborative_evolution(
             generations=generations, population_size=population_size
         )
 
-        # Run baselines with same seed (fair comparison)
+        # Run baselines with independent seeds (offset from base)
+        # Offsets prevent RNG correlation while maintaining reproducibility
         if self.random_seed is not None:
-            random.seed(self.random_seed)
+            random.seed(self.random_seed + 1000)
         search_fitness, _ = self.run_independent_baseline(
             agent_type="search_only",
             generations=generations,
             population_size=population_size,
+            seed_override=self.random_seed + 1000
+            if self.random_seed is not None
+            else None,
         )
 
         if self.random_seed is not None:
-            random.seed(self.random_seed)
+            random.seed(self.random_seed + 2000)
         eval_fitness, _ = self.run_independent_baseline(
             agent_type="eval_only",
             generations=generations,
             population_size=population_size,
+            seed_override=self.random_seed + 2000
+            if self.random_seed is not None
+            else None,
         )
 
         if self.random_seed is not None:
-            random.seed(self.random_seed)
+            random.seed(self.random_seed + 3000)
         rulebased_fitness, _ = self.run_independent_baseline(
             agent_type="rulebased",
             generations=generations,
             population_size=population_size,
+            seed_override=self.random_seed + 3000
+            if self.random_seed is not None
+            else None,
         )
 
         # Calculate emergence metrics
