@@ -7,7 +7,7 @@ and EmergenceMetrics for quantifying collaborative benefits.
 import random
 import time
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 from src.config import Config
 from src.crucible import FactorizationCrucible
@@ -55,7 +55,7 @@ class PrometheusExperiment:
         self,
         config: Config,
         target_number: int,
-        random_seed: int | None = None,
+        random_seed: Optional[int] = None,
     ):
         """Initialize Prometheus experiment.
 
@@ -114,7 +114,7 @@ class PrometheusExperiment:
 
         # Initialize population
         best_fitness = 0.0
-        best_strategy: Strategy | None = None
+        best_strategy: Optional[Strategy] = None
 
         # Evolution loop
         for gen in range(generations):
@@ -204,6 +204,10 @@ class PrometheusExperiment:
         if population_size < 1:
             raise ValueError(f"population_size must be >= 1, got {population_size}")
 
+        # Initialize variables (used across all branches)
+        best_fitness = 0.0
+        best_strategy: Optional[Strategy] = None
+
         if agent_type == "rulebased":
             # Use traditional EvolutionaryEngine
             engine = EvolutionaryEngine(
@@ -217,8 +221,6 @@ class PrometheusExperiment:
             engine.initialize_population()
 
             # Run evolution and track best across all generations
-            best_fitness = 0.0
-            best_strategy: Strategy | None = None
 
             for _ in range(generations):
                 gen_fitness, gen_strategy = engine.run_evolutionary_cycle()
@@ -236,9 +238,6 @@ class PrometheusExperiment:
         elif agent_type == "search_only":
             # SearchSpecialist generates strategies, evaluate directly
             search_agent = SearchSpecialist(agent_id="search-1", config=self.config)
-
-            best_fitness = 0.0
-            best_strategy: Strategy | None = None
 
             for _ in range(generations):
                 for _ in range(population_size):
@@ -266,9 +265,6 @@ class PrometheusExperiment:
             # EvaluationSpecialist evaluates random strategies
             eval_agent = EvaluationSpecialist(agent_id="eval-1", config=self.config)
             generator = StrategyGenerator(config=self.config)
-
-            best_fitness = 0.0
-            best_strategy: Strategy | None = None
 
             for _ in range(generations):
                 for _ in range(population_size):
