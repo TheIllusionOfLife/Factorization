@@ -147,17 +147,11 @@ class SearchSpecialist(CognitiveCell):
         Returns:
             Response with generated strategy
         """
-        # Extract feedback from memory
-        feedback_context = self._extract_feedback_context()
-
-        # Generate strategy (rule-based or LLM-guided)
-        if self.config.llm_enabled and feedback_context:
-            # TODO: Implement LLM-guided generation with feedback
-            # For now, use rule-based generation
-            strategy = self.strategy_generator.random_strategy()
-        else:
-            # Rule-based generation
-            strategy = self.strategy_generator.random_strategy()
+        # Generate strategy (rule-based for Phase 1 MVP)
+        # Note: LLM-guided generation with feedback is planned for Phase 2.
+        # Phase 1 validates the multi-agent infrastructure with rule-based strategies.
+        # Feedback context extraction will be used in Phase 2 for LLM-guided generation.
+        strategy = self.strategy_generator.random_strategy()
 
         # Create response
         response = Message(

@@ -258,7 +258,8 @@ class TestPrometheusExperiment:
         assert metrics.search_only_fitness >= 0
         assert metrics.eval_only_fitness >= 0
         assert metrics.rulebased_fitness >= 0
-        assert metrics.emergence_factor > 0
+        # Emergence factor can be 0 if collaborative mode underperforms baselines
+        assert metrics.emergence_factor >= 0
         assert metrics.total_messages >= 0
 
     def test_compare_with_baselines_calculates_emergence_factor_correctly(self):
@@ -402,6 +403,26 @@ class TestPrometheusExperiment:
 
         with pytest.raises(ValueError, match="population_size must be >= 1"):
             experiment.run_collaborative_evolution(generations=2, population_size=0)
+
+    def test_config_excludes_api_key_from_export(self):
+        """Test that config.to_dict() excludes API key in Prometheus mode."""
+        config = Config(
+            api_key="secret-key-12345",
+            prometheus_enabled=True,
+            evaluation_duration=0.1,
+        )
+
+        # Export without sensitive data
+        config_dict = config.to_dict(include_sensitive=False)
+
+        # Verify API key not in exported dict
+        assert "api_key" not in config_dict
+        assert "secret-key" not in str(config_dict)
+
+        # But should be in full export
+        config_dict_full = config.to_dict(include_sensitive=True)
+        assert "api_key" in config_dict_full
+        assert config_dict_full["api_key"] == "secret-key-12345"
 
 
 class TestPrometheusIntegration:

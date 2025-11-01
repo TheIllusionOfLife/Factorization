@@ -4,7 +4,7 @@ Implements synchronous message passing between agents with logging and statistic
 """
 
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from src.prometheus.agents import CognitiveCell, Message
 
@@ -70,7 +70,7 @@ class SimpleCommunicationChannel:
 
         return response
 
-    def get_communication_stats(self) -> Dict:
+    def get_communication_stats(self) -> Dict[str, Any]:
         """Get communication statistics.
 
         Returns:

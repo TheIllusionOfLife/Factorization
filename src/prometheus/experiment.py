@@ -97,6 +97,12 @@ class PrometheusExperiment:
 
         Raises:
             ValueError: If generations < 1 or population_size < 1
+
+        Note:
+            Agents are created fresh each time this method is called. Memory is not
+            persisted across multiple calls. This is intentional for Phase 1 MVP to
+            ensure clean, reproducible experiments. Future versions may support
+            persistent agent memory for multi-experiment learning.
         """
         if generations < 1:
             raise ValueError(f"generations must be >= 1, got {generations}")
