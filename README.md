@@ -253,6 +253,35 @@ python prototype.py --seed 42 --generations 3 --population 5 --duration 0.1
 
 **Note**: Without `--seed`, runs use non-deterministic randomness (different results each time). Slight fitness variations may occur even with the same seed due to timing differences in evaluation, but the evolutionary decisions (initialization, mutation, selection) remain identical.
 
+### Prometheus: Multi-Agent Cognitive Emergence (Phase 1 MVP)
+
+**Experimental feature**: Test dual-agent collaboration for strategy evolution using SearchSpecialist and EvaluationSpecialist agents.
+
+**Quick Start**:
+```bash
+# Collaborative mode: Dual-agent evolution
+python main.py --prometheus --prometheus-mode collaborative \
+  --generations 10 --population 10 --seed 1000 \
+  --export-metrics results/prometheus_collaborative.json
+
+# Baseline modes for comparison
+python main.py --prometheus --prometheus-mode search_only --generations 10 --population 10 --seed 1000
+python main.py --prometheus --prometheus-mode eval_only --generations 10 --population 10 --seed 1000
+```
+
+**Modes**:
+- `collaborative` (default): SearchSpecialist generates strategies, EvaluationSpecialist evaluates and provides feedback
+- `search_only`: SearchSpecialist generates strategies independently (no feedback loop)
+- `eval_only`: EvaluationSpecialist evaluates random strategies
+- Compare against traditional rule-based evolution to measure emergence benefits
+
+**CLI Arguments**:
+- `--prometheus`: Enable Prometheus multi-agent mode
+- `--prometheus-mode MODE`: Set mode (collaborative, search_only, eval_only)
+- `--max-api-cost DOLLARS`: Maximum API cost safety limit (default: 1.0)
+
+**Status**: Phase 1 MVP complete with 63 passing tests. See `prometheus_phase1_implementation_plan.md` for details.
+
 ### Meta-Learning for Adaptive Operator Selection
 
 Automatically adjusts reproduction operator rates (crossover/mutation/random) based on which operators produce elite strategies, eliminating manual hyperparameter tuning.

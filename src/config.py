@@ -286,6 +286,14 @@ class Config:
         if args.mutation_prob_add_filter is not None:
             overrides["mutation_prob_add_filter"] = args.mutation_prob_add_filter
 
+        # Prometheus parameters
+        if hasattr(args, "prometheus") and args.prometheus:
+            overrides["prometheus_enabled"] = True
+        if hasattr(args, "prometheus_mode") and args.prometheus_mode is not None:
+            overrides["prometheus_mode"] = args.prometheus_mode
+        if hasattr(args, "max_api_cost") and args.max_api_cost is not None:
+            overrides["max_api_cost"] = args.max_api_cost
+
         # Merge base + overrides and construct once (validation happens in __post_init__)
         # llm_enabled is already in base_dict (either from load_config() or set above)
         return cls(api_key=api_key, **{**base_dict, **overrides})
