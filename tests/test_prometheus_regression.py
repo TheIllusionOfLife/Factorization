@@ -123,7 +123,7 @@ def test_collaborative_vs_search_only_competitive():
     config = Config(
         api_key="test",
         prometheus_enabled=True,
-        evaluation_duration=0.2,  # Longer duration for more stable results
+        evaluation_duration=1.0,  # Long duration for very stable results (avoid timing variance)
         llm_enabled=False,
     )
 
