@@ -1,0 +1,92 @@
+# Pre-commit hooks configuration
+# Matches CI checks in .github/workflows/ci-python.yml
+#
+# Installation:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Usage:
+#   pre-commit run --all-files   # Run all hooks manually
+#   git commit                    # Hooks run automatically
+#
+# To bypass (emergency only):
+#   git commit --no-verify
+
+repos:
+  # Ruff linting and formatting (matches CI lint job)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.3
+    hooks:
+      # Ruff linter (matches: ruff check . --output-format=github)
+      - id: ruff
+        name: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi]
+
+      # Ruff formatter (matches: ruff format --check .)
+      - id: ruff-format
+        name: ruff-format
+        types_or: [python, pyi]
+
+  # Standard pre-commit hooks for code quality
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Remove trailing whitespace
+      - id: trailing-whitespace
+        exclude: ^tests/fixtures/
+
+      # Ensure files end with newline
+      - id: end-of-file-fixer
+        exclude: ^tests/fixtures/
+
+      # Check YAML files are valid
+      - id: check-yaml
+        args: [--safe]
+
+      # Check for merge conflict markers
+      - id: check-merge-conflict
+
+      # Check for large files (>500KB)
+      - id: check-added-large-files
+        args: [--maxkb=500]
+
+      # Prevent committing to main branch directly
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+
+  # Fast unit tests only (not integration tests)
+  # Excludes: slow tests, API tests, integration tests
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest-fast
+        entry: pytest
+        args:
+          - tests/
+          - -v
+          - --tb=short
+          - -m
+          - "not integration"
+          - --maxfail=3
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: false  # Only run if Python files changed
+
+  # Type checking with mypy (optional - may have false positives)
+  # Disabled by default to avoid blocking commits
+  # Enable with: pre-commit run mypy --all-files
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        name: mypy
+        args: [--ignore-missing-imports, --no-strict-optional]
+        additional_dependencies: [types-all]
+        stages: [manual]  # Disabled by default
+
+# Configuration
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+fail_fast: false  # Run all hooks even if one fails
