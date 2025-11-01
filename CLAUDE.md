@@ -792,7 +792,7 @@ Before declaring experiments complete:
   - PR #39: 3 iterations (initial fixes → CI fix → tracemalloc fix) = efficient resolution
   - Pattern: Critical → medium → low priority; run full test suite locally before push
 
-### Prometheus Timing Variance Investigation (PR #XX)
+### Prometheus Timing Variance Investigation (PR #42)
 - **False Positive Bug Report**: Old benchmark file showed 0 fitness for collaborative mode with 0.1s evaluation duration
 - **Root Cause Analysis**: Timing-based evaluation combined with short duration can legitimately produce 0 fitness
   - Random strategy generation + 0.1s evaluation + unlucky RNG seed = 0 candidates found (expected behavior)

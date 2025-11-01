@@ -570,7 +570,7 @@ See `pilot_results_negative_finding.md` for detailed analysis, validity threats,
 ### Last Updated: November 02, 2025 12:30 AM JST
 
 #### Recently Completed
-- ✅ **PR #XX**: Investigation of Prometheus Collaborative Mode "Zero Fitness" Issue
+- ✅ **PR #42**: Investigation of Prometheus Collaborative Mode "Zero Fitness" Issue
   - **Investigation**: Analyzed old benchmark file showing 0 fitness for collaborative mode
   - **Finding**: NO BUG EXISTS - 0 fitness was due to timing variance with very short evaluation (0.1s)
   - **Root Cause**: Random strategy generation + 0.1s evaluation + specific RNG seeds = 0 candidates (expected behavior)
