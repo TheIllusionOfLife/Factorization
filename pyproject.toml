@@ -69,6 +69,7 @@ python_functions = ["test_*"]
 addopts = "-v --tb=short"
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "slow: marks tests as slow (multi-mode tests that take 4x longer)",
 ]
 
 [tool.mypy]
