@@ -221,24 +221,12 @@ class EvaluationSpecialist(CognitiveCell):
 
         # Initialize crucible if needed
         if self.crucible is None or target_number != self.crucible.N:
-            print(f"[EvalAgent] Initializing crucible with N={target_number}")
             self.crucible = FactorizationCrucible(target_number)
-            print(
-                f"[EvalAgent] Crucible initialized: N={self.crucible.N}, root={self.crucible.search_space_root}"
-            )
 
         # Evaluate strategy
-        print(
-            f"[EvalAgent] Evaluating: power={strategy.power}, filters={len(strategy.modulus_filters)}, "
-            f"bound={strategy.smoothness_bound}, hits={strategy.min_small_prime_hits}"
-        )
         metrics = self.crucible.evaluate_strategy_detailed(
             strategy=strategy,
             duration_seconds=self.config.evaluation_duration,
-        )
-        print(
-            f"[EvalAgent] Results: candidates={metrics.candidate_count}, "
-            f"rejections={metrics.rejection_stats}"
         )
 
         # Generate feedback
