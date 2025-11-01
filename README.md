@@ -605,7 +605,7 @@ See `pilot_results_negative_finding.md` for detailed analysis, validity threats,
   - **Key**: Run tests locally after each fix, push once per iteration
 - **Magic Number Documentation**
   - **Issue**: Seed offsets (0, 1000, 2000, 3000) were hardcoded without explanation
-  - **Fix**: Extract to MODULE_SEED_OFFSETS constant with comment explaining RNG independence
+  - **Fix**: Extract to MODE_SEED_OFFSETS constant with comment explaining RNG independence
   - **Pattern**: All magic numbers should be named constants with explanatory comments
 
 #### Next Priority Tasks
