@@ -41,18 +41,30 @@ def load_experiment_results(
             with open(filepath) as f:
                 data = json.load(f)
 
-            # Extract final generation fitness (best of last generation)
-            metrics_history = data["metrics_history"]
-            if metrics_history:
-                final_gen_metrics = metrics_history[-1]
+            # Extract fitness - support both old and new formats
+            # New format (C1 validation): best_fitness or final_fitness
+            # Old format: metrics_history with candidate_count
+            if "metrics_history" in data and data["metrics_history"]:
+                # Old format: extract best fitness from last generation
+                final_gen_metrics = data["metrics_history"][-1]
                 final_fitness = max(m["candidate_count"] for m in final_gen_metrics)
                 fitness_values.append(final_fitness)
+            elif "best_fitness" in data:
+                # New format: best_fitness field
+                final_fitness = float(data["best_fitness"])
+                fitness_values.append(final_fitness)
+            elif "final_fitness" in data:
+                # Alternative new format: final_fitness field
+                final_fitness = float(data["final_fitness"])
+                fitness_values.append(final_fitness)
             else:
-                print(f"⚠️  Warning: No metrics history in {filepath.name}")
+                print(
+                    f"⚠️  Warning: No fitness data in {filepath.name} (missing metrics_history, best_fitness, and final_fitness)"
+                )
 
         except FileNotFoundError:
             print(f"❌ Error: Missing file {filepath.name}")
-        except (KeyError, json.JSONDecodeError) as e:
+        except (KeyError, json.JSONDecodeError, ValueError, TypeError) as e:
             print(f"❌ Error parsing {filepath.name}: {e}")
 
     return fitness_values
