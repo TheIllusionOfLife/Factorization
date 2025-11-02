@@ -74,7 +74,7 @@ This directory contains a comprehensive investigation into why Prometheus collab
 
 ### Performance Data
 
-```
+```text
 Collaborative:  61,919 fitness (WORST, -29% vs best)
 Search-only:    90,029 fitness (BEST, baseline)
 Eval-only:      86,435 fitness (-4%)

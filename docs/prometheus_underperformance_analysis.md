@@ -37,7 +37,7 @@ for _ in range(generations):
         if fitness > best_fitness:
             best_fitness = fitness
             best_strategy = strategy
-```
+```python
 
 **Key Mechanism**: Simple but effective - direct evaluation, automatic best-tracking.
 
@@ -57,7 +57,7 @@ for _ in range(generations):
         if fitness > best_fitness:
             best_fitness = fitness
             best_strategy = strategy
-```
+```python
 
 **Key Mechanism**: Same as search-only but evaluation goes through EvaluationSpecialist agent (message processing overhead, but same fundamental algorithm).
 
@@ -70,7 +70,7 @@ for _ in range(generations):
     if gen_fitness > best_fitness:
         best_fitness = gen_fitness
         best_strategy = gen_strategy
-```
+```python
 
 **Key Mechanism**: EvolutionaryEngine implements:
 - Elite selection (top 20%)
@@ -97,7 +97,7 @@ for gen in range(generations):
         if fitness > best_fitness:
             best_fitness = fitness
             best_strategy = strategy
-```
+```python
 
 **Critical Issue**: Despite generating 1200 messages and storing feedback, **no selection pressure** is applied. Each generation starts fresh with random strategies - there's no population evolution, no elite selection, no inherited information.
 
@@ -116,7 +116,7 @@ def process_request(self, message: Message) -> Message:
     strategy = self.strategy_generator.random_strategy()  # <-- ALWAYS RANDOM
 
     return Message(..., payload={"strategy": strategy}, ...)
-```
+```python
 
 **Problem**: The `process_request()` method **ignores all feedback**. Even though `_extract_feedback_context()` exists, it's never called. SearchSpecialist generates completely random strategies regardless of how it performed previously.
 
@@ -136,7 +136,7 @@ for gen in range(generations):
         fitness = evaluate(strategy)
         # Next iteration: search_agent.strategy_generator.random_strategy()
         # No elite selection, no inheritance
-```
+```python
 
 **Rule-based Baseline**:
 ```python
@@ -149,7 +149,7 @@ for _ in range(generations):
     # 3. Reproduce (crossover + mutation from elite)
     # 4. Add random newcomers (20%)
     # Next generation inherits traits from elite parents
-```
+```python
 
 **Result**: Rule-based searches through elite-guided parameter space. Collaborative mode searches through random parameter space (same as search-only but slower).
 
@@ -201,7 +201,7 @@ Result: search_only gets more evaluation iterations in same 300-second window.
 4. **Exploration-Exploitation Balance**: Elite selection provides guidance
 
 Rule-based evolutionary cycle (EvolutionaryEngine):
-```
+```python
 1. Evaluate all population
 2. Select elite (top 20%) - CREATE SELECTION PRESSURE
 3. Reproduce from elite:
@@ -209,17 +209,17 @@ Rule-based evolutionary cycle (EvolutionaryEngine):
    - Mutation (50%): Mutate single elite parent
    - Random (20%): Fresh diversity
 4. Return best individual
-```
+```python
 
 This creates a fitness landscape where high-fitness strategies have offspring, low-fitness strategies die out. Over 20 generations, the population converges to better regions.
 
 Collaborative mode:
-```
+```python
 1. Generate random strategy
 2. Evaluate
 3. Store feedback (unused)
 4. Repeat - no inherited information
-```
+```python
 
 This is unguided random search repeated 300 times (20 gen × 15 pop).
 
@@ -277,7 +277,7 @@ With `evaluation_duration=1.0s` per strategy evaluation:
 
 For each strategy generated (300 total strategies × 4 messages per strategy):
 
-```
+```python
 1. Orchestrator → SearchSpecialist: "strategy_request"
    SearchSpecialist.process_request()
    → generates random_strategy() [FEEDBACK NOT USED]
@@ -295,7 +295,7 @@ For each strategy generated (300 total strategies × 4 messages per strategy):
    → never retrieved or used
 
 4. Internal tracking: best_fitness = max(best_fitness, fitness)
-```
+```python
 
 ### The Fatal Design Flaw
 
@@ -307,7 +307,7 @@ For each strategy generated (300 total strategies × 4 messages per strategy):
 # This feedback is for Phase 2 LLM-guided generation.
 feedback_msg = Message(...)
 search_agent.memory.add_message(feedback_msg)  # <-- Stored here
-```
+```python
 
 **The Problem Explicitly Documented**:
 - Feedback is stored in memory
@@ -334,7 +334,7 @@ feedback_mechanism = None
 #   2. Evaluate directly
 #   3. Track best
 # Result: Simple, fast, no overhead
-```
+```python
 
 **Effective Algorithm**: Unguided random search with tracking
 
@@ -352,7 +352,7 @@ feedback_mechanism = Generated but unused
 #   3. Agent evaluates + generates feedback
 #   4. Track best
 # Result: Same algorithm but with ~10-15% overhead from message processing
-```
+```python
 
 **Effective Algorithm**: Unguided random search with message overhead
 
@@ -372,7 +372,7 @@ feedback_mechanism = Exists but unused (fatal flaw!)
 #   5. Track best
 #   BUT: Feedback never retrieved in step 1!
 # Result: 1200 messages exchanged, zero evolutionary benefit
-```
+```python
 
 **Effective Algorithm**: Unguided random search with maximum overhead
 
@@ -393,7 +393,7 @@ feedback_mechanism = Population state (implicit)
 #      - Random newcomers (20%)
 #   4. Track best across generations
 # Result: Directed evolution with selection pressure
-```
+```python
 
 **Effective Algorithm**: Elitism-based evolutionary search with feedback
 
@@ -410,14 +410,14 @@ The code comments reveal the intended design:
 # Phase 1 validates the multi-agent infrastructure with rule-based strategies.
 # Feedback context extraction will be used in Phase 2 for LLM-guided generation.
 strategy = self.strategy_generator.random_strategy()
-```
+```python
 
 **From experiment.py:174-176**:
 ```python
 # Note: Added directly to memory (not through channel) because
 # SearchSpecialist.process_request() only handles strategy_request.
 # This feedback is for Phase 2 LLM-guided generation.
-```
+```python
 
 **What Happened**:
 1. Phase 1 was designed as MVP to validate infrastructure
@@ -474,13 +474,13 @@ assert isinstance(best_fitness, (int, float))
 assert best_fitness >= 0
 assert best_strategy is not None
 assert isinstance(comm_stats, dict)
-```
+```python
 
 **From test_prometheus_regression.py:7-40**:
 ```python
 """Regression: collaborative mode must produce non-zero fitness..."""
 assert fitness > 0  # Not: fitness > baseline_fitness
-```
+```python
 
 **The Tests Validate**:
 - Code doesn't crash
@@ -552,7 +552,7 @@ class SearchSpecialist:
                 strategy = self.strategy_generator.random_strategy()
 
             return Message(payload={"strategy": strategy}, ...)
-```
+```python
 
 This requires:
 - LLM provider integration
@@ -580,7 +580,7 @@ class PrometheusExperiment:
 
             # STORE FOR NEXT GENERATION
             population.append(elite)
-```
+```python
 
 This requires:
 - Crossover operators for strategies
@@ -626,7 +626,7 @@ Current code is correct for Phase 1 MVP. Don't claim collaborative > baselines u
 
 ### How Collaborative Mode Works (Current)
 
-```
+```python
 PrometheusExperiment.run_collaborative_evolution(generations=20, population=15)
 │
 ├─ SearchSpecialist created (search-1)
@@ -659,11 +659,11 @@ Result: best_fitness = 61,919
 Messages: 1200 (300 individuals × 4 message types per individual)
 Feedback used: 0 (stored but never retrieved)
 Selection pressure: None (no elite selection)
-```
+```python
 
 ### How Search-only Works (Current)
 
-```
+```python
 PrometheusExperiment.run_independent_baseline("search_only", generations=20, population=15)
 │
 ├─ SearchSpecialist created
@@ -685,7 +685,7 @@ Result: best_fitness = 90,029 (+45% vs collaborative!)
 Messages: 0 (direct evaluation)
 Overhead: Minimal
 Selection pressure: None (but algorithm completes faster)
-```
+```python
 
 ### Key Difference
 

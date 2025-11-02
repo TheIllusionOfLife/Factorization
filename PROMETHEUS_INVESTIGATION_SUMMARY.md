@@ -56,7 +56,7 @@ The code comments explicitly state: **"LLM-guided generation with feedback is pl
 
 ### What Each Mode Actually Does
 
-```
+```python
 Search-only (90,029 - BEST):
   for i in range(300):
     strategy = random_strategy()
@@ -76,7 +76,7 @@ Rule-based (87,456):
     SELECT ELITE (top 20%) ← THE DIFFERENCE
     reproduce(elite)  ← mutation, crossover, selection
     track_best()
-```
+```python
 
 **Key Finding**: Search-only and collaborative do the **same algorithm** (unguided random search + tracking), but collaborative has message overhead and slower execution.
 

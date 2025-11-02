@@ -19,6 +19,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.statistics import StatisticalAnalyzer
 
+# Decision thresholds (extracted as named constants per CLAUDE.md)
+EMERGENCE_THRESHOLD_STRONG = 1.20  # >20% improvement for strong success
+EMERGENCE_THRESHOLD_MODERATE = 1.10  # 10-20% improvement for moderate success
+EMERGENCE_THRESHOLD_WEAK = 1.05  # 5-10% improvement for weak signal
+EMERGENCE_THRESHOLD_NEUTRAL = 1.00  # 0-5% improvement (no emergence)
+
+P_VALUE_THRESHOLD_HIGH = 0.01  # Highly significant
+P_VALUE_THRESHOLD_MODERATE = 0.05  # Significant
+P_VALUE_THRESHOLD_WEAK = 0.10  # Marginally significant
+
+COHENS_D_LARGE = 0.8  # Large effect size
+COHENS_D_MEDIUM = 0.5  # Medium effect size
+COHENS_D_SMALL = 0.3  # Small effect size
+
 
 def load_benchmark_results(
     results_dir: Path, pattern: str = "prometheus_*.json"
@@ -120,13 +134,13 @@ def print_summary_statistics(
             f"    median={np.median(ef_values):.4f}, min={np.min(ef_values):.4f}, max={np.max(ef_values):.4f}"
         )
 
-        if np.mean(ef_values) < 1.0:
+        if np.mean(ef_values) < EMERGENCE_THRESHOLD_NEUTRAL:
             print(
                 "    ⚠️  WARNING: Emergence factor < 1.0 indicates collaborative UNDERPERFORMS"
             )
-        elif np.mean(ef_values) < 1.05:
+        elif np.mean(ef_values) < EMERGENCE_THRESHOLD_WEAK:
             print("    ℹ️  Emergence factor < 1.05 indicates minimal/no emergence")
-        elif np.mean(ef_values) < 1.10:
+        elif np.mean(ef_values) < EMERGENCE_THRESHOLD_MODERATE:
             print("    ✓ Weak emergence signal (5-10% improvement)")
         else:
             print("    ✓✓ Strong emergence signal (>10% improvement)")
@@ -223,7 +237,11 @@ def make_recommendation(
     # Apply decision matrix
     print("Decision Matrix Application:\n")
 
-    if emergence_factor_mean >= 1.20 and p_value < 0.01 and cohens_d >= 0.8:
+    if (
+        emergence_factor_mean >= EMERGENCE_THRESHOLD_STRONG
+        and p_value < P_VALUE_THRESHOLD_HIGH
+        and cohens_d >= COHENS_D_LARGE
+    ):
         decision = "GO_PHASE_2_LLM"
         print("✅ **STRONG SUCCESS** → GO to Phase 2 LLM Integration")
         print("   - Collaborative shows strong emergence (>20% improvement)")
@@ -232,7 +250,11 @@ def make_recommendation(
         print("   - Estimated Cost: ~$0.10 for prompts, then ~$5 for Phase 2")
         print("   - Timeline: 2-3 hours prompt optimization, then 4 weeks Phase 2")
 
-    elif emergence_factor_mean >= 1.10 and p_value < 0.05 and cohens_d >= 0.5:
+    elif (
+        emergence_factor_mean >= EMERGENCE_THRESHOLD_MODERATE
+        and p_value < P_VALUE_THRESHOLD_MODERATE
+        and cohens_d >= COHENS_D_MEDIUM
+    ):
         decision = "GO_WITH_CAUTION"
         print("⚠️  **MODERATE SUCCESS** → GO with Caution (prompt engineering first)")
         print("   - Collaborative shows moderate emergence (10-20% improvement)")
@@ -241,7 +263,11 @@ def make_recommendation(
         print("   - Estimated Cost: ~$0.20 for prompt experiments")
         print("   - Timeline: 1 week prompt optimization, re-evaluate")
 
-    elif emergence_factor_mean >= 1.05 and p_value < 0.10 and cohens_d >= 0.3:
+    elif (
+        emergence_factor_mean >= EMERGENCE_THRESHOLD_WEAK
+        and p_value < P_VALUE_THRESHOLD_WEAK
+        and cohens_d >= COHENS_D_SMALL
+    ):
         decision = "CONDITIONAL_EXTEND"
         print("ℹ️  **WEAK SIGNAL** → Conditional (extend experiments)")
         print("   - Weak emergence signal (5-10% improvement)")
@@ -250,7 +276,7 @@ def make_recommendation(
         print("   - Estimated Cost: $0 (rule-based only)")
         print("   - Timeline: +1 week for extended benchmarks")
 
-    elif emergence_factor_mean >= 1.00:
+    elif emergence_factor_mean >= EMERGENCE_THRESHOLD_NEUTRAL:
         decision = "PIVOT_META_LEARNING"
         print("⛔ **NO EMERGENCE** → PIVOT to Meta-Learning")
         print("   - No meaningful emergence detected (0-5% improvement)")

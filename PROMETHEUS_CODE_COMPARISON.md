@@ -30,7 +30,7 @@ def run_independent_baseline(self, agent_type="search_only", ...):
                 best_strategy = strategy
 
     return best_fitness, best_strategy
-```
+```python
 
 ### Key Characteristics
 - **Strategy generation**: Direct, no agent communication
@@ -80,7 +80,7 @@ def run_independent_baseline(self, agent_type="eval_only", ...):
                 best_strategy = strategy
 
     return best_fitness, best_strategy
-```
+```python
 
 ### Key Characteristics
 - **Strategy generation**: Direct, no agent communication
@@ -173,7 +173,7 @@ def run_collaborative_evolution(self, generations=20, population_size=15, ...):
                 best_strategy = strategy
 
     return best_fitness, best_strategy, comm_stats
-```
+```python
 
 ### Key Characteristics
 - **Strategy generation**: Via agent (slower, overhead)
@@ -214,7 +214,7 @@ def process_request(self, message: Message) -> Message:
 
     # BUT IT'S NEVER CALLED!
     # The strategy generation is identical to search-only, just slower
-```
+```python
 
 ### Why It's Worse Than Search-only
 1. **Message overhead**: ~100ms per strategy vs. ~10ms in search-only
@@ -258,7 +258,7 @@ def run_independent_baseline(self, agent_type="rulebased", ...):
             best_strategy = gen_strategy
 
     return best_fitness, best_strategy
-```
+```python
 
 ### Key Characteristics
 - **Strategy generation**: Via elite selection + mutation/crossover
@@ -322,7 +322,7 @@ The comments in the code explain the architectural choice:
 # Note: LLM-guided generation with feedback is planned for Phase 2.
 # Phase 1 validates the multi-agent infrastructure with rule-based strategies.
 # Feedback context extraction will be used in Phase 2 for LLM-guided generation.
-```
+```python
 
 **Phase 1 Goals**:
 - ✅ Validate agent infrastructure works
