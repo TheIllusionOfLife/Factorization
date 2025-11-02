@@ -8,6 +8,7 @@ This module implements the core agent architecture:
 - EvaluationSpecialist: Evaluates strategies and provides feedback
 """
 
+import random
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -15,10 +16,15 @@ from typing import Any, Dict, List, Optional
 
 from src.config import Config
 from src.crucible import FactorizationCrucible
-from src.strategy import Strategy, StrategyGenerator
+from src.strategy import SMALL_PRIMES, Strategy, StrategyGenerator
 
 # Feedback context window for LLM-guided generation (Phase 2)
 FEEDBACK_HISTORY_LIMIT = 5
+
+# Preferred moduli for speed optimization filters
+# Using primes 7-23: large enough to avoid over-filtering (>5),
+# small enough for efficient residue checking (<29)
+PREFERRED_FILTER_MODULI = [7, 11, 13, 17, 19, 23]
 
 
 @dataclass
@@ -144,17 +150,39 @@ class SearchSpecialist(CognitiveCell):
     def process_request(self, message: Message) -> Message:
         """Process strategy request.
 
+        Handles two message types:
+        - strategy_request: Generate initial random strategy
+        - mutation_request: Generate feedback-guided mutation from parent
+
         Args:
-            message: Request message (should be strategy_request type)
+            message: Request message
 
         Returns:
             Response with generated strategy
         """
-        # Generate strategy (rule-based for Phase 1 MVP)
-        # Note: LLM-guided generation with feedback is planned for Phase 2.
-        # Phase 1 validates the multi-agent infrastructure with rule-based strategies.
-        # Feedback context extraction will be used in Phase 2 for LLM-guided generation.
-        strategy = self.strategy_generator.random_strategy()
+        # Extract feedback context from memory
+        feedback_context = self._extract_feedback_context()
+
+        # Determine strategy generation method based on message type
+        if message.message_type == "mutation_request":
+            # Mutation with parent context
+            parent_strategy = message.payload["parent_strategy"]
+
+            # Convert to Strategy object if needed (defensive coding)
+            if not isinstance(parent_strategy, Strategy):
+                parent_strategy = Strategy(**parent_strategy)
+
+            if feedback_context:
+                # Use feedback to guide mutation
+                strategy = self._generate_feedback_guided_strategy(
+                    feedback_context=feedback_context, parent_strategy=parent_strategy
+                )
+            else:
+                # No feedback yet: use random mutation
+                strategy = self.strategy_generator.mutate_strategy(parent_strategy)
+        else:
+            # Initial strategy request: always random
+            strategy = self.strategy_generator.random_strategy()
 
         # Create response
         response = Message(
@@ -175,9 +203,8 @@ class SearchSpecialist(CognitiveCell):
             List of feedback dictionaries
 
         Note:
-            This method is for Phase 2 LLM-guided strategy generation.
-            In Phase 1 MVP, all strategies are generated using rule-based methods.
-            The feedback collection infrastructure is in place for future use.
+            Used in C1 implementation for rule-based feedback-guided mutations.
+            Will be enhanced in Phase 2 (C2) for LLM-guided strategy generation.
         """
         feedback_messages = [
             msg
@@ -187,6 +214,202 @@ class SearchSpecialist(CognitiveCell):
             if msg.message_type == "feedback"
         ]
         return [msg.payload for msg in feedback_messages]
+
+    def _generate_feedback_guided_strategy(
+        self, feedback_context: List[Dict[str, Any]], parent_strategy: Strategy
+    ) -> Strategy:
+        """Generate strategy using rule-based mutations guided by feedback.
+
+        Analyzes last feedback to determine mutation direction:
+        - "slow" or "timeout" → reduce computational cost
+        - "low fitness" or "few candidates" → increase coverage
+        - "low smoothness" or "not smooth" → improve quality
+        - "good" or "excellent" → refinement mutations
+        - Otherwise → exploratory random mutation
+
+        Args:
+            feedback_context: List of feedback dictionaries from memory
+            parent_strategy: Base strategy to mutate
+
+        Returns:
+            Mutated strategy
+        """
+        # Get most recent feedback
+        last_feedback = feedback_context[-1]
+        feedback_text = last_feedback.get("feedback", "").lower()
+
+        # Parse feedback for guidance signals
+        if "slow" in feedback_text or "timeout" in feedback_text:
+            # Reduce computational cost
+            return self._mutate_for_speed(parent_strategy)
+        elif (
+            "low fitness" in feedback_text
+            or "few candidates" in feedback_text
+            or "low candidate" in feedback_text
+        ):
+            # Increase candidate generation
+            return self._mutate_for_coverage(parent_strategy)
+        elif (
+            "low smoothness" in feedback_text
+            or "not smooth" in feedback_text
+            or "smoothness too high" in feedback_text
+        ):
+            # Improve candidate quality
+            return self._mutate_for_quality(parent_strategy)
+        elif "good" in feedback_text or "excellent" in feedback_text:
+            # Fine-tune successful strategy
+            return self._mutate_refinement(parent_strategy)
+        else:
+            # No clear signal: exploratory mutation
+            return self.strategy_generator.mutate_strategy(parent_strategy)
+
+    def _mutate_for_speed(self, strategy: Strategy) -> Strategy:
+        """Reduce power or increase filters to speed up evaluation.
+
+        Strategy:
+        - Lower power reduces candidate generation cost (x^power)
+        - More filters reduce candidates passing through pipeline
+
+        Args:
+            strategy: Base strategy
+
+        Returns:
+            Mutated strategy optimized for speed
+        """
+        new_strategy = strategy.copy()  # Preserves _config for proper normalization
+
+        # Reduce power if possible
+        if strategy.power > 2:
+            new_strategy.power = strategy.power - 1
+
+        # Add filter to reduce candidates
+        if len(strategy.modulus_filters) < 4:
+            # Choose modulus not already in use
+            existing_moduli = {f[0] for f in strategy.modulus_filters}
+            available_moduli = [
+                m for m in PREFERRED_FILTER_MODULI if m not in existing_moduli
+            ]
+
+            if available_moduli:
+                new_modulus = random.choice(available_moduli)
+                # Add filter with 2 residues (moderate selectivity)
+                new_residues = [0, random.randint(1, new_modulus - 1)]
+                new_strategy.modulus_filters.append((new_modulus, new_residues))
+
+        return new_strategy
+
+    def _mutate_for_coverage(self, strategy: Strategy) -> Strategy:
+        """Increase power or reduce filters to find more candidates.
+
+        Strategy:
+        - Higher power generates more diverse candidates
+        - Fewer filters let more candidates through
+
+        Args:
+            strategy: Base strategy
+
+        Returns:
+            Mutated strategy optimized for coverage
+        """
+        new_strategy = strategy.copy()  # Preserves _config for proper normalization
+
+        # Increase power if possible
+        if strategy.power < 5:
+            new_strategy.power = strategy.power + 1
+
+        # Remove a filter to increase candidates
+        if len(strategy.modulus_filters) > 1:
+            new_strategy.modulus_filters.pop()
+
+        return new_strategy
+
+    def _mutate_for_quality(self, strategy: Strategy) -> Strategy:
+        """Adjust smoothness bounds to improve candidate quality.
+
+        Strategy:
+        - Higher smoothness_bound checks more primes (finds smoother numbers)
+        - Higher min_hits requires more small factors
+
+        Args:
+            strategy: Base strategy
+
+        Returns:
+            Mutated strategy optimized for quality
+        """
+        new_strategy = strategy.copy()  # Preserves _config for proper normalization
+
+        # Increase smoothness bound (check more primes)
+        try:
+            current_idx = SMALL_PRIMES.index(strategy.smoothness_bound)
+            if current_idx < len(SMALL_PRIMES) - 1:
+                new_strategy.smoothness_bound = SMALL_PRIMES[current_idx + 1]
+        except ValueError:
+            # If bound not in SMALL_PRIMES, find next higher
+            higher_primes = [p for p in SMALL_PRIMES if p > strategy.smoothness_bound]
+            if higher_primes:
+                new_strategy.smoothness_bound = higher_primes[0]
+
+        # Increase min hits requirement
+        if strategy.min_small_prime_hits < 6:
+            new_strategy.min_small_prime_hits = strategy.min_small_prime_hits + 1
+
+        return new_strategy
+
+    def _mutate_refinement(self, strategy: Strategy) -> Strategy:
+        """Make small mutations to refine successful strategy.
+
+        Strategy:
+        - Randomly choose one aspect to refine
+        - Make minimal changes (±1 adjustments)
+        - Explore neighborhood of successful configuration
+
+        Args:
+            strategy: Base strategy
+
+        Returns:
+            Refined strategy with small variations
+        """
+        new_strategy = strategy.copy()  # Preserves _config for proper normalization
+        mutation_choice = random.choice(["filter", "hits", "bound"])
+
+        if mutation_choice == "filter" and strategy.modulus_filters:
+            # Modify one filter's residues
+            idx = random.randrange(len(strategy.modulus_filters))
+            modulus, residues = strategy.modulus_filters[idx]
+            new_residues = residues[:]  # Copy residues
+
+            # Add or remove one residue (50/50)
+            if len(new_residues) < 3 and random.random() < 0.5:
+                # Add residue
+                new_res = random.randint(0, modulus - 1)
+                # Only add if not duplicate (fixes potential duplicate residue issue)
+                if new_res not in new_residues:
+                    new_residues.append(new_res)
+            elif len(new_residues) > 1:
+                # Remove residue
+                new_residues.pop()
+
+            new_strategy.modulus_filters[idx] = (modulus, sorted(new_residues))
+
+        elif mutation_choice == "hits":
+            # Small adjustment to min_hits (±1)
+            delta = random.choice([-1, 1])
+            new_strategy.min_small_prime_hits = max(
+                1, min(6, strategy.min_small_prime_hits + delta)
+            )
+
+        else:  # "bound"
+            # Move smoothness_bound up or down one step
+            try:
+                current_idx = SMALL_PRIMES.index(strategy.smoothness_bound)
+                delta = random.choice([-1, 1])
+                new_idx = max(0, min(len(SMALL_PRIMES) - 1, current_idx + delta))
+                new_strategy.smoothness_bound = SMALL_PRIMES[new_idx]
+            except ValueError:
+                # If not in SMALL_PRIMES, keep unchanged
+                pass
+
+        return new_strategy
 
 
 class EvaluationSpecialist(CognitiveCell):
