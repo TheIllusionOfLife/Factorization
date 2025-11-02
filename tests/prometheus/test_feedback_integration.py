@@ -3,11 +3,7 @@
 This module tests the C1 implementation where SearchSpecialist uses
 feedback from EvaluationSpecialist to guide rule-based mutations.
 
-NOTE: Tests marked with @pytest.mark.xfail are for features not yet implemented.
-They document the expected behavior and will pass once implementation is complete.
 """
-
-import pytest
 
 from src.config import Config
 from src.prometheus.agents import FEEDBACK_HISTORY_LIMIT, Message, SearchSpecialist
@@ -267,9 +263,6 @@ class TestFeedbackGuidedMutations:
             > base_strategy.min_small_prime_hits
         )
 
-    @pytest.mark.xfail(
-        reason="Feedback-guided mutations not yet implemented (C1 implementation pending)"
-    )
     def test_feedback_guided_mutation_coverage(self):
         """SearchSpecialist increases power when few candidates found."""
         config = Config(api_key="test")
@@ -316,9 +309,6 @@ class TestFeedbackGuidedMutations:
             mutated_strategy.modulus_filters
         ) < len(base_strategy.modulus_filters)
 
-    @pytest.mark.xfail(
-        reason="Feedback-guided mutations not yet implemented (C1 implementation pending)"
-    )
     def test_feedback_guided_mutation_refinement(self):
         """SearchSpecialist makes small changes when performance good."""
         config = Config(api_key="test")
