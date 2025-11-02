@@ -10,8 +10,8 @@ They document the expected behavior and will pass once implementation is complet
 import pytest
 
 from src.config import Config
-from src.prometheus.agents import Message, SearchSpecialist
-from src.strategy import Strategy
+from src.prometheus.agents import FEEDBACK_HISTORY_LIMIT, Message, SearchSpecialist
+from src.strategy import SMALL_PRIMES, Strategy
 
 
 class TestFeedbackExtraction:
@@ -63,7 +63,7 @@ class TestFeedbackExtraction:
         config = Config(api_key="test")
         agent = SearchSpecialist("test-agent", config)
 
-        # Add more messages than limit (FEEDBACK_HISTORY_LIMIT=5)
+        # Add more messages than limit
         for i in range(10):
             feedback_msg = Message(
                 sender_id="eval",
@@ -85,10 +85,10 @@ class TestFeedbackExtraction:
 
         context = agent._extract_feedback_context()
 
-        # Should only return last 5
-        assert len(context) == 5
-        assert context[0]["feedback"] == "Feedback 5"
-        assert context[4]["feedback"] == "Feedback 9"
+        # Should only return last FEEDBACK_HISTORY_LIMIT messages
+        assert len(context) == FEEDBACK_HISTORY_LIMIT
+        assert context[0]["feedback"] == f"Feedback {10 - FEEDBACK_HISTORY_LIMIT}"
+        assert context[FEEDBACK_HISTORY_LIMIT - 1]["feedback"] == "Feedback 9"
 
     def test_extract_feedback_context_ignores_other_messages(self):
         """Only extracts feedback messages, ignores other types."""
@@ -394,7 +394,7 @@ class TestFeedbackGuidedMutations:
         # Should generate a valid random strategy
         assert isinstance(strategy, Strategy)
         assert 2 <= strategy.power <= 5
-        assert strategy.smoothness_bound in [3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
+        assert strategy.smoothness_bound in SMALL_PRIMES
         assert 1 <= strategy.min_small_prime_hits <= 6
 
     def test_mutation_request_handled_separately(self):
