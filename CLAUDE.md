@@ -89,12 +89,6 @@ make type-check    # Run mypy type checking
 - mypy: Type checking (optional, may have false positives)
 ```
 
-**Pre-commit hooks** run automatically on `git commit`:
-- Hooks match CI checks exactly (except integration tests excluded for speed)
-- Block commits that would fail CI
-- Run in <10 seconds for typical commits
-- Bypass with `git commit --no-verify` (emergency only)
-
 ### Setup
 
 **Install dependencies**:
@@ -283,18 +277,7 @@ Automatically adapts operator selection rates based on performance via UCB1 algo
 - Five mutation types: power, add_filter, modify_filter, remove_filter, adjust_smoothness
 - Field validation: Ensures residues < modulus, power in [2,5], etc.
 
-### Configuration (src/config.py)
-
-**Config dataclass**:
-- `api_key`: Gemini API key from environment
-- `max_llm_calls`: Limit on API calls per run (default: 100)
-- `temperature_base`: Starting temperature for exploitation (default: 0.8)
-- `temperature_max`: Starting temperature for exploration (default: 1.2)
-- `temperature_scaling_generations`: Generations to scale from max→base (default: 10)
-
-**Validation**: Raises ValueError if LLM enabled but API key missing (fail-fast pattern)
-
-## Configuration Management System
+## Configuration Management System (src/config.py)
 
 Centralized `Config` dataclass (`src/config.py`) eliminates magic numbers via single source of truth for all tunable parameters.
 
@@ -389,18 +372,6 @@ if len(self.generator.fitness_history) > 5:
 
 ## Testing Patterns
 
-### Test Coverage Summary
-
-**Total Tests**: 339 comprehensive tests ensuring code quality and reliability
-
-**Test Organization**:
-1. **CLI End-to-End Tests** (27 tests) - User workflow validation via subprocess
-2. **Meta-Learning Edge Cases** (25 tests) - UCB1, rate normalization, statistics
-3. **Timing & Performance** (13 tests) - Overhead, extreme durations, consistency
-4. **Comparison Integration** (11 tests) - Baseline strategies, RNG isolation
-5. **Statistical Analysis** (24 tests) - t-tests, effect sizes, CI, convergence
-6. **Core Functionality** (239 tests) - Config, strategies, evolution, crossover, etc.
-
 ### CLI End-to-End Tests (tests/test_cli.py)
 
 **Purpose**: Validate complete user workflows via subprocess calls to main.py
@@ -475,29 +446,10 @@ if len(self.generator.fitness_history) > 5:
 - Warnings about precision loss expected for identical data
 
 **Key Patterns**:
-```python
-# Use sys.executable for cross-platform compatibility
-import sys
-cmd = [sys.executable, "main.py"] + list(args)
-
-# Validate JSON structure after export
-with open(export_path) as f:
-    data = json.load(f)
-assert "target_number" in data
-assert "metrics_history" in data
-assert "api_key" not in data["config"]  # Security check
-
-# Test error handling
-result = subprocess.run(cmd, capture_output=True, check=False)
-assert result.returncode == 1
-assert "ERROR" in (result.stdout + result.stderr)
-```
-
-**Local vs CI Environment Differences**:
-- **Pattern**: Tests may behave differently locally vs CI due to `.env` file presence
-- **Example**: `test_llm_mode_without_api_key` removes `GEMINI_API_KEY` from its test environment, but the application's startup logic reloads it from a local `.env` file if one exists
-- **Solution**: This is expected behavior - tests should pass in CI (where `.env` doesn't exist) which validates the actual error handling
-- **Why**: Local development legitimately uses `.env` for configuration; CI validates the error path when no configuration exists
+- Use `sys.executable` for cross-platform subprocess calls
+- Validate JSON structure after export (check keys, exclude sensitive data)
+- Test error handling with `capture_output=True, check=False` pattern
+- Local vs CI differences: Tests may behave differently due to `.env` file presence (expected)
 
 ### Integration Tests (tests/test_integration.py)
 
@@ -550,165 +502,19 @@ Typical prototype costs:
 6. **Push to GitHub** and create PR (never push to main)
 7. **Verify CI passes** before requesting review
 
-**Pre-commit Hook Workflow**:
-- Hooks run automatically on `git commit`
-- If hooks fail, commit is blocked with error message
-- Fix the issues (use `make format`, `make lint`, or fix tests)
-- Stage fixes with `git add`
-- Retry commit (hooks will re-run)
-- Emergency bypass: `git commit --no-verify` (use sparingly)
-
 ## Research Validation Workflow
 
-### Overview
-Systematic hypothesis verification following pre-registered methodology to validate LLM-guided evolution vs rule-based approaches.
+Systematic hypothesis verification using pre-registered methodology to validate LLM-guided vs rule-based evolution. See `docs/research_methodology.md` for complete protocols.
 
-### Documentation Structure
+**Experimental Phases**: Quick validation (10-15 runs) → Documentation sprint → Full validation (30 runs rule-based, 15 LLM, budget ~$3) → Analysis & reporting
 
-**Pre-Experiment Documentation** (Phase 2):
-- `research_methodology.md`: Formal hypotheses, experimental design, power analysis, pre-registered analysis plan
-- `theoretical_foundation.md`: GNFS background, evolutionary algorithm theory, LLM rationale, parameter interactions
-- `results_template.md`: Template for reporting results with standardized tables, figures, interpretation guidelines
+**Statistical Analysis**: Use `StatisticalAnalyzer` and `ConvergenceDetector` from `src/statistics.py` for Welch's t-test, Cohen's d, 95% CI. Decision rule: Reject H₀ if p<0.05 AND d≥0.5.
 
-**Post-Experiment Documentation** (Phase 4):
-- `results_summary.md`: Executive summary with key findings, conclusions, practical recommendations
-- `figures/`: Publication-quality visualizations (6 core figures: trajectories, comparisons, effect sizes, convergence, learning curves, cost-benefit)
-- Filled `results_template.md`: Complete statistical analysis with all [FILL] placeholders replaced
+**Reproducibility**: Seed ranges by phase (Phase 1: 42-104, Phase 3: 1000-3009). Python 3.9+, key deps: google-genai≥0.2.0, scipy≥1.9.0. Results in `results/` as `{mode}_run_{seed}.json`.
 
-### Experimental Phases
+**Success Criteria**: Minimum (rule-based beats ≥2/3 baselines, p<0.05) | Target (LLM beats rule-based, d≥0.5, p<0.05) | Exceptional (d≥0.8, p<0.01, novel patterns)
 
-**Phase 1: Quick Validation** (Days 1-3)
-- **Baseline validation**: 10 runs × 20 gen × 20 pop, rule-based only ($0 cost)
-- **LLM proof-of-concept**: 5 runs × 15 gen × 15 pop (~$0.10-0.20)
-- **Decision point**: Proceed if p<0.2 OR d>0.3 (positive signal)
-
-**Phase 2: Documentation Sprint** (Days 4-10, parallel with Phase 1)
-- Pre-register hypotheses and analysis plan BEFORE Phase 3
-- Document theoretical foundation and expected mechanisms
-- Prepare results template for systematic reporting
-
-**Phase 3: Full Validation** (Days 11-21)
-- **Rule-based comprehensive**: 30 runs × 30 gen × 30 pop × 1.0s ($0)
-- **LLM strategic sampling**: 15 runs × 30 gen × 30 pop × 1.0s (~$1.50-2.00)
-- **Meta-learning test**: 10 runs × 30 gen × 30 pop × 1.0s (~$1.00)
-- **Total budget**: ~$2.50-3.50 (well under $20 limit)
-
-**Phase 4: Analysis & Reporting** (Days 22-28)
-- Aggregate results, statistical tests (Welch's t-test, Cohen's d, 95% CI)
-- Generate all 6 publication-quality figures
-- Fill results template, write executive summary
-- Document limitations and future directions
-
-### Statistical Analysis Workflow
-
-**Primary Hypothesis Testing**:
-```bash
-# Using StatisticalAnalyzer from src/statistics.py
-result = StatisticalAnalyzer().compare_fitness_distributions(
-    evolved_scores=[final_fitness for run in llm_runs],
-    baseline_scores=[final_fitness for run in rulebased_runs]
-)
-# Returns: p_value, effect_size (Cohen's d), confidence_interval, significance
-```
-
-**Decision Rules**:
-- Reject H₀ if: p < 0.05 AND d ≥ 0.5 (medium effect)
-- Report both statistical (p-value) and practical (effect size) significance
-- Use Bonferroni correction for multiple baseline comparisons (α/3 = 0.0167)
-
-**Convergence Analysis**:
-```bash
-# Using ConvergenceDetector from src/statistics.py
-detector = ConvergenceDetector(window_size=5, threshold=0.05)
-gen_converged = detector.generations_to_convergence(fitness_history)
-```
-
-### Reproducibility Requirements
-
-**Seed Management**:
-- Phase 1 Rule-based: seeds 42-51 (10 runs)
-- Phase 1 LLM: seeds 100-104 (5 runs)
-- Phase 3 Rule-based: seeds 1000-1029 (30 runs)
-- Phase 3 LLM: seeds 2000-2014 (15 runs)
-- Phase 3 Meta: seeds 3000-3009 (10 runs)
-
-**Environment Specification**:
-- Python 3.9+ (CI tests on 3.9, 3.10, 3.11)
-- Key dependencies: google-genai>=0.2.0, scipy>=1.9.0, pydantic>=2.0.0
-- Hardware: Apple Silicon M-series, 16GB+ RAM recommended
-
-**Data Archival**:
-- All results stored in `results/` directory (git-ignored)
-- Naming convention: `{mode}_run_{seed}.json`
-- Includes full config, metrics_history, operator_history for reproducibility
-
-### Success Criteria
-
-**Minimum Success** (validates framework):
-- Rule-based evolution beats ≥2/3 baselines (p<0.05)
-- Results reproducible (same seed → same outcome)
-- Documentation complete and clear
-
-**Target Success** (validates LLM hypothesis):
-- LLM beats rule-based with d≥0.5 (medium effect)
-- p<0.05 statistical significance
-- Results hold across multiple baselines
-
-**Exceptional Success** (publication-ready):
-- LLM beats rule-based with d≥0.8 (large effect)
-- p<0.01 strong significance
-- Meta-learning shows additional benefit
-- Novel strategy patterns discovered
-
-### Common Commands
-
-**Run experiments**:
-```bash
-# Phase 1: Baseline validation
-python main.py --compare-baseline --num-comparison-runs 10 \
-  --generations 20 --population 20 --duration 0.5 --seed 42 \
-  --export-comparison results/baseline_validation.json
-
-# Phase 1: LLM pilot
-python main.py --llm --compare-baseline --num-comparison-runs 5 \
-  --generations 15 --population 15 --duration 0.5 --seed 100 \
-  --export-comparison results/llm_pilot.json
-
-# Phase 3: Rule-based comprehensive (loop over seeds 1000-1029)
-for seed in {1000..1029}; do
-  python main.py --compare-baseline --num-comparison-runs 1 \
-    --generations 30 --population 30 --duration 1.0 --seed $seed \
-    --export-comparison results/rulebased_run_${seed}.json
-done
-
-# Phase 3: LLM strategic sampling (loop over seeds 2000-2014)
-for seed in {2000..2014}; do
-  python main.py --llm --compare-baseline --num-comparison-runs 1 \
-    --generations 30 --population 30 --duration 1.0 --seed $seed \
-    --export-comparison results/llm_run_${seed}.json
-done
-```
-
-**Analyze results**:
-```bash
-# Create aggregation script
-python scripts/aggregate_results.py
-
-# Open Jupyter notebooks for visualization
-jupyter notebook analysis/visualize_comparison.ipynb
-```
-
-### Critical Validation Checks
-
-Before declaring experiments complete:
-- [ ] All planned runs completed (check N_valid = N_planned)
-- [ ] No systematic failures (failed runs <10%)
-- [ ] Normality assumptions checked (Shapiro-Wilk test)
-- [ ] Outliers identified and policy documented
-- [ ] All statistical tests run with correct parameters
-- [ ] All figures generated and interpretable
-- [ ] Results template completely filled (no [FILL] remaining)
-- [ ] Conclusions directly answer pre-registered hypotheses
+**Common Commands**: See `docs/research_methodology.md` for experiment run commands and analysis workflow
 
 ## Critical Learnings
 
@@ -772,39 +578,20 @@ Before declaring experiments complete:
 - **Makefile-based CI**: Convenient targets (`make ci`, `make ci-fast`) reduce friction for local validation
 
 ### Prometheus Phase 1 Integration & Benchmarking (PR #39)
-- **Resource Initialization Pattern**: Always check state before initializing stateful resources
-  - **Critical Bug**: `tracemalloc.start()` crashes with RuntimeError if called when already tracing
-  - **Fix**: `if not tracemalloc.is_tracing(): tracemalloc.start()`
-  - **Applies to**: File handles, database connections, any non-idempotent initialization
-  - **Pattern**: Check state → initialize → track lifecycle
-- **Test Reproducibility Documentation**: Document what tests verify vs what users assume
-  - Don't claim "consistent results" when tests only verify "structural validity"
-  - Timing-based evaluation means fitness varies - test structure (strategy params, message counts)
-  - Pattern: Be explicit about documented variance in test docstrings
-- **Zero Fitness Edge Cases**: Accept legitimate edge cases in timing-based evaluation
-  - search_only/eval_only modes may produce zero fitness with unlucky random strategies
-  - Solution: `assert fitness >= 0` not `fitness > 0`
-  - Applies whenever: random initialization + short evaluation duration + strict criteria
-- **Magic Number Documentation**: All magic numbers → named constants with explanatory comments
-  - Example: Seed offsets (0, 1000, 2000, 3000) → `MODE_SEED_OFFSETS` dict with RNG independence comment
-  - Pattern: Extract constant, add comment explaining why these specific values
-- **Review Iteration Efficiency**: Group fixes by priority, test locally, push once per iteration
-  - PR #39: 3 iterations (initial fixes → CI fix → tracemalloc fix) = efficient resolution
-  - Pattern: Critical → medium → low priority; run full test suite locally before push
+- **Resource Initialization**: Check state before init: `if not tracemalloc.is_tracing(): tracemalloc.start()` (prevents RuntimeError on re-init)
+- **Test Documentation**: Document timing variance as expected behavior, not claims of exact reproducibility
+- **Zero Fitness Edge Cases**: `assert fitness >= 0` not `> 0` (random init + short duration can legitimately produce zero)
+- **Magic Numbers**: Extract to named constants with explanatory comments (e.g., `MODE_SEED_OFFSETS` for RNG independence)
 
 ### Prometheus Timing Variance Investigation (PR #42)
-- **False Positive Bug Report**: Old benchmark file showed 0 fitness for collaborative mode with 0.1s evaluation duration
-- **Root Cause Analysis**: Timing-based evaluation combined with short duration can legitimately produce 0 fitness
-  - Random strategy generation + 0.1s evaluation + unlucky RNG seed = 0 candidates found (expected behavior)
-  - With 0.5-1.0s evaluation, same seeds consistently produce non-zero fitness
-  - Timing variance is documented, expected behavior for the system
-- **Pattern: Distinguishing Bugs from Expected Variance**:
-  - Short evaluation durations (0.1s) can produce high variance in results due to timing sensitivity
-  - Increase evaluation duration in regression tests (0.5-1.0s) to test fundamental correctness, not timing sensitivity
-  - Document timing variance as expected behavior in test docstrings
-  - Don't mistake legitimate edge cases for bugs - verify with multiple configurations first
-- **Regression Tests**: Added 4 tests with appropriate evaluation durations to prevent future false bug reports
-  - test_collaborative_mode_nonzero_fitness (0.5s) - verifies mode works with sufficient time
-  - test_search_only_mode_nonzero_fitness (0.1s) - baseline verification
-  - test_collaborative_mode_multiple_seeds (1.0s, 3 seeds) - robustness across RNG states
-  - test_collaborative_vs_search_only_competitive (0.2s) - comparative performance
+- **Timing Variance NOT a Bug**: Short evaluation (0.1s) + random init + unlucky RNG can legitimately produce 0 fitness
+- **Solution**: Use longer durations (0.5-1.0s) in regression tests to test correctness, not timing sensitivity
+- **Regression Tests**: Added 4 tests with varied durations to prevent false bug reports
+
+### C1 Validation and Cross-Version Testing (PR #47)
+- **Python RNG Cross-Version**: Seed 42 fails on Python 3.9 but works on 3.10+. Solution: Use seed 100 that works across all versions. Never assume seed reproducibility across Python versions in timing-based tests.
+- **Strategy.copy() Config Propagation**: Use `strategy.copy()` not `copy.deepcopy()` to preserve `_config` field needed for normalization in `__post_init__()`.
+- **Feedback-Guided Mutations**: Keyword parsing (slow→speed, low fitness→coverage, low smoothness→quality, good→refinement) maps feedback to 4 mutation strategies with clear trade-offs.
+- **Statistical Testing**: Emergence factor = collaborative_mean/max(baselines), requires >1.1 + p<0.05 + d≥0.5. H1a result: 0.95, p=0.58, d=-0.58 → NOT supported (collaborative underperformed by 4.6%).
+- **JSON Compatibility**: Graceful fallback checking `metrics_history` → `best_fitness` → `final_fitness` with warnings, supports evolving formats.
+- **Test Thresholds**: Increased ratio from 100x to 500x based on empirical RNG variance in small runs, detects bugs while tolerating legitimate variance.
