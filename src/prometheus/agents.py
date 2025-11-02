@@ -8,7 +8,6 @@ This module implements the core agent architecture:
 - EvaluationSpecialist: Evaluates strategies and provides feedback
 """
 
-import copy
 import random
 import time
 from abc import ABC, abstractmethod
@@ -17,10 +16,15 @@ from typing import Any, Dict, List, Optional
 
 from src.config import Config
 from src.crucible import FactorizationCrucible
-from src.strategy import Strategy, StrategyGenerator
+from src.strategy import SMALL_PRIMES, Strategy, StrategyGenerator
 
 # Feedback context window for LLM-guided generation (Phase 2)
 FEEDBACK_HISTORY_LIMIT = 5
+
+# Preferred moduli for speed optimization filters
+# Using primes 7-23: large enough to avoid over-filtering (>5),
+# small enough for efficient residue checking (<29)
+PREFERRED_FILTER_MODULI = [7, 11, 13, 17, 19, 23]
 
 
 @dataclass
@@ -272,7 +276,7 @@ class SearchSpecialist(CognitiveCell):
         Returns:
             Mutated strategy optimized for speed
         """
-        new_strategy = copy.deepcopy(strategy)
+        new_strategy = strategy.copy()  # Preserves _config for proper normalization
 
         # Reduce power if possible
         if strategy.power > 2:
@@ -283,7 +287,7 @@ class SearchSpecialist(CognitiveCell):
             # Choose modulus not already in use
             existing_moduli = {f[0] for f in strategy.modulus_filters}
             available_moduli = [
-                m for m in [7, 11, 13, 17, 19, 23] if m not in existing_moduli
+                m for m in PREFERRED_FILTER_MODULI if m not in existing_moduli
             ]
 
             if available_moduli:
@@ -307,7 +311,7 @@ class SearchSpecialist(CognitiveCell):
         Returns:
             Mutated strategy optimized for coverage
         """
-        new_strategy = copy.deepcopy(strategy)
+        new_strategy = strategy.copy()  # Preserves _config for proper normalization
 
         # Increase power if possible
         if strategy.power < 5:
@@ -332,9 +336,7 @@ class SearchSpecialist(CognitiveCell):
         Returns:
             Mutated strategy optimized for quality
         """
-        from src.strategy import SMALL_PRIMES
-
-        new_strategy = copy.deepcopy(strategy)
+        new_strategy = strategy.copy()  # Preserves _config for proper normalization
 
         # Increase smoothness bound (check more primes)
         try:
@@ -367,9 +369,7 @@ class SearchSpecialist(CognitiveCell):
         Returns:
             Refined strategy with small variations
         """
-        from src.strategy import SMALL_PRIMES
-
-        new_strategy = copy.deepcopy(strategy)
+        new_strategy = strategy.copy()  # Preserves _config for proper normalization
         mutation_choice = random.choice(["filter", "hits", "bound"])
 
         if mutation_choice == "filter" and strategy.modulus_filters:
@@ -382,6 +382,7 @@ class SearchSpecialist(CognitiveCell):
             if len(new_residues) < 3 and random.random() < 0.5:
                 # Add residue
                 new_res = random.randint(0, modulus - 1)
+                # Only add if not duplicate (fixes potential duplicate residue issue)
                 if new_res not in new_residues:
                     new_residues.append(new_res)
             elif len(new_residues) > 1:
