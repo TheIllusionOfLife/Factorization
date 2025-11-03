@@ -12,11 +12,11 @@ import random
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from src.config import Config
 from src.crucible import FactorizationCrucible
-from src.strategy import SMALL_PRIMES, Strategy, StrategyGenerator
+from src.strategy import SMALL_PRIMES, LLMStrategyGenerator, Strategy, StrategyGenerator
 
 # Feedback context window for LLM-guided generation (Phase 2)
 FEEDBACK_HISTORY_LIMIT = 5
@@ -133,19 +133,31 @@ class CognitiveCell(ABC):
 class SearchSpecialist(CognitiveCell):
     """Agent specialized in generating novel strategies.
 
-    Uses rule-based mutations or LLM-guided generation to create strategies,
-    incorporating feedback from EvaluationSpecialist.
+    Supports two modes:
+    - C1 (rule-based): Uses feedback heuristics for mutations
+    - C2 (LLM-guided): Uses Gemini LLM with feedback for mutations
+
+    Incorporating feedback from EvaluationSpecialist in both modes.
     """
 
-    def __init__(self, agent_id: str, config: Config):
+    def __init__(self, agent_id: str, config: Config, llm_provider=None):
         """Initialize SearchSpecialist.
 
         Args:
             agent_id: Unique identifier
             config: Configuration object
+            llm_provider: Optional LLM provider for C2 mode (None = C1 mode)
         """
         super().__init__(agent_id, config)
-        self.strategy_generator = StrategyGenerator(config=config)
+        # Use LLMStrategyGenerator if provider given, else basic generator
+        if llm_provider is not None:
+            self.strategy_generator: Union[StrategyGenerator, LLMStrategyGenerator] = (
+                LLMStrategyGenerator(config=config, llm_provider=llm_provider)
+            )
+            self.llm_mode = True
+        else:
+            self.strategy_generator = StrategyGenerator(config=config)
+            self.llm_mode = False
 
     def process_request(self, message: Message) -> Message:
         """Process strategy request.
@@ -153,6 +165,8 @@ class SearchSpecialist(CognitiveCell):
         Handles two message types:
         - strategy_request: Generate initial random strategy
         - mutation_request: Generate feedback-guided mutation from parent
+
+        Uses C2 (LLM-guided) if llm_mode enabled, else C1 (rule-based).
 
         Args:
             message: Request message
@@ -167,13 +181,23 @@ class SearchSpecialist(CognitiveCell):
         if message.message_type == "mutation_request":
             # Mutation with parent context
             parent_strategy = message.payload["parent_strategy"]
+            parent_fitness = message.payload.get("parent_fitness", 0.0)
+            generation = message.payload.get("generation", 0)
 
             # Convert to Strategy object if needed (defensive coding)
             if not isinstance(parent_strategy, Strategy):
                 parent_strategy = Strategy(**parent_strategy)
 
-            if feedback_context:
-                # Use feedback to guide mutation
+            if self.llm_mode and feedback_context:
+                # C2: LLM-guided mutation with feedback
+                strategy = self._generate_llm_guided_strategy(
+                    parent=parent_strategy,
+                    parent_fitness=parent_fitness,
+                    feedback_context=feedback_context,
+                    generation=generation,
+                )
+            elif feedback_context:
+                # C1: Rule-based mutation with feedback
                 strategy = self._generate_feedback_guided_strategy(
                     feedback_context=feedback_context, parent_strategy=parent_strategy
                 )
@@ -215,10 +239,82 @@ class SearchSpecialist(CognitiveCell):
         ]
         return [msg.payload for msg in feedback_messages]
 
+    def _generate_llm_guided_strategy(
+        self,
+        parent: Strategy,
+        parent_fitness: float,
+        feedback_context: List[Dict[str, Any]],
+        generation: int,
+    ) -> Strategy:
+        """Generate strategy using LLM reasoning about feedback (C2 mode).
+
+        Calls LLM with parent, fitness, feedback, and history to get
+        mutation recommendation. Falls back to rule-based if LLM fails.
+
+        Args:
+            parent: Parent strategy to mutate
+            parent_fitness: Fitness score of parent
+            feedback_context: Recent feedback from EvaluationSpecialist
+            generation: Current generation number
+
+        Returns:
+            Mutated strategy
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Type assertion: this method only called when llm_mode=True
+        assert isinstance(self.strategy_generator, LLMStrategyGenerator), (
+            "_generate_llm_guided_strategy called with non-LLM generator"
+        )
+
+        # Extract feedback text and history
+        last_feedback = feedback_context[-1]
+        feedback_text = last_feedback.get("feedback", "No feedback provided")
+
+        # Build fitness history from recent feedback
+        fitness_history = [fb.get("fitness", 0.0) for fb in feedback_context[-5:]]
+
+        # Get max_generations from config (default to 20 if not set)
+        max_generations = getattr(self.config, "generations", 20)
+
+        # Call LLM with feedback context
+        llm_response = (
+            self.strategy_generator.llm_provider.propose_mutation_with_feedback(
+                strategy=parent,
+                fitness=parent_fitness,
+                feedback_text=feedback_text,
+                fitness_history=fitness_history,
+                generation=generation,
+                max_generations=max_generations,
+            )
+        )
+
+        if llm_response.success:
+            # Apply LLM-proposed mutation
+            try:
+                mutated = self.strategy_generator._apply_llm_mutation(
+                    parent, llm_response.mutation_params
+                )
+                logger.info(f"[C2] LLM reasoning: {llm_response.reasoning}")
+                return mutated
+            except Exception as e:
+                logger.warning(
+                    f"[C2] Failed to apply LLM mutation: {e}. Falling back to rule-based."
+                )
+                return self._generate_feedback_guided_strategy(feedback_context, parent)
+        else:
+            # LLM failed: fall back to C1 rule-based
+            logger.warning(
+                f"[C2] LLM failed: {llm_response.error}. Using rule-based fallback."
+            )
+            return self._generate_feedback_guided_strategy(feedback_context, parent)
+
     def _generate_feedback_guided_strategy(
         self, feedback_context: List[Dict[str, Any]], parent_strategy: Strategy
     ) -> Strategy:
-        """Generate strategy using rule-based mutations guided by feedback.
+        """Generate strategy using rule-based mutations guided by feedback (C1 mode).
 
         Analyzes last feedback to determine mutation direction:
         - "slow" or "timeout" → reduce computational cost

@@ -120,8 +120,17 @@ class PrometheusExperiment:
         if seed_to_use is not None:
             random.seed(seed_to_use)
 
+        # Create LLM provider if enabled (C2 mode)
+        llm_provider = None
+        if self.config.llm_enabled:
+            from src.llm.gemini import GeminiProvider
+
+            llm_provider = GeminiProvider(self.config.api_key, self.config)
+
         # Create agents
-        search_agent = SearchSpecialist(agent_id="search-1", config=self.config)
+        search_agent = SearchSpecialist(
+            agent_id="search-1", config=self.config, llm_provider=llm_provider
+        )
         eval_agent = EvaluationSpecialist(agent_id="eval-1", config=self.config)
 
         # Create communication channel
