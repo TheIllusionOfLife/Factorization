@@ -1,0 +1,51 @@
+{
+  "mode": "prometheus_search_only",
+  "target_number": 961730063,
+  "generations": 20,
+  "population_size": 20,
+  "random_seed": 7000,
+  "config": {
+    "max_llm_calls": 100,
+    "llm_enabled": false,
+    "temperature_base": 0.8,
+    "temperature_max": 1.2,
+    "max_tokens": 1024,
+    "temperature_scaling_generations": 10,
+    "elite_selection_rate": 0.2,
+    "crossover_rate": 0.3,
+    "mutation_rate": 0.5,
+    "evaluation_duration": 1.0,
+    "meta_learning_min_rate": 0.1,
+    "meta_learning_max_rate": 0.7,
+    "adaptation_window": 5,
+    "fallback_inf_rate": 0.8,
+    "fallback_finite_rate": 0.2,
+    "power_min": 2,
+    "power_max": 5,
+    "max_filters": 4,
+    "min_hits_min": 1,
+    "min_hits_max": 6,
+    "mutation_prob_power": 0.3,
+    "mutation_prob_filter": 0.3,
+    "mutation_prob_modulus": 0.5,
+    "mutation_prob_residue": 0.5,
+    "mutation_prob_add_filter": 0.15,
+    "prometheus_enabled": true,
+    "prometheus_mode": "search_only",
+    "max_api_cost": 1.0
+  },
+  "best_fitness": 475176,
+  "best_strategy": {
+    "power": 2,
+    "modulus_filters": [
+      [
+        2,
+        [
+          0
+        ]
+      ]
+    ],
+    "smoothness_bound": 37,
+    "min_small_prime_hits": 1
+  }
+}
