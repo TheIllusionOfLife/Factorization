@@ -162,6 +162,7 @@ class PrometheusExperiment:
                         "parent_strategy": gen_best_strategy,
                         "parent_fitness": gen_best_fitness,
                         "generation": gen,
+                        "max_generations": generations,
                     }
 
                 # Request strategy from SearchSpecialist

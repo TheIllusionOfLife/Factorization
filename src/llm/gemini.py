@@ -7,6 +7,8 @@ from typing import List
 from google import genai
 from google.genai import types
 
+from src.strategy import Strategy
+
 from .base import LLMProvider, LLMResponse
 from .schemas import MutationResponse
 
@@ -236,7 +238,7 @@ Consider: What mathematical properties make numbers smooth? How can modular arit
 
     def propose_mutation_with_feedback(
         self,
-        strategy,  # Strategy object
+        strategy: Strategy,
         fitness: float,
         feedback_text: str,
         fitness_history: List[float],
