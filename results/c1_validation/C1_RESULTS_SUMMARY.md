@@ -183,10 +183,12 @@ strategy = self.strategy_generator.random_strategy()  # ALWAYS RANDOM
 2. **High variance**: Extremely lucky runs can hit 620K, unlucky runs hit 440K
 3. **No learning**: Each strategy independent of previous strategies
 
-**Why collaborative underperformed rule-based but beat search-only**:
-- Same algorithm as search-only (random search + track best)
-- But with message overhead reducing effective evaluations
-- No feedback integration means no advantage over search-only
+**Why collaborative showed higher mean than search-only but no significant advantage**:
+- Collaborative mean (566K) > search-only (510K) numerically
+- However, difference not statistically significant (p=0.58, d=-0.58)
+- Same underlying algorithm (random search + track best)
+- Message overhead reduced effective evaluations
+- No feedback integration means no true advantage despite higher mean
 
 ### Implications for C2 Validation
 
