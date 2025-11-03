@@ -683,40 +683,40 @@ Key learnings from this session (PR #52, #53) are documented in detail in `CLAUD
 **Current Status**: ✅ C2 LLM-Guided Mutation Implementation COMPLETE & FIXED
 
 ✅ **COMPLETED**: C2 Implementation (PR #52, #53)
-   - **Implementation**: LLM-guided mutation system using Gemini 2.5 Flash Lite fully integrated
-   - **Critical Bugs Fixed**: Temperature scaling, ZeroDivisionError prevention, type safety (PR #53)
-   - **Status**: System ready for C2 validation experiments
-   - **Next**: Run C2 validation experiments to test Hypothesis H1b
+- **Implementation**: LLM-guided mutation system using Gemini 2.5 Flash Lite fully integrated
+- **Critical Bugs Fixed**: Temperature scaling, ZeroDivisionError prevention, type safety (PR #53)
+- **Status**: System ready for C2 validation experiments
+- **Next**: Run C2 validation experiments to test Hypothesis H1b
 
 **Priority 1: C2 Validation Experiments** (READY TO START) - ~$2-3, ~4-6 hours
-   - **Hypothesis H1b**: LLM-guided mutations produce emergence where rule-based feedback failed
-   - **Setup**: Infrastructure complete and bug-fixed, ready for experimental runs
-   - **Experimental Design**:
-     - 15 runs with `--llm` flag (collaborative mode with LLM-guided mutations)
-     - Compare against existing C1 baselines (10 search_only, 10 rulebased)
-     - Seeds: 9000-9014 for C2 runs (avoiding C1 seed range 7000-8009)
-   - **Command Template**:
-     ```bash
-     python main.py --prometheus --prometheus-mode collaborative --llm \
-       --generations 20 --population 20 --duration 0.5 --seed 9000 \
-       --export-metrics results/c2_validation/c2_llm_seed9000.json
-     ```
-   - **Success Criteria**: Emergence factor >1.1, p<0.05, d≥0.5 vs rulebased baseline
-   - **Timeline**: ~4-6 hours runtime + analysis
-   - **Cost Estimate**: ~$2-3 (Gemini 2.5 Flash Lite API calls)
+- **Hypothesis H1b**: LLM-guided mutations produce emergence where rule-based feedback failed
+- **Setup**: Infrastructure complete and bug-fixed, ready for experimental runs
+- **Experimental Design**:
+  - 15 runs with `--llm` flag (collaborative mode with LLM-guided mutations)
+  - Compare against existing C1 baselines (10 search_only, 10 rulebased)
+  - Seeds: 9000-9014 for C2 runs (avoiding C1 seed range 7000-8009)
+- **Command Template**:
+  ```bash
+  python main.py --prometheus --prometheus-mode collaborative --llm \
+    --generations 20 --population 20 --duration 0.5 --seed 9000 \
+    --export-metrics results/c2_validation/c2_llm_seed9000.json
+  ```
+- **Success Criteria**: Emergence factor >1.1, p<0.05, d≥0.5 vs rulebased baseline
+- **Timeline**: ~4-6 hours runtime + analysis
+- **Cost Estimate**: ~$2-3 (Gemini 2.5 Flash Lite API calls)
 
 **Priority 2: Code Quality Improvements** (Deferred from PR #53)
 1. **Test Coverage Expansion** - HIGH priority
-   - Integration test for `max_generations` propagation (experiment → agents → gemini)
-   - Unit tests for `propose_mutation_with_feedback()` with mocked LLM
-   - Edge case tests (invalid max_generations, temperature boundaries)
+  - Integration test for `max_generations` propagation (experiment → agents → gemini)
+  - Unit tests for `propose_mutation_with_feedback()` with mocked LLM
+  - Edge case tests (invalid max_generations, temperature boundaries)
 2. **Code Duplication Refactoring** - MEDIUM priority
-   - Extract common API call logic from `propose_mutation()` and `propose_mutation_with_feedback()`
-   - Both methods share ~90% code (try/except/finally, token tracking, response parsing)
+  - Extract common API call logic from `propose_mutation()` and `propose_mutation_with_feedback()`
+  - Both methods share ~90% code (try/except/finally, token tracking, response parsing)
 
 **Priority 3: Meta-Learning Validation** (ALTERNATIVE PATH) - $0, 2 weeks
-   - Compare meta-learning vs fixed operator rates statistically
-   - Only pursue if C2 validation shows negative results
+- Compare meta-learning vs fixed operator rates statistically
+- Only pursue if C2 validation shows negative results
 
 #### Known Issues
 - **Local Test Behavior**: `test_llm_mode_without_api_key` fails locally when `.env` file present (expected - passes in CI)
