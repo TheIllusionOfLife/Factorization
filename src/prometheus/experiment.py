@@ -156,14 +156,18 @@ class PrometheusExperiment:
                     message_type = "strategy_request"
                     payload = {}
                 else:
-                    # Subsequent generations: mutations from previous gen's best (elite, use LLM)
+                    # Subsequent generations: mutations from previous gen's best
+                    # Elite-Only LLM: Use LLM for early generations (1-5) where exploration matters
+                    # Later generations (6+) use rule-based for exploitation
+                    # This limits LLM calls to ~100 (5 gen × 20 pop = 100) vs 400 (20 gen × 20 pop)
+                    parent_is_elite = gen <= 5  # Early exploration phase
                     message_type = "mutation_request"
                     payload = {
                         "parent_strategy": gen_best_strategy,
                         "parent_fitness": gen_best_fitness,
                         "generation": gen,
                         "max_generations": generations,
-                        "parent_is_elite": True,  # Elite-Only LLM: Use LLM for elite parents
+                        "parent_is_elite": parent_is_elite,
                     }
 
                 # Request strategy from SearchSpecialist
