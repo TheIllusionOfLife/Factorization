@@ -1,0 +1,69 @@
+{
+  "collaborative_fitness": [
+    617536.0,
+    565362.0,
+    584419.0,
+    603796.0,
+    449342.0,
+    541787.0,
+    602728.0,
+    541278.0,
+    569789.0,
+    591282.0
+  ],
+  "search_only_fitness": [
+    475176.0,
+    441671.0,
+    492470.0,
+    494227.0,
+    459608.0,
+    502544.0,
+    509512.0,
+    544029.0,
+    566920.0,
+    620344.0
+  ],
+  "rulebased_fitness": [
+    626117.0,
+    590918.0,
+    587390.0,
+    629592.0,
+    601584.0,
+    630168.0,
+    483261.0,
+    630267.0,
+    556822.0,
+    602338.0
+  ],
+  "metrics": {
+    "collaborative_mean": 566731.9,
+    "search_only_mean": 510650.1,
+    "rulebased_mean": 593845.7,
+    "max_baseline_mean": 593845.7,
+    "emergence_factor": 0.9543420117380661,
+    "synergy_score": -27113.79999999993,
+    "improvement_pct": -4.56579882619339
+  },
+  "statistical_tests": {
+    "stronger_baseline": "rulebased",
+    "t_statistic": -1.286524848141886,
+    "p_value": 0.5792504348293828,
+    "effect_size_d": -0.5753514030375703
+  },
+  "confidence_intervals": {
+    "collaborative": [
+      531992.3579633771,
+      601471.4420366229
+    ],
+    "baseline": [
+      561199.1251367345,
+      626492.2748632655
+    ]
+  },
+  "h1a_criteria": {
+    "emergence_factor": false,
+    "significance": false,
+    "effect_size": false,
+    "overall_success": false
+  }
+}
