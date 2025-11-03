@@ -114,7 +114,7 @@
 - Std dev: 57,307
 - Variance: Very high (CV=11.2%)
 
-**Visual Summary**: See `figures/figure2_distributions.png` for violin plots showing full distributions.
+**Visual Summary**: See `figures/figure2_distribution_analysis.png` for violin plots showing full distributions.
 
 ### Hypothesis Testing Summary
 
@@ -285,7 +285,7 @@ class SearchSpecialist:
 
 All figures available in `results/c1_validation/figures/`:
 1. `figure1_fitness_comparison.png` - Bar chart with 95% CI
-2. `figure2_distributions.png` - Violin plots of fitness distributions
+2. `figure2_distribution_analysis.png` - Violin plots of fitness distributions
 3. `figure3_emergence_factor.png` - Emergence factor visualization
 4. `figure4_statistical_tests.png` - p-value and effect size visualization
 5. `figure5_hypothesis_summary.png` - Criterion checklist
