@@ -575,7 +575,7 @@ See `pilot_results_negative_finding.md` for detailed analysis, validity threats,
     - `scripts/visualize_c1_results.py` - 690-line script generating 6 publication-quality figures (PNG 300 DPI + SVG)
     - `results/c1_validation/C1_RESULTS_SUMMARY.md` - 349-line comprehensive document with 11 sections
     - `analysis/c1_validation_exploration.ipynb` - Interactive Jupyter notebook with 11 analysis sections
-  - **Critical Fixes Applied** (4 commits):
+  - **Critical Fixes Applied** (6 fixes across 4 commits):
     1. Hard-coded CI value → Calculated dynamically from raw data using scipy
     2. Unused variable → Removed (`np.arange(len(tests))`)
     3. Confusing documentation → Clarified collaborative vs search-only with statistical context
