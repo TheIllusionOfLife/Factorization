@@ -604,3 +604,6 @@ Systematic hypothesis verification using pre-registered methodology to validate 
 - **Power Analysis Reporting**: Always include retrospective power analysis in results summary - C1 achieved 45% power (underpowered for α=0.05, d=0.5), required N=28 per group for 80% power with observed effect
 - **Multiple Deliverables Structure**: Separate visualization script (automated), results summary (human-readable), and exploration notebook (interactive) serve different audiences and use cases
 - **Root Cause Integration**: Reference detailed root cause analysis document (`docs/prometheus_underperformance_analysis.md`) from results summary for full technical context
+- **Critical Data File Tracking**: Always verify generated data files (like h1a_analysis.json) are tracked in git, not just exist locally - scripts depend on these files and will fail without them
+- **Dependency Completeness for Notebooks**: Check all notebook imports and ensure dependencies are in requirements-dev.txt (e.g., statsmodels for power analysis)
+- **Figure Filename Consistency**: Documentation must reference actual generated filenames - verify script output matches markdown references (e.g., figure2_distribution_analysis.png not figure2_distributions.png)
