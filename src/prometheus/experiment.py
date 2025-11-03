@@ -152,17 +152,18 @@ class PrometheusExperiment:
             for i in range(population_size):
                 # Determine message type and payload based on generation
                 if gen == 0:
-                    # First generation: random strategies
+                    # First generation: random strategies (not elite, no LLM)
                     message_type = "strategy_request"
                     payload = {}
                 else:
-                    # Subsequent generations: mutations from previous gen's best
+                    # Subsequent generations: mutations from previous gen's best (elite, use LLM)
                     message_type = "mutation_request"
                     payload = {
                         "parent_strategy": gen_best_strategy,
                         "parent_fitness": gen_best_fitness,
                         "generation": gen,
                         "max_generations": generations,
+                        "parent_is_elite": True,  # Elite-Only LLM: Use LLM for elite parents
                     }
 
                 # Request strategy from SearchSpecialist

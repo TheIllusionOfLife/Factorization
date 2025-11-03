@@ -532,3 +532,189 @@ class TestAgentIntegration:
 
         assert "strategy" in response.payload
         assert len(agent.memory.message_history) == 5  # Memory preserved
+
+
+class TestEliteOnlyLLM:
+    """Test Elite-Only LLM feature (C2 optimization for API cost reduction)."""
+
+    def test_elite_flag_false_skips_llm(self):
+        """Test that parent_is_elite=False prevents LLM call even when LLM enabled."""
+        from unittest.mock import Mock, patch
+
+        config = Config(api_key="test", llm_enabled=True)
+
+        # Mock LLM provider to track if it's called
+        with patch("src.prometheus.agents.LLMStrategyGenerator") as _mock_llm_gen:
+            mock_provider = Mock()
+            mock_provider.propose_mutation_with_feedback = Mock(
+                side_effect=AssertionError(
+                    "LLM should not be called for non-elite parents"
+                )
+            )
+
+            agent = SearchSpecialist(
+                agent_id="search-1", config=config, llm_provider=mock_provider
+            )
+
+            # Add feedback to memory (required for feedback-guided mutations)
+            feedback_msg = Message(
+                sender_id="eval-1",
+                recipient_id="search-1",
+                message_type="feedback",
+                payload={"feedback": "Good performance", "fitness": 100},
+                timestamp=time.time(),
+            )
+            agent.memory.add_message(feedback_msg)
+
+            # Create parent strategy
+            parent_strategy = Strategy(
+                power=3,
+                modulus_filters=[(3, [0])],
+                smoothness_bound=7,
+                min_small_prime_hits=2,
+            )
+
+            # Request mutation with parent_is_elite=False
+            mutation_request = Message(
+                sender_id="orchestrator",
+                recipient_id="search-1",
+                message_type="mutation_request",
+                payload={
+                    "parent_strategy": parent_strategy,
+                    "parent_fitness": 100.0,
+                    "generation": 5,
+                    "max_generations": 20,
+                    "parent_is_elite": False,  # NOT elite, should skip LLM
+                },
+                timestamp=time.time(),
+            )
+
+            # Process request - should use rule-based, not LLM
+            response = agent.process_request(mutation_request)
+
+            # Verify response is valid
+            assert "strategy" in response.payload
+            assert isinstance(response.payload["strategy"], Strategy)
+
+            # Verify LLM was NOT called (would have raised AssertionError if called)
+            # Test passes if no AssertionError raised
+
+    def test_elite_flag_true_uses_llm(self):
+        """Test that parent_is_elite=True triggers LLM call when LLM enabled."""
+        from unittest.mock import Mock
+
+        from src.llm.base import LLMResponse
+
+        config = Config(api_key="test", llm_enabled=True, max_llm_calls=100)
+
+        # Mock LLM provider with successful response
+        mock_provider = Mock()
+        mock_provider.propose_mutation_with_feedback = Mock(
+            return_value=LLMResponse(
+                success=True,
+                mutation_params={
+                    "mutation_type": "power",
+                    "power": {"new_power": 4},
+                },
+                reasoning="Increase power for better coverage",
+                cost=0.001,
+            )
+        )
+
+        agent = SearchSpecialist(
+            agent_id="search-1", config=config, llm_provider=mock_provider
+        )
+
+        # Add feedback to memory
+        feedback_msg = Message(
+            sender_id="eval-1",
+            recipient_id="search-1",
+            message_type="feedback",
+            payload={"feedback": "Good performance", "fitness": 100},
+            timestamp=time.time(),
+        )
+        agent.memory.add_message(feedback_msg)
+
+        # Create parent strategy
+        parent_strategy = Strategy(
+            power=3,
+            modulus_filters=[(3, [0])],
+            smoothness_bound=7,
+            min_small_prime_hits=2,
+        )
+
+        # Request mutation with parent_is_elite=True
+        mutation_request = Message(
+            sender_id="orchestrator",
+            recipient_id="search-1",
+            message_type="mutation_request",
+            payload={
+                "parent_strategy": parent_strategy,
+                "parent_fitness": 100.0,
+                "generation": 5,
+                "max_generations": 20,
+                "parent_is_elite": True,  # Elite parent, should use LLM
+            },
+            timestamp=time.time(),
+        )
+
+        # Process request
+        response = agent.process_request(mutation_request)
+
+        # Verify LLM was called
+        mock_provider.propose_mutation_with_feedback.assert_called_once()
+
+        # Verify response is valid
+        assert "strategy" in response.payload
+        assert isinstance(response.payload["strategy"], Strategy)
+
+    def test_missing_elite_flag_defaults_to_false(self):
+        """Test that missing parent_is_elite flag defaults to False (no LLM)."""
+        from unittest.mock import Mock
+
+        config = Config(api_key="test", llm_enabled=True)
+
+        # Mock LLM provider that should NOT be called
+        mock_provider = Mock()
+        mock_provider.propose_mutation_with_feedback = Mock(
+            side_effect=AssertionError(
+                "LLM should not be called when parent_is_elite missing"
+            )
+        )
+
+        agent = SearchSpecialist(
+            agent_id="search-1", config=config, llm_provider=mock_provider
+        )
+
+        # Add feedback
+        feedback_msg = Message(
+            sender_id="eval-1",
+            recipient_id="search-1",
+            message_type="feedback",
+            payload={"feedback": "Test feedback", "fitness": 50},
+            timestamp=time.time(),
+        )
+        agent.memory.add_message(feedback_msg)
+
+        parent_strategy = Strategy(
+            power=2, modulus_filters=[], smoothness_bound=7, min_small_prime_hits=1
+        )
+
+        # Mutation request WITHOUT parent_is_elite flag
+        mutation_request = Message(
+            sender_id="orchestrator",
+            recipient_id="search-1",
+            message_type="mutation_request",
+            payload={
+                "parent_strategy": parent_strategy,
+                "parent_fitness": 50.0,
+                "generation": 3,
+                "max_generations": 20,
+                # parent_is_elite NOT provided - should default to False
+            },
+            timestamp=time.time(),
+        )
+
+        # Should succeed without calling LLM
+        response = agent.process_request(mutation_request)
+        assert "strategy" in response.payload
