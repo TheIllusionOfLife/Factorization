@@ -607,3 +607,13 @@ Systematic hypothesis verification using pre-registered methodology to validate 
 - **Critical Data File Tracking**: Always verify generated data files (like h1a_analysis.json) are tracked in git, not just exist locally - scripts depend on these files and will fail without them
 - **Dependency Completeness for Notebooks**: Check all notebook imports and ensure dependencies are in requirements-dev.txt (e.g., statsmodels for power analysis)
 - **Figure Filename Consistency**: Documentation must reference actual generated filenames - verify script output matches markdown references (e.g., figure2_distribution_analysis.png not figure2_distributions.png)
+
+### C2 Implementation & Critical Review Fixes (PR #52, #53)
+- **"Failure Mode #0" in Practice**: Merged PR #52 without extracting reviews first, missing 6 critical issues from 3 reviewers. Always use GraphQL extraction (`/fix_pr_graphql`) BEFORE merging, even when CI shows "pass" status.
+- **LLM Temperature Scaling Bug**: Using `getattr(config, 'generations', 20)` always returned 20 (Config has no 'generations' field). Fix: Pass `max_generations` through message payload from experiment → agents → gemini. Critical for exploration→exploitation tradeoff.
+- **ZeroDivisionError Prevention**: Always validate numeric parameters used as divisors. Pattern: `if not isinstance(val, int) or val <= 0: val = DEFAULT`. Add warning logs when fallback occurs for debugging.
+- **Production-Safe Assertions**: Replace `assert isinstance(...)` with explicit `TypeError` - assertions disabled in optimized mode (`python -O`). Pattern: `if not isinstance(...): raise TypeError(f"requires X, got {type(...)}")`.
+- **Type Hint Additions**: Add type hints to function signatures even when types are documented in docstrings - enables mypy validation and IDE support. Import types at module level, not inline.
+- **Magic Number Extraction**: Extract hardcoded numbers to named constants with explanatory comments. Example: `DEFAULT_MAX_GENERATIONS = 20  # Fallback for temperature scaling`
+- **Logging Import Location**: Move `import logging` to module level (not inline) - follows Python conventions and micro-optimization for repeated imports.
+- **Cross-Version Test Reliability**: Seed 42 produces zero fitness at 1.0s on some Python versions. Use seed 100 for cross-version compatibility (verified Python 3.9-3.11). Document seed selection rationale.
