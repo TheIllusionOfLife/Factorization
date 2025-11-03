@@ -14,6 +14,8 @@ Usage:
 """
 
 import json
+import math
+import statistics
 import sys
 from pathlib import Path
 from typing import Dict
@@ -77,6 +79,21 @@ def figure1_fitness_comparison(data: Dict, output_dir: Path) -> None:
     metrics = data["metrics"]
     ci = data["confidence_intervals"]
 
+    # Calculate search-only CI (not included in JSON)
+    # Using same method as analyze_c1_validation.py:calculate_confidence_interval()
+    search_only_fitness = data["search_only_fitness"]
+    n = len(search_only_fitness)
+    search_only_mean = statistics.mean(search_only_fitness)
+    search_only_std = statistics.stdev(search_only_fitness)
+    search_only_sem = search_only_std / math.sqrt(n)
+    df = n - 1
+    t_critical = 2.262 if df == 9 else 2.0  # Simplified for n=10
+    search_only_interval = search_only_sem * t_critical
+    search_only_ci = (
+        search_only_mean - search_only_interval,
+        search_only_mean + search_only_interval,
+    )
+
     modes = ["Collaborative", "Search-Only", "Rulebased"]
     means = [
         metrics["collaborative_mean"],
@@ -85,12 +102,12 @@ def figure1_fitness_comparison(data: Dict, output_dir: Path) -> None:
     ]
     ci_lower = [
         ci["collaborative"][0],
-        metrics["search_only_mean"] - 32647,  # Approximate from data
+        search_only_ci[0],
         ci["baseline"][0],
     ]
     ci_upper = [
         ci["collaborative"][1],
-        metrics["search_only_mean"] + 32647,
+        search_only_ci[1],
         ci["baseline"][1],
     ]
     errors_lower = [means[i] - ci_lower[i] for i in range(3)]
@@ -454,8 +471,6 @@ def figure5_hypothesis_summary(data: Dict, output_dir: Path) -> None:
             "pass": criteria["effect_size"],
         },
     ]
-
-    np.arange(len(tests))
 
     # Traffic light colors
     for i, test in enumerate(tests):
