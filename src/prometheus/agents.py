@@ -8,6 +8,7 @@ This module implements the core agent architecture:
 - EvaluationSpecialist: Evaluates strategies and provides feedback
 """
 
+import logging
 import random
 import time
 from abc import ABC, abstractmethod
@@ -18,8 +19,14 @@ from src.config import Config
 from src.crucible import FactorizationCrucible
 from src.strategy import SMALL_PRIMES, LLMStrategyGenerator, Strategy, StrategyGenerator
 
+logger = logging.getLogger(__name__)
+
 # Feedback context window for LLM-guided generation (Phase 2)
 FEEDBACK_HISTORY_LIMIT = 5
+
+# Default max_generations for temperature scaling when not provided in payload
+# Used as fallback to maintain backward compatibility
+DEFAULT_MAX_GENERATIONS = 20
 
 # Preferred moduli for speed optimization filters
 # Using primes 7-23: large enough to avoid over-filtering (>5),
@@ -183,6 +190,9 @@ class SearchSpecialist(CognitiveCell):
             parent_strategy = message.payload["parent_strategy"]
             parent_fitness = message.payload.get("parent_fitness", 0.0)
             generation = message.payload.get("generation", 0)
+            max_generations = message.payload.get(
+                "max_generations", DEFAULT_MAX_GENERATIONS
+            )
 
             # Convert to Strategy object if needed (defensive coding)
             if not isinstance(parent_strategy, Strategy):
@@ -195,6 +205,7 @@ class SearchSpecialist(CognitiveCell):
                     parent_fitness=parent_fitness,
                     feedback_context=feedback_context,
                     generation=generation,
+                    max_generations=max_generations,
                 )
             elif feedback_context:
                 # C1: Rule-based mutation with feedback
@@ -245,6 +256,7 @@ class SearchSpecialist(CognitiveCell):
         parent_fitness: float,
         feedback_context: List[Dict[str, Any]],
         generation: int,
+        max_generations: int,
     ) -> Strategy:
         """Generate strategy using LLM reasoning about feedback (C2 mode).
 
@@ -256,18 +268,17 @@ class SearchSpecialist(CognitiveCell):
             parent_fitness: Fitness score of parent
             feedback_context: Recent feedback from EvaluationSpecialist
             generation: Current generation number
+            max_generations: Total number of generations (for temperature scaling)
 
         Returns:
             Mutated strategy
         """
-        import logging
-
-        logger = logging.getLogger(__name__)
-
-        # Type assertion: this method only called when llm_mode=True
-        assert isinstance(self.strategy_generator, LLMStrategyGenerator), (
-            "_generate_llm_guided_strategy called with non-LLM generator"
-        )
+        # Type check: this method only called when llm_mode=True
+        if not isinstance(self.strategy_generator, LLMStrategyGenerator):
+            raise TypeError(
+                f"_generate_llm_guided_strategy requires LLMStrategyGenerator, "
+                f"got {type(self.strategy_generator).__name__}"
+            )
 
         # Extract feedback text and history
         last_feedback = feedback_context[-1]
@@ -275,9 +286,6 @@ class SearchSpecialist(CognitiveCell):
 
         # Build fitness history from recent feedback
         fitness_history = [fb.get("fitness", 0.0) for fb in feedback_context[-5:]]
-
-        # Get max_generations from config (default to 20 if not set)
-        max_generations = getattr(self.config, "generations", 20)
 
         # Call LLM with feedback context
         llm_response = (
