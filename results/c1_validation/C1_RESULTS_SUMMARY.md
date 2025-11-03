@@ -43,7 +43,7 @@
 **Configuration**:
 - Target number: 961730063 (GNFS sieving optimization)
 - Generations: 20
-- Population size: 15 per generation
+- Population size: 20 per generation
 - Evaluation duration: 1.0 seconds per strategy
 - Random seeds: 1000-1009 (10 independent runs)
 
@@ -307,7 +307,7 @@ All figures available in PNG (300 DPI) and SVG (vector) formats.
 ```bash
 for seed in {1000..1009}; do
   python main.py --prometheus collaborative \
-    --generations 20 --population 15 --duration 1.0 \
+    --generations 20 --population 20 --duration 1.0 \
     --seed $seed --export-metrics results/c1_validation/collaborative_run_${seed}.json
 done
 
