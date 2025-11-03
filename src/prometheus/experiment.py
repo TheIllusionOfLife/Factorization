@@ -141,6 +141,8 @@ class PrometheusExperiment:
         # Initialize population
         best_fitness = 0.0
         best_strategy: Optional[Strategy] = None
+        gen_best_strategy: Optional[Strategy] = None  # Best from current generation
+        gen_best_fitness = 0.0
 
         # Evolution loop
         for gen in range(generations):
@@ -148,12 +150,26 @@ class PrometheusExperiment:
 
             # Generate population using SearchSpecialist
             for i in range(population_size):
+                # Determine message type and payload based on generation
+                if gen == 0:
+                    # First generation: random strategies
+                    message_type = "strategy_request"
+                    payload = {}
+                else:
+                    # Subsequent generations: mutations from previous gen's best
+                    message_type = "mutation_request"
+                    payload = {
+                        "parent_strategy": gen_best_strategy,
+                        "parent_fitness": gen_best_fitness,
+                        "generation": gen,
+                    }
+
                 # Request strategy from SearchSpecialist
                 strategy_msg = Message(
                     sender_id="orchestrator",
                     recipient_id="search-1",
-                    message_type="strategy_request",
-                    payload={},
+                    message_type=message_type,
+                    payload=payload,
                     timestamp=time.time(),
                     conversation_id=f"gen-{gen}-civ-{i}",
                 )
@@ -180,9 +196,6 @@ class PrometheusExperiment:
                 generation_strategies.append((fitness, strategy))
 
                 # Send feedback back to SearchSpecialist for next iteration
-                # Note: Added directly to memory (not through channel) because
-                # SearchSpecialist.process_request() only handles strategy_request.
-                # This feedback is for Phase 2 LLM-guided generation.
                 feedback_msg = Message(
                     sender_id="eval-1",
                     recipient_id="search-1",
@@ -193,10 +206,16 @@ class PrometheusExperiment:
                 )
                 search_agent.memory.add_message(feedback_msg)
 
-                # Track best strategy
+                # Track overall best strategy
                 if fitness > best_fitness:
                     best_fitness = fitness
                     best_strategy = strategy
+
+            # Select best from current generation as parent for next gen
+            if generation_strategies:
+                gen_best_fitness, gen_best_strategy = max(
+                    generation_strategies, key=lambda x: x[0]
+                )
 
         # Get communication stats before cleanup
         comm_stats = channel.get_communication_stats()
