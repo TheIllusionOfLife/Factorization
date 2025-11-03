@@ -6,5 +6,6 @@ ruff==0.14.2
 mypy==1.18.2
 pre-commit==4.0.1
 pyyaml==6.0.2  # Required for pre-commit hook tests
+statsmodels>=0.14.0  # Required for power analysis in notebooks
 
 # Install with: pip install -r requirements-dev.txt
