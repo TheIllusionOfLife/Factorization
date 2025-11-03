@@ -190,9 +190,15 @@ class SearchSpecialist(CognitiveCell):
             parent_strategy = message.payload["parent_strategy"]
             parent_fitness = message.payload.get("parent_fitness", 0.0)
             generation = message.payload.get("generation", 0)
-            max_generations = message.payload.get(
-                "max_generations", DEFAULT_MAX_GENERATIONS
-            )
+
+            # Validate max_generations to prevent ZeroDivisionError in temperature calculation
+            max_generations = message.payload.get("max_generations")
+            if not isinstance(max_generations, int) or max_generations <= 0:
+                logger.warning(
+                    f"Invalid max_generations={max_generations} in payload, "
+                    f"using default {DEFAULT_MAX_GENERATIONS}"
+                )
+                max_generations = DEFAULT_MAX_GENERATIONS
 
             # Convert to Strategy object if needed (defensive coding)
             if not isinstance(parent_strategy, Strategy):
