@@ -35,6 +35,6 @@ for seed in 9015 9016 9017 9018 9019; do
 done
 
 echo ""
-echo "=== C2 Pilot Complete ===\"
+echo "=== C2 Pilot Complete ==="
 echo "Pilot results saved to: results/c2_validation/c2_elite_pilot_seed*.json"
 ls -lh results/c2_validation/c2_elite_pilot_seed*.json 2>/dev/null || echo "No pilot files found"

@@ -6,6 +6,7 @@ intelligence of LLM-guided mutations.
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -46,7 +47,7 @@ def run_hybrid_experiment(
     # Phase 1: Traditional EvolutionaryEngine
     print("📊 Phase 1: Building stable population with traditional GA...")
     config1 = Config(
-        api_key=None,  # Not needed for traditional mode
+        api_key="",  # Empty string for non-LLM mode
         prometheus_enabled=False,
         llm_enabled=False,
         evaluation_duration=0.5,
@@ -83,11 +84,15 @@ def run_hybrid_experiment(
 
     # Phase 2: C2 LLM starting from traditional best
     print("🤖 Phase 2: Refining with C2 LLM...")
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not set in environment for Phase 2 LLM")
+
     config2 = Config(
         prometheus_enabled=True,
         prometheus_mode="collaborative",
         llm_enabled=True,
-        api_key=None,  # Will load from env
+        api_key=api_key,
         evaluation_duration=0.5,
     )
 
