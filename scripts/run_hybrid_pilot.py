@@ -64,7 +64,6 @@ def run_hybrid_experiment(
 
     traditional_history = []
     best_traditional_fitness = 0
-    best_traditional_strategy = None
 
     for gen in range(traditional_gens):
         gen_fitness, gen_strategy = engine.run_evolutionary_cycle()
