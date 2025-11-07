@@ -577,7 +577,7 @@ See `pilot_results_negative_finding.md` for detailed analysis, validity threats,
   - **Learning**: Violated systematic PR review protocol again - must read ALL reviews before merge, never use auto-merge without explicit review reading step
   - **Impact**: Type hint only (no runtime behavior change), all CI passing ✅
 - ✅ **PR #56**: Generation History Post-Merge Refinements - MERGED (Nov 07)
-  - **Changes**: Precise type hints (`Tuple[float, Strategy, Dict[str, int], List[Dict[str, Any]]]`) and extracted serialization helper (`_serialize_strategy()`)
+  - **Changes**: Refined type hints (`Tuple[float, Strategy, Dict[str, Any], List[Dict[str, Any]]]`) and extracted serialization helper (`_serialize_strategy()`)
   - **Impact**: Improved IDE support, reduced code duplication
   - **Tests**: All 8 TestGenerationHistoryTracking tests passing ✅
 - ✅ **PR #55**: Generation History Tracking for Gen 0 vs Gen 1 Analysis - MERGED (Nov 07)
