@@ -104,7 +104,7 @@ class PrometheusExperiment:
         generations: int,
         population_size: int,
         seed_override: Optional[int] = None,
-    ) -> Tuple[float, Strategy, Dict[str, int], List[Dict[str, Any]]]:
+    ) -> Tuple[float, Strategy, Dict[str, Any], List[Dict[str, Any]]]:
         """Run collaborative evolution with SearchSpecialist and EvaluationSpecialist.
 
         Args:
