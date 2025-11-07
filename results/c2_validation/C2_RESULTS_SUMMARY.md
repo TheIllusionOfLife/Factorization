@@ -10,7 +10,7 @@
 
 - **H1b Verdict**: ❌ NOT SUPPORTED (all 4 criteria failed)
 - **Emergence Factor (C2)**: 0.462 (54% underperformance vs max baseline)
-- **Statistical Significance**: p = 0.184 (not significant at p<0.05)
+- **Statistical Significance**: p = 2.88×10⁻¹⁰ (highly significant, p ≪ 0.001)
 - **Effect Size**: Cohen's d = -9.94 (large negative effect)
 - **C2 vs C1 Improvement**: -51.6% (dramatically worse than rule-based)
 
@@ -96,21 +96,21 @@ H1b succeeds if ALL criteria met:
 ### 3.3 Statistical Tests
 
 #### C2 vs C1 (Key Comparison for H1b)
-- **Welch's t-test**: t = -18.14, p = 0.189
+- **Welch's t-test**: t = -18.14, p = 1.88×10⁻⁹
 - **Cohen's d**: -8.65 (extremely large negative effect)
-- **Interpretation**: C2 performed drastically worse than C1, though not statistically significant at p<0.05 (small sample sizes)
+- **Interpretation**: C2 performed drastically worse than C1, highly statistically significant (p ≪ 0.001)
 
 #### C2 vs Rulebased Baseline
-- **Welch's t-test**: t = -20.96, p = 0.184
+- **Welch's t-test**: t = -20.96, p = 2.88×10⁻¹⁰
 - **Cohen's d**: -9.94 (extremely large negative effect)
-- **Interpretation**: C2 dramatically underperformed traditional evolution
+- **Interpretation**: C2 dramatically underperformed traditional evolution, highly statistically significant
 
 #### C2 vs Stronger Baseline
-- **Welch's t-test**: t = -20.96, p = 0.184
+- **Welch's t-test**: t = -20.96, p = 2.88×10⁻¹⁰
 - **Cohen's d**: -9.94 (extremely large negative effect)
 - **Used for H1b criterion**: rulebased was stronger baseline
 
-**Statistical Note**: p-values around 0.18-0.19 indicate large observed differences but high variance relative to sample sizes. Cohen's d values of -8.65 and -9.94 are extremely large, far exceeding typical "large effect" threshold of 0.8.
+**Statistical Note**: p-values of 1.88×10⁻⁹ and 2.88×10⁻¹⁰ indicate highly statistically significant differences. Cohen's d values of -8.65 and -9.94 are extremely large, far exceeding typical "large effect" threshold of 0.8.
 
 ---
 
@@ -121,7 +121,7 @@ H1b succeeds if ALL criteria met:
 | Criterion | Target | Actual | Status |
 |-----------|--------|--------|--------|
 | 1. Emergence Factor | > 1.1 | 0.462 | ✗ FAIL (58% below target) |
-| 2. Statistical Significance | p < 0.05 | p = 0.184 | ✗ FAIL (3.7x threshold) |
+| 2. Statistical Significance | p < 0.05 | p = 2.88×10⁻¹⁰ | ✓ PASS (highly significant) |
 | 3. Effect Size | d ≥ 0.5 | d = -9.94 | ✗ FAIL (large negative effect) |
 | 4. Improvement over C1 | C2 > C1 | -51.6% | ✗ FAIL (dramatic regression) |
 
@@ -289,9 +289,9 @@ Based on root cause investigation findings:
 4. **Evaluation metric**: Fitness = smooth candidates (proxy for GNFS quality, not actual factorization)
 
 ### Statistical Considerations
-1. **p-values**: 0.18-0.19 indicate large effects but insufficient statistical power at N=10-15
-2. **Cohen's d**: Extremely large values (-8.65, -9.94) are unusual and may indicate outliers or measurement issues
-3. **95% CIs**: Non-overlapping intervals suggest real differences despite non-significant p-values
+1. **p-values**: 1.88×10⁻⁹ and 2.88×10⁻¹⁰ indicate highly statistically significant differences (p ≪ 0.001)
+2. **Cohen's d**: Extremely large values (-8.65, -9.94) are unusual and indicate massive effect sizes
+3. **95% CIs**: Non-overlapping intervals confirm real differences with high statistical significance
 
 ---
 
