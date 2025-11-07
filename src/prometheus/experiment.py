@@ -8,7 +8,7 @@ import random
 import time
 import warnings
 from dataclasses import asdict, dataclass
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from src.config import Config
 from src.crucible import FactorizationCrucible
@@ -84,12 +84,27 @@ class PrometheusExperiment:
         # Initialize components
         self.crucible = FactorizationCrucible(target_number)
 
+    @staticmethod
+    def _serialize_strategy(strategy: Optional[Strategy]) -> Dict[str, Any]:
+        """Serialize Strategy to dict, excluding internal _config field.
+
+        Args:
+            strategy: Strategy object to serialize, or None
+
+        Returns:
+            Dict representation of strategy without _config field,
+            or empty dict if strategy is None
+        """
+        if strategy is None:
+            return {}
+        return {k: v for k, v in asdict(strategy).items() if k != "_config"}
+
     def run_collaborative_evolution(
         self,
         generations: int,
         population_size: int,
         seed_override: Optional[int] = None,
-    ) -> Tuple[float, Strategy, Dict, list]:
+    ) -> Tuple[float, Strategy, Dict[str, int], List[Dict[str, Any]]]:
         """Run collaborative evolution with SearchSpecialist and EvaluationSpecialist.
 
         Args:
@@ -234,26 +249,15 @@ class PrometheusExperiment:
                 )
 
             # Save generation snapshot for analysis
-            # Exclude _config field from serialization (internal use only)
             generation_history.append(
                 {
                     "generation": gen,
                     "best_fitness": gen_best_fitness,
-                    "best_strategy": {
-                        k: v
-                        for k, v in asdict(gen_best_strategy).items()
-                        if k != "_config"
-                    }
-                    if gen_best_strategy
-                    else {},
+                    "best_strategy": self._serialize_strategy(gen_best_strategy),
                     "all_strategies": [
                         {
                             "fitness": fitness,
-                            "strategy": {
-                                k: v
-                                for k, v in asdict(strategy).items()
-                                if k != "_config"
-                            },
+                            "strategy": self._serialize_strategy(strategy),
                         }
                         for fitness, strategy in generation_strategies
                     ],
