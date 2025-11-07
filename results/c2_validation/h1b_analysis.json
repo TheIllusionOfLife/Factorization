@@ -55,17 +55,17 @@
     "stronger_baseline": "rulebased",
     "c2_vs_c1": {
       "t_statistic": -18.136366038536398,
-      "p_value": 0.18923559693604863,
+      "p_value": 1.8763807744812245e-09,
       "effect_size_d": -8.654966291778928
     },
     "c2_vs_rulebased": {
       "t_statistic": -20.962909344152262,
-      "p_value": 0.1840205175676739,
+      "p_value": 2.8804967571807663e-10,
       "effect_size_d": -9.939788478074604
     },
     "c2_vs_stronger": {
       "t_statistic": -20.962909344152262,
-      "p_value": 0.1840205175676739,
+      "p_value": 2.8804967571807663e-10,
       "effect_size_d": -9.939788478074604
     }
   },
@@ -85,7 +85,7 @@
   },
   "h1b_criteria": {
     "emergence_factor": false,
-    "significance": false,
+    "significance": true,
     "effect_size": false,
     "improvement_over_c1": false,
     "overall_success": false

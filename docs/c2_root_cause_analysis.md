@@ -39,10 +39,15 @@
 - **Configured limit**: 100 calls per run
 - **Result**: Limit exhausted at generation 5-6 (100/380 = 26% of experiment)
 
-**Impact**:
-- Generation 0-5: LLM-guided mutations (~26%)
-- Generation 6-19: Rule-based fallback (~74%)
-- **Overall LLM guidance**: <10% of total mutations
+**Impact Analysis**:
+
+*Per-Run Impact (for a run that hits the 100-call limit)*:
+- Generation 0-5: LLM-guided mutations (~26% of the run)
+- Generation 6-19: Rule-based fallback (~74% of the run)
+
+*Overall Impact (across all 15 runs)*:
+- Total LLM-guided mutations: ~9% (some runs exhausted limits earlier)
+- Total rule-based fallbacks: ~91% (4,201 fallback warnings / ~4,600 total mutation attempts)
 
 **Log Evidence**:
 ```

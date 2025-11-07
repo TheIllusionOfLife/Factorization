@@ -192,47 +192,38 @@ Critical implications:
 
 ## 6. Root Cause Investigation
 
-### 6.1 Primary Hypotheses (Ranked by Likelihood)
+**Investigation Status**: ✅ COMPLETE (see `docs/c2_root_cause_analysis.md` for full details)
 
-**HIGH Priority - Implementation Issues**:
-1. ✓ **LLM mutations not applied correctly** (20% likelihood)
-   - Evidence needed: Check mutation application logs
-   - Test: Verify `_apply_llm_mutation()` receives and processes LLM responses
-   - Impact: If true, fixable via debugging
+### 6.1 Primary Root Cause Identified
 
-2. ✓ **Temperature scaling bug** (15% likelihood)
-   - PR #53 fixed max_generations propagation, but other issues may remain
-   - Evidence needed: Check temperature values across generations
-   - Test: Verify temperature starts high (1.2) and decreases to low (0.8)
+**CONFIRMED: Configuration Error - API Call Limit Exhaustion**
 
-**MEDIUM Priority - LLM Quality Issues**:
-3. ✓ **LLM reasoning quality insufficient** (30% likelihood)
-   - Evidence needed: Analyze LLM reasoning from logs (Phase 3)
-   - Hypothesis: LLM proposes mutations that contradict feedback
-   - Test: Compare LLM vs rule-based mutation fitness improvements
+**Evidence**:
+- Configuration: `max_llm_calls=100` vs needed 380 per run
+- Log analysis: 4,201 "LLM failed: API call limit reached" warnings
+- Limit exhausted at generation 5-6 (26% of experiment)
+- Overall: 91% fallback to rule-based mutations
 
-4. ✓ **Feedback context incomplete** (20% likelihood)
-   - Evidence: EvaluationSpecialist feedback may lack critical bottleneck info
-   - Hypothesis: LLM makes decisions with insufficient context
-   - Test: Review feedback payloads in mutation_request messages
+**Impact**:
+- Experiment was only 26% LLM-guided, 74% rule-based fallback per run
+- Results DO NOT test H1b hypothesis (LLM guidance insufficient)
+- Cannot conclude "LLM doesn't work" from broken experiment
 
-**LOW Priority - Design Issues**:
-5. ✓ **Gemini 2.5 Flash Lite capability mismatch** (10% likelihood)
-   - Hypothesis: Model too small/fast for complex reasoning
-   - Test: Re-run with GPT-4 or Claude (future work)
-   - Cost: $10-15 for 15 runs with stronger model
+### 6.2 Secondary Findings from Log Analysis
 
-6. ✓ **GNFS domain too complex for current LLMs** (5% likelihood)
-   - Hypothesis: Task requires deeper mathematical understanding
-   - Evidence: Both C1 and C2 failed, traditional evolution succeeds
-   - Implication: May need domain-specific training or different approach
+**LLM Reasoning Quality Issues** (discovered but secondary):
+1. **Invalid mutations**: 175 filter removal attempts blocked by validation
+2. **Contradictory strategies**: LLM oscillated between increasing/decreasing smoothness bound
+3. **Constraint unawareness**: LLM proposed mutations violating minimum filter requirements
 
-### 6.2 Evidence Collection Plan (Phase 3)
+**However**: These issues are less important than the primary configuration error. Even if LLM reasoning was perfect, only 26% of mutations used it.
 
-**Step 1**: Examine 2-3 C2 run logs for LLM reasoning quality
-**Step 2**: Compare mutation types C2 vs C1 (frequency & effectiveness)
-**Step 3**: Verify implementation correctness (mutation application, temperature)
-**Step 4**: Calculate API cost breakdown and fallback rates
+### 6.3 Cost Analysis
+
+- Expected API calls: ~5,700 (15 runs × 380 mutations)
+- Actual API calls: ~570 (exhausted at ~100 per run for first ~6 runs)
+- Actual cost: ~$0.06-0.10 (not the $2-3 estimated)
+- Cost savings came from broken experiment, not efficiency
 
 ---
 
