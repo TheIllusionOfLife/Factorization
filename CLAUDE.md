@@ -608,8 +608,17 @@ Systematic hypothesis verification using pre-registered methodology to validate 
 - **Dependency Completeness for Notebooks**: Check all notebook imports and ensure dependencies are in requirements-dev.txt (e.g., statsmodels for power analysis)
 - **Figure Filename Consistency**: Documentation must reference actual generated filenames - verify script output matches markdown references (e.g., figure2_distribution_analysis.png not figure2_distributions.png)
 
+### Auto-Merge Without Reading Reviews (PR #55, #56, #57)
+- **"Failure Mode #0" Repeated**: Enabled auto-merge on PR #56 without reading reviews first, resulting in post-merge fix PR #57 for incorrect type hint
+- **Root Cause**: Using auto-merge feature bypasses the manual review reading step - creates false sense of completion when CI passes
+- **Pattern**: Auto-merge enables on CI pass → PR merges automatically → Reviews arrive AFTER merge → Post-merge fix PR required
+- **Impact**: PR #57 required to fix `Dict[str, int]` → `Dict[str, Any]` type hint (reviewer caught nested dict structure issue)
+- **Critical Rule**: **NEVER use auto-merge**. Always: (1) Wait for CI ✅ (2) Extract and READ all reviews (3) Address feedback (4) Get approval (5) Manual merge
+- **Why This Matters**: Creates unnecessary churn (3 PRs instead of 1), wastes reviewer time, shows lack of respect for review process
+- **Prevention**: Disable auto-merge feature entirely - removes temptation to skip review reading step
+
 ### C2 Implementation & Critical Review Fixes (PR #52, #53)
-- **"Failure Mode #0" in Practice**: Merged PR #52 without extracting reviews first, missing 6 critical issues from 3 reviewers. Always use GraphQL extraction (`/fix_pr_graphql`) BEFORE merging, even when CI shows "pass" status.
+- **"Failure Mode #0" First Instance**: Merged PR #52 without extracting reviews first, missing 6 critical issues from 3 reviewers. Always use GraphQL extraction (`/fix_pr_graphql`) BEFORE merging, even when CI shows "pass" status.
 - **LLM Temperature Scaling Bug**: Using `getattr(config, 'generations', 20)` always returned 20 (Config has no 'generations' field). Fix: Pass `max_generations` through message payload from experiment → agents → gemini. Critical for exploration→exploitation tradeoff.
 - **ZeroDivisionError Prevention**: Always validate numeric parameters used as divisors. Pattern: `if not isinstance(val, int) or val <= 0: val = DEFAULT`. Add warning logs when fallback occurs for debugging.
 - **Production-Safe Assertions**: Replace `assert isinstance(...)` with explicit `TypeError` - assertions disabled in optimized mode (`python -O`). Pattern: `if not isinstance(...): raise TypeError(f"requires X, got {type(...)}")`.
