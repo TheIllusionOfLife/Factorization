@@ -1,0 +1,93 @@
+{
+  "c2_llm_fitness": [
+    298011.0,
+    292197.0,
+    266664.0,
+    278795.0,
+    272840.0,
+    270562.0,
+    264579.0,
+    282821.0,
+    264089.0,
+    223092.0,
+    274818.0,
+    291840.0,
+    299410.0,
+    276737.0,
+    260838.0
+  ],
+  "c1_rulebased_fitness": [
+    617536.0,
+    565362.0,
+    584419.0,
+    603796.0,
+    449342.0,
+    541787.0,
+    602728.0,
+    541278.0,
+    569789.0,
+    591282.0
+  ],
+  "rulebased_fitness": [
+    626117.0,
+    590918.0,
+    587390.0,
+    629592.0,
+    601584.0,
+    630168.0,
+    483261.0,
+    630267.0,
+    556822.0,
+    602338.0
+  ],
+  "metrics": {
+    "c2_llm_mean": 274486.2,
+    "c1_rulebased_mean": 566731.9,
+    "rulebased_mean": 593845.7,
+    "max_baseline_mean": 593845.7,
+    "emergence_factor_c2": 0.4622180475500623,
+    "synergy_score": -319359.49999999994,
+    "improvement_pct": -53.77819524499377,
+    "c2_vs_c1_improvement_pct": -51.56683433560031,
+    "c1_emergence_factor": 0.9543420117380661
+  },
+  "statistical_tests": {
+    "stronger_baseline": "rulebased",
+    "c2_vs_c1": {
+      "t_statistic": -18.136366038536398,
+      "p_value": 1.8763807744812245e-09,
+      "effect_size_d": -8.654966291778928
+    },
+    "c2_vs_rulebased": {
+      "t_statistic": -20.962909344152262,
+      "p_value": 2.8804967571807663e-10,
+      "effect_size_d": -9.939788478074604
+    },
+    "c2_vs_stronger": {
+      "t_statistic": -20.962909344152262,
+      "p_value": 2.8804967571807663e-10,
+      "effect_size_d": -9.939788478074604
+    }
+  },
+  "confidence_intervals": {
+    "c2_llm": [
+      264092.31404498033,
+      284880.0859550197
+    ],
+    "c1_rulebased": [
+      531992.3579633771,
+      601471.4420366229
+    ],
+    "rulebased": [
+      561199.1251367345,
+      626492.2748632655
+    ]
+  },
+  "h1b_criteria": {
+    "emergence_factor": false,
+    "significance": true,
+    "effect_size": false,
+    "improvement_over_c1": false,
+    "overall_success": false
+  }
+}

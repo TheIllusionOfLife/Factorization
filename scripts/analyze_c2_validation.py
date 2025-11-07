@@ -20,7 +20,21 @@ import json
 import math
 import statistics
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
+
+try:
+    from scipy import stats as scipy_stats
+
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    print("=" * 80)
+    print("⚠️  WARNING: scipy not available - FALLING BACK TO INACCURATE CUSTOM T-TEST")
+    print("   Custom implementation has severe accuracy issues for |t| > 10")
+    print("   Results may be COMPLETELY WRONG for extreme t-statistics")
+    print("   Install scipy: pip install scipy")
+    print("   DO NOT use these results for publication without scipy!")
+    print("=" * 80)
 
 
 def load_experiment_results(
@@ -134,6 +148,12 @@ def welch_t_test(group1: List[float], group2: List[float]) -> Tuple[float, float
     Returns:
         Tuple of (t_statistic, p_value)
     """
+    if SCIPY_AVAILABLE:
+        # Use scipy for accurate p-value calculation
+        t_stat, p_value = scipy_stats.ttest_ind(group1, group2, equal_var=False)
+        return float(t_stat), float(p_value)
+
+    # Fallback to custom implementation (less accurate)
     n1, n2 = len(group1), len(group2)
     mean1, mean2 = statistics.mean(group1), statistics.mean(group2)
     var1, var2 = statistics.variance(group1), statistics.variance(group2)
@@ -147,6 +167,7 @@ def welch_t_test(group1: List[float], group2: List[float]) -> Tuple[float, float
     )
 
     # Approximate p-value using t-distribution CDF
+    # NOTE: This custom implementation has known accuracy issues for extreme t-statistics
     p_value = 2 * (1 - _t_cdf(abs(t_stat), df))
 
     return t_stat, p_value
@@ -227,7 +248,7 @@ def calculate_confidence_interval(
 
 def test_h1b_criteria(
     c2_llm: List[float], c1_rulebased: List[float], rulebased: List[float]
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """Test H1b success criteria.
 
     H1b Hypothesis: LLM-guided mutations produce emergence where rule-based failed.
