@@ -83,11 +83,12 @@ def calculate_growth_rate(trajectory: List[float]) -> Dict[str, float]:
         curr = trajectory[i]
         growth_rates.append(curr / prev)
 
-    # Geometric mean of growth rates
+    # Geometric mean of growth rates: (∏ rate)^(1/n)
     if growth_rates:
-        geometric_mean = 1.0
+        product = 1.0
         for rate in growth_rates:
-            geometric_mean *= rate ** (1 / len(growth_rates))
+            product *= rate
+        geometric_mean = product ** (1 / len(growth_rates))
     else:
         geometric_mean = 1.0
 
@@ -238,10 +239,12 @@ def compare_modes(
     # Final comparison
     print(f"\n🔬 Final Generation ({min_len - 1}) Analysis:")
     final_mean_ratio = (
-        mean2[min_len - 1] / mean1[min_len - 1] if mean1[min_len - 1] > 0 else 0
+        mean2[min_len - 1] / mean1[min_len - 1]
+        if mean1[min_len - 1] > 0
+        else float("inf")
     )
     final_max_ratio = (
-        max2[min_len - 1] / max1[min_len - 1] if max1[min_len - 1] > 0 else 0
+        max2[min_len - 1] / max1[min_len - 1] if max1[min_len - 1] > 0 else float("inf")
     )
 
     print(
