@@ -20,7 +20,7 @@ import json
 import math
 import statistics
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 try:
     from scipy import stats as scipy_stats
@@ -28,10 +28,13 @@ try:
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
-    print(
-        "⚠️  Warning: scipy not available, falling back to custom t-test implementation"
-    )
-    print("   Install scipy for accurate p-values: pip install scipy")
+    print("=" * 80)
+    print("⚠️  WARNING: scipy not available - FALLING BACK TO INACCURATE CUSTOM T-TEST")
+    print("   Custom implementation has severe accuracy issues for |t| > 10")
+    print("   Results may be COMPLETELY WRONG for extreme t-statistics")
+    print("   Install scipy: pip install scipy")
+    print("   DO NOT use these results for publication without scipy!")
+    print("=" * 80)
 
 
 def load_experiment_results(
@@ -245,7 +248,7 @@ def calculate_confidence_interval(
 
 def test_h1b_criteria(
     c2_llm: List[float], c1_rulebased: List[float], rulebased: List[float]
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """Test H1b success criteria.
 
     H1b Hypothesis: LLM-guided mutations produce emergence where rule-based failed.
