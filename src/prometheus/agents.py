@@ -204,8 +204,12 @@ class SearchSpecialist(CognitiveCell):
             if not isinstance(parent_strategy, Strategy):
                 parent_strategy = Strategy(**parent_strategy)
 
-            if self.llm_mode and feedback_context:
-                # C2: LLM-guided mutation with feedback
+            # Elite-Only LLM: Check if parent is elite before using LLM
+            parent_is_elite = message.payload.get("parent_is_elite", False)
+
+            if self.llm_mode and feedback_context and parent_is_elite:
+                # C2: LLM-guided mutation with feedback (elite parents only)
+                logger.info(f"[Elite-LLM] Gen {generation}: Using LLM for elite parent")
                 strategy = self._generate_llm_guided_strategy(
                     parent=parent_strategy,
                     parent_fitness=parent_fitness,

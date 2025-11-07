@@ -134,7 +134,7 @@ class TestPrometheusExperiment:
             config=config, target_number=961730063, random_seed=42
         )
 
-        fitness, strategy, stats = experiment.run_collaborative_evolution(
+        fitness, strategy, stats, _ = experiment.run_collaborative_evolution(
             generations=2, population_size=5
         )
 
@@ -156,7 +156,7 @@ class TestPrometheusExperiment:
             config=config, target_number=961730063, random_seed=42
         )
 
-        _, _, stats = experiment.run_collaborative_evolution(
+        _, _, stats, _ = experiment.run_collaborative_evolution(
             generations=2, population_size=5
         )
 
@@ -329,10 +329,10 @@ class TestPrometheusExperiment:
             config=config, target_number=961730063, random_seed=100
         )
 
-        fitness1, strategy1, _ = experiment1.run_collaborative_evolution(
+        fitness1, strategy1, _, _ = experiment1.run_collaborative_evolution(
             generations=2, population_size=5
         )
-        fitness2, strategy2, _ = experiment2.run_collaborative_evolution(
+        fitness2, strategy2, _, _ = experiment2.run_collaborative_evolution(
             generations=2, population_size=5
         )
 
@@ -359,10 +359,10 @@ class TestPrometheusExperiment:
             config=config, target_number=961730063, random_seed=42
         )
 
-        fitness1, strategy1, _ = experiment1.run_collaborative_evolution(
+        fitness1, strategy1, _, _ = experiment1.run_collaborative_evolution(
             generations=2, population_size=5
         )
-        fitness2, strategy2, _ = experiment2.run_collaborative_evolution(
+        fitness2, strategy2, _, _ = experiment2.run_collaborative_evolution(
             generations=2, population_size=5
         )
 
@@ -468,7 +468,7 @@ class TestPrometheusIntegration:
         )
 
         # Run with 1 generation
-        fitness1, _, _ = experiment.run_collaborative_evolution(
+        fitness1, _, _, _ = experiment.run_collaborative_evolution(
             generations=1, population_size=10
         )
 
@@ -476,7 +476,7 @@ class TestPrometheusIntegration:
         experiment2 = PrometheusExperiment(
             config=config, target_number=961730063, random_seed=42
         )
-        fitness5, _, _ = experiment2.run_collaborative_evolution(
+        fitness5, _, _, _ = experiment2.run_collaborative_evolution(
             generations=5, population_size=10
         )
 
@@ -484,3 +484,219 @@ class TestPrometheusIntegration:
         # (not guaranteed due to randomness, but likely with enough population)
         assert fitness5 >= 0
         assert fitness1 >= 0
+
+
+class TestGenerationHistoryTracking:
+    """Test generation history tracking for Gen 0 vs Gen 1 analysis."""
+
+    def test_run_collaborative_evolution_returns_generation_history(self):
+        """Test that run_collaborative_evolution returns generation history as 4th return value."""
+        config = Config(
+            api_key="test",
+            prometheus_enabled=True,
+            llm_enabled=False,
+            evaluation_duration=0.1,
+        )
+        experiment = PrometheusExperiment(
+            config=config, target_number=961730063, random_seed=42
+        )
+
+        # Run 3 generations
+        result = experiment.run_collaborative_evolution(
+            generations=3, population_size=5
+        )
+
+        # Should return 4 values now: (fitness, strategy, comm_stats, generation_history)
+        assert len(result) == 4
+        fitness, strategy, comm_stats, generation_history = result
+
+        # Basic type checks
+        assert isinstance(fitness, (int, float))
+        assert isinstance(strategy, Strategy)
+        assert isinstance(comm_stats, dict)
+        assert isinstance(generation_history, list)
+
+    def test_generation_history_length_matches_generations(self):
+        """Test that generation_history has one entry per generation."""
+        config = Config(
+            api_key="test",
+            prometheus_enabled=True,
+            llm_enabled=False,
+            evaluation_duration=0.1,
+        )
+        experiment = PrometheusExperiment(
+            config=config, target_number=961730063, random_seed=100
+        )
+
+        generations = 5
+        _, _, _, history = experiment.run_collaborative_evolution(
+            generations=generations, population_size=10
+        )
+
+        assert len(history) == generations
+
+    def test_generation_history_structure(self):
+        """Test that each generation entry has required fields."""
+        config = Config(
+            api_key="test",
+            prometheus_enabled=True,
+            llm_enabled=False,
+            evaluation_duration=0.1,
+        )
+        experiment = PrometheusExperiment(
+            config=config, target_number=961730063, random_seed=200
+        )
+
+        _, _, _, history = experiment.run_collaborative_evolution(
+            generations=2, population_size=5
+        )
+
+        # Check structure of each generation
+        for gen_idx, gen_data in enumerate(history):
+            assert isinstance(gen_data, dict)
+
+            # Required fields
+            assert "generation" in gen_data
+            assert "best_fitness" in gen_data
+            assert "best_strategy" in gen_data
+            assert "all_strategies" in gen_data
+            assert "population_size" in gen_data
+
+            # Field types
+            assert gen_data["generation"] == gen_idx
+            assert isinstance(gen_data["best_fitness"], (int, float))
+            assert isinstance(gen_data["best_strategy"], dict)  # Serialized strategy
+            assert isinstance(gen_data["all_strategies"], list)
+            assert gen_data["population_size"] == 5
+
+    def test_generation_history_all_strategies_count(self):
+        """Test that all_strategies contains all population members."""
+        config = Config(
+            api_key="test",
+            prometheus_enabled=True,
+            llm_enabled=False,
+            evaluation_duration=0.1,
+        )
+        experiment = PrometheusExperiment(
+            config=config, target_number=961730063, random_seed=300
+        )
+
+        population_size = 8
+        _, _, _, history = experiment.run_collaborative_evolution(
+            generations=2, population_size=population_size
+        )
+
+        for gen_data in history:
+            assert len(gen_data["all_strategies"]) == population_size
+
+            # Each strategy entry should have fitness and strategy
+            for strategy_entry in gen_data["all_strategies"]:
+                assert "fitness" in strategy_entry
+                assert "strategy" in strategy_entry
+                assert isinstance(strategy_entry["fitness"], (int, float))
+                assert isinstance(strategy_entry["strategy"], dict)
+
+    def test_generation_history_best_matches_all_strategies(self):
+        """Test that best_fitness/best_strategy match the max in all_strategies."""
+        config = Config(
+            api_key="test",
+            prometheus_enabled=True,
+            llm_enabled=False,
+            evaluation_duration=0.1,
+        )
+        experiment = PrometheusExperiment(
+            config=config, target_number=961730063, random_seed=400
+        )
+
+        _, _, _, history = experiment.run_collaborative_evolution(
+            generations=3, population_size=10
+        )
+
+        for gen_data in history:
+            # Find max fitness in all_strategies
+            max_fitness_in_gen = max(s["fitness"] for s in gen_data["all_strategies"])
+
+            # Should match best_fitness
+            assert gen_data["best_fitness"] == max_fitness_in_gen
+
+    def test_generation_history_gen0_vs_gen1_comparison(self):
+        """Test that we can compare Gen 0 vs Gen 1 using history."""
+        config = Config(
+            api_key="test",
+            prometheus_enabled=True,
+            llm_enabled=False,
+            evaluation_duration=0.2,
+        )
+        experiment = PrometheusExperiment(
+            config=config, target_number=961730063, random_seed=500
+        )
+
+        _, _, _, history = experiment.run_collaborative_evolution(
+            generations=3, population_size=10
+        )
+
+        # Extract Gen 0 and Gen 1
+        gen0 = history[0]
+        gen1 = history[1]
+
+        # Should have different generation numbers
+        assert gen0["generation"] == 0
+        assert gen1["generation"] == 1
+
+        # Both should have same population size
+        assert len(gen0["all_strategies"]) == len(gen1["all_strategies"])
+
+        # Can extract fitness values for comparison
+        gen0_fitnesses = [s["fitness"] for s in gen0["all_strategies"]]
+        gen1_fitnesses = [s["fitness"] for s in gen1["all_strategies"]]
+
+        assert len(gen0_fitnesses) == 10
+        assert len(gen1_fitnesses) == 10
+        assert all(isinstance(f, (int, float)) for f in gen0_fitnesses)
+        assert all(isinstance(f, (int, float)) for f in gen1_fitnesses)
+
+    def test_generation_history_strategy_serialization(self):
+        """Test that strategies are properly serialized as dicts."""
+        config = Config(
+            api_key="test",
+            prometheus_enabled=True,
+            llm_enabled=False,
+            evaluation_duration=0.1,
+        )
+        experiment = PrometheusExperiment(
+            config=config, target_number=961730063, random_seed=600
+        )
+
+        _, _, _, history = experiment.run_collaborative_evolution(
+            generations=2, population_size=5
+        )
+
+        # Check strategy serialization in best_strategy
+        best_strategy_dict = history[0]["best_strategy"]
+        assert "power" in best_strategy_dict
+        assert "modulus_filters" in best_strategy_dict
+        assert "smoothness_bound" in best_strategy_dict
+        assert "min_small_prime_hits" in best_strategy_dict
+
+        # Check strategy serialization in all_strategies
+        first_strategy_dict = history[0]["all_strategies"][0]["strategy"]
+        assert "power" in first_strategy_dict
+        assert "modulus_filters" in first_strategy_dict
+        assert "smoothness_bound" in first_strategy_dict
+        assert "min_small_prime_hits" in first_strategy_dict
+
+    def test_generation_history_empty_for_zero_generations(self):
+        """Test edge case: 0 generations should return empty history (though invalid input)."""
+        config = Config(
+            api_key="test",
+            prometheus_enabled=True,
+            llm_enabled=False,
+            evaluation_duration=0.1,
+        )
+        experiment = PrometheusExperiment(
+            config=config, target_number=961730063, random_seed=700
+        )
+
+        # Should raise ValueError for generations < 1
+        with pytest.raises(ValueError, match="generations must be >= 1"):
+            experiment.run_collaborative_evolution(generations=0, population_size=5)

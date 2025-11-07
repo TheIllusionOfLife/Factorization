@@ -29,7 +29,7 @@ def test_collaborative_mode_nonzero_fitness():
         random_seed=100,  # Seed 42 produces zero fitness on some Python versions; use 100 for cross-version compat
     )
 
-    fitness, strategy, stats = experiment.run_collaborative_evolution(
+    fitness, strategy, stats, _ = experiment.run_collaborative_evolution(
         generations=3,
         population_size=3,
     )
@@ -104,7 +104,7 @@ def test_collaborative_mode_multiple_seeds():
             random_seed=seed,
         )
 
-        fitness, strategy, stats = experiment.run_collaborative_evolution(
+        fitness, strategy, stats, _ = experiment.run_collaborative_evolution(
             generations=3,  # More generations for better strategies
             population_size=3,
         )
@@ -136,7 +136,7 @@ def test_collaborative_vs_search_only_competitive():
         target_number=961730063,
         random_seed=100,  # Seed 42 produces zero fitness on Python 3.9; use 100 for cross-version compat
     )
-    fitness_collab, _, _ = exp_collab.run_collaborative_evolution(
+    fitness_collab, _, _, _ = exp_collab.run_collaborative_evolution(
         generations=3,
         population_size=3,
     )
