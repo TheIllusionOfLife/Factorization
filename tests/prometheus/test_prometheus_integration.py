@@ -46,7 +46,7 @@ class TestPrometheusExperimentIntegration:
             random_seed=42,
         )
 
-        best_fitness, best_strategy, comm_stats = (
+        best_fitness, best_strategy, comm_stats, _ = (
             experiment.run_collaborative_evolution(
                 generations=TEST_GENERATIONS,
                 population_size=TEST_POPULATION,
@@ -166,7 +166,7 @@ class TestPrometheusExperimentIntegration:
         exp1 = PrometheusExperiment(
             config=config1, target_number=961730063, random_seed=123
         )
-        fitness1, strategy1, comm1 = exp1.run_collaborative_evolution(
+        fitness1, strategy1, comm1, _ = exp1.run_collaborative_evolution(
             generations=2, population_size=3
         )
 
@@ -174,7 +174,7 @@ class TestPrometheusExperimentIntegration:
         exp2 = PrometheusExperiment(
             config=config2, target_number=961730063, random_seed=123
         )
-        fitness2, strategy2, comm2 = exp2.run_collaborative_evolution(
+        fitness2, strategy2, comm2, _ = exp2.run_collaborative_evolution(
             generations=2, population_size=3
         )
 
@@ -605,7 +605,7 @@ class TestPrometheusMemoryManagement:
         )
 
         # Run experiment
-        best_fitness, best_strategy, comm_stats = (
+        best_fitness, best_strategy, comm_stats, _ = (
             experiment.run_collaborative_evolution(generations=2, population_size=3)
         )
 
@@ -655,7 +655,7 @@ class TestPrometheusPerformanceCharacteristics:
             config=config, target_number=961730063, random_seed=42
         )
 
-        _, _, comm_stats = experiment.run_collaborative_evolution(
+        _, _, comm_stats, _ = experiment.run_collaborative_evolution(
             generations=2, population_size=3
         )
 
@@ -708,7 +708,7 @@ class TestPrometheusPerformanceCharacteristics:
             )
 
             if mode == "collaborative":
-                fitness, strategy, _ = experiment.run_collaborative_evolution(
+                fitness, strategy, _, _ = experiment.run_collaborative_evolution(
                     generations=2, population_size=3
                 )
             else:

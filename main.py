@@ -336,7 +336,7 @@ def main():
         if config.prometheus_mode == "collaborative":
             # Collaborative mode: dual-agent evolution
             print("🔄 Running collaborative dual-agent evolution...")
-            best_fitness, best_strategy, comm_stats = (
+            best_fitness, best_strategy, comm_stats, generation_history = (
                 experiment.run_collaborative_evolution(
                     generations=args.generations,
                     population_size=args.population,
@@ -371,6 +371,7 @@ def main():
                         "min_small_prime_hits": best_strategy.min_small_prime_hits,
                     },
                     "communication_stats": comm_stats,
+                    "generation_history": generation_history,
                 }
                 Path(args.export_metrics).parent.mkdir(parents=True, exist_ok=True)
                 with open(args.export_metrics, "w") as f:

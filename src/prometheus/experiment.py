@@ -7,7 +7,7 @@ and EmergenceMetrics for quantifying collaborative benefits.
 import random
 import time
 import warnings
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Dict, Optional, Tuple
 
 from src.config import Config
@@ -89,7 +89,7 @@ class PrometheusExperiment:
         generations: int,
         population_size: int,
         seed_override: Optional[int] = None,
-    ) -> Tuple[float, Strategy, Dict]:
+    ) -> Tuple[float, Strategy, Dict, list]:
         """Run collaborative evolution with SearchSpecialist and EvaluationSpecialist.
 
         Args:
@@ -99,7 +99,16 @@ class PrometheusExperiment:
                           (for independent RNG state in comparisons)
 
         Returns:
-            Tuple of (best_fitness, best_strategy, communication_stats)
+            Tuple of (best_fitness, best_strategy, communication_stats, generation_history)
+            - best_fitness: Overall best fitness across all generations
+            - best_strategy: Strategy object with best fitness
+            - communication_stats: Dict with message counts
+            - generation_history: List of dicts, one per generation, containing:
+                - generation: int (generation number)
+                - best_fitness: float (best in this generation)
+                - best_strategy: dict (serialized Strategy)
+                - all_strategies: List[dict] with fitness and strategy for all population
+                - population_size: int (number of strategies in generation)
 
         Raises:
             ValueError: If generations < 1 or population_size < 1
@@ -143,6 +152,7 @@ class PrometheusExperiment:
         best_strategy: Optional[Strategy] = None
         gen_best_strategy: Optional[Strategy] = None  # Best from current generation
         gen_best_fitness = 0.0
+        generation_history = []  # Track all generations for analysis
 
         # Evolution loop
         for gen in range(generations):
@@ -223,6 +233,34 @@ class PrometheusExperiment:
                     generation_strategies, key=lambda x: x[0]
                 )
 
+            # Save generation snapshot for analysis
+            # Exclude _config field from serialization (internal use only)
+            generation_history.append(
+                {
+                    "generation": gen,
+                    "best_fitness": gen_best_fitness,
+                    "best_strategy": {
+                        k: v
+                        for k, v in asdict(gen_best_strategy).items()
+                        if k != "_config"
+                    }
+                    if gen_best_strategy
+                    else {},
+                    "all_strategies": [
+                        {
+                            "fitness": fitness,
+                            "strategy": {
+                                k: v
+                                for k, v in asdict(strategy).items()
+                                if k != "_config"
+                            },
+                        }
+                        for fitness, strategy in generation_strategies
+                    ],
+                    "population_size": len(generation_strategies),
+                }
+            )
+
         # Get communication stats before cleanup
         comm_stats = channel.get_communication_stats()
 
@@ -250,7 +288,7 @@ class PrometheusExperiment:
             generator = StrategyGenerator(config=self.config)
             best_strategy = generator.random_strategy()
 
-        return best_fitness, best_strategy, comm_stats
+        return best_fitness, best_strategy, comm_stats, generation_history
 
     def run_independent_baseline(
         self,
@@ -419,7 +457,7 @@ class PrometheusExperiment:
         # Seeding happens inside each method (not global) per PR #12 learning
 
         # Run collaborative evolution (base seed, no offset)
-        collab_fitness, _, comm_stats = self.run_collaborative_evolution(
+        collab_fitness, _, comm_stats, _ = self.run_collaborative_evolution(
             generations=generations,
             population_size=population_size,
             seed_override=self.random_seed,
