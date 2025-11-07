@@ -626,3 +626,10 @@ Systematic hypothesis verification using pre-registered methodology to validate 
 - **Magic Number Extraction**: Extract hardcoded numbers to named constants with explanatory comments. Example: `DEFAULT_MAX_GENERATIONS = 20  # Fallback for temperature scaling`
 - **Logging Import Location**: Move `import logging` to module level (not inline) - follows Python conventions and micro-optimization for repeated imports.
 - **Cross-Version Test Reliability**: Seed 42 produces zero fitness at 1.0s on some Python versions. Use seed 100 for cross-version compatibility (verified Python 3.9-3.11). Document seed selection rationale.
+
+### C2 Validation Analysis & Documentation Synchronization (PR #59)
+- **Post-Fix Verification Pattern**: Before declaring any fix "complete", run minimal validation. Example: After fixing p-value calculation code, regenerated h1b_analysis.json but forgot to update C2_RESULTS_SUMMARY.md → 9 orders of magnitude discrepancy (p=0.184 in markdown vs p=2.88e-10 in JSON). Always verify outputs match after code fixes.
+- **Documentation Synchronization**: When regenerating analysis results with fixed code, update ALL documentation files (JSON + Markdown + figures). Create checklist: [x] Code fixed, [x] Results regenerated, [x] JSON updated, [x] Markdown updated, [x] Figures regenerated.
+- **Test Timing Stability**: For timing-sensitive tests with short durations (0.1s), increase to 0.5s to reduce flakiness. Follow PR #42 pattern: test correctness not timing sensitivity. Example: test_full_comparison_workflow failed with emergence_factor=0.0 due to 0.1s duration producing zero fitness.
+- **Scipy Statistical Accuracy**: Custom t-test implementations fail for extreme t-statistics (|t| > 10). Always use scipy.stats.ttest_ind for production analysis. Add strong warnings if scipy unavailable: "DO NOT use these results for publication without scipy!"
+- **Type Hint Precision**: Use `Any` (capital) not `any` (lowercase builtin) in type hints. Import from typing module: `from typing import Any, Dict, List, Tuple`.

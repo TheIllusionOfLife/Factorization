@@ -1,0 +1,19 @@
+🔄 Hybrid Experiment (Seed 7000)
+   Phase 1: Traditional engine Gen 0-2
+   Phase 2: C2 LLM Gen 3-5
+
+📊 Phase 1: Building stable population with traditional GA...
+Traceback (most recent call last):
+  File "/Users/yuyamukai/dev/Factorization/scripts/run_hybrid_pilot.py", line 136, in <module>
+    results = run_hybrid_experiment(
+        target_number=target,
+    ...<3 lines>...
+        population_size=20,
+    )
+  File "/Users/yuyamukai/dev/Factorization/scripts/run_hybrid_pilot.py", line 46, in run_hybrid_experiment
+    config1 = Config(
+        prometheus_enabled=False,
+        llm_enabled=False,
+        evaluation_duration=0.5,
+    )
+TypeError: Config.__init__() missing 1 required positional argument: 'api_key'

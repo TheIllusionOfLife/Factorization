@@ -1,0 +1,146 @@
+🚀 Re-running C1 Collaborative with Generation History - 5 pilots
+Using seeds: 6000-6004 (matching original C1 validation)
+Target: 961730063 (same as C1/C2 validation)
+
+=== [14:47:56] Running C1 collaborative with seed 6000 ===
+📊 Rule-based mode (no LLM)
+
+🔬 Prometheus Multi-Agent Mode
+🎯 Target number: 961730063
+🧬 Generations: 20, Population: 20
+⏱️  Evaluation duration: 0.5s per strategy
+🤖 Mode: collaborative
+🎲 Random seed: 6000 (reproducible run)
+
+🔄 Running collaborative dual-agent evolution...
+
+✅ Evolution complete!
+📊 Best fitness: 83218
+📈 Total messages exchanged: 1600
+💬 Messages by type: {'strategy_request': 20, 'strategy_response': 400, 'evaluation_request': 400, 'evaluation_response': 400, 'mutation_request': 380}
+
+🏆 Best strategy:
+   Power: 5
+   Modulus filters: [(17, [2, 9, 14])]
+   Smoothness bound: 29
+   Min small prime hits: 1
+
+📁 Exporting metrics to results/c1_gen_history/collaborative_seed6000.json...
+✅ Metrics exported successfully
+✅ C1 pilot 6000 complete
+
+=== [14:51:18] Running C1 collaborative with seed 6001 ===
+📊 Rule-based mode (no LLM)
+
+🔬 Prometheus Multi-Agent Mode
+🎯 Target number: 961730063
+🧬 Generations: 20, Population: 20
+⏱️  Evaluation duration: 0.5s per strategy
+🤖 Mode: collaborative
+🎲 Random seed: 6001 (reproducible run)
+
+🔄 Running collaborative dual-agent evolution...
+
+✅ Evolution complete!
+📊 Best fitness: 286379
+📈 Total messages exchanged: 1600
+💬 Messages by type: {'strategy_request': 20, 'strategy_response': 400, 'evaluation_request': 400, 'evaluation_response': 400, 'mutation_request': 380}
+
+🏆 Best strategy:
+   Power: 5
+   Modulus filters: [(2, [0, 1])]
+   Smoothness bound: 7
+   Min small prime hits: 1
+
+📁 Exporting metrics to results/c1_gen_history/collaborative_seed6001.json...
+✅ Metrics exported successfully
+✅ C1 pilot 6001 complete
+
+=== [14:54:40] Running C1 collaborative with seed 6002 ===
+📊 Rule-based mode (no LLM)
+
+🔬 Prometheus Multi-Agent Mode
+🎯 Target number: 961730063
+🧬 Generations: 20, Population: 20
+⏱️  Evaluation duration: 0.5s per strategy
+🤖 Mode: collaborative
+🎲 Random seed: 6002 (reproducible run)
+
+🔄 Running collaborative dual-agent evolution...
+
+✅ Evolution complete!
+📊 Best fitness: 203560
+📈 Total messages exchanged: 1600
+💬 Messages by type: {'strategy_request': 20, 'strategy_response': 400, 'evaluation_request': 400, 'evaluation_response': 400, 'mutation_request': 380}
+
+🏆 Best strategy:
+   Power: 4
+   Modulus filters: [(5, [1, 3])]
+   Smoothness bound: 13
+   Min small prime hits: 1
+
+📁 Exporting metrics to results/c1_gen_history/collaborative_seed6002.json...
+✅ Metrics exported successfully
+✅ C1 pilot 6002 complete
+
+=== [14:58:03] Running C1 collaborative with seed 6003 ===
+📊 Rule-based mode (no LLM)
+
+🔬 Prometheus Multi-Agent Mode
+🎯 Target number: 961730063
+🧬 Generations: 20, Population: 20
+⏱️  Evaluation duration: 0.5s per strategy
+🤖 Mode: collaborative
+🎲 Random seed: 6003 (reproducible run)
+
+🔄 Running collaborative dual-agent evolution...
+
+✅ Evolution complete!
+📊 Best fitness: 256996
+📈 Total messages exchanged: 1600
+💬 Messages by type: {'strategy_request': 20, 'strategy_response': 400, 'evaluation_request': 400, 'evaluation_response': 400, 'mutation_request': 380}
+
+🏆 Best strategy:
+   Power: 2
+   Modulus filters: [(2, [0, 1])]
+   Smoothness bound: 7
+   Min small prime hits: 1
+
+📁 Exporting metrics to results/c1_gen_history/collaborative_seed6003.json...
+✅ Metrics exported successfully
+✅ C1 pilot 6003 complete
+
+=== [15:01:25] Running C1 collaborative with seed 6004 ===
+📊 Rule-based mode (no LLM)
+
+🔬 Prometheus Multi-Agent Mode
+🎯 Target number: 961730063
+🧬 Generations: 20, Population: 20
+⏱️  Evaluation duration: 0.5s per strategy
+🤖 Mode: collaborative
+🎲 Random seed: 6004 (reproducible run)
+
+🔄 Running collaborative dual-agent evolution...
+
+✅ Evolution complete!
+📊 Best fitness: 145022
+📈 Total messages exchanged: 1600
+💬 Messages by type: {'strategy_request': 20, 'strategy_response': 400, 'evaluation_request': 400, 'evaluation_response': 400, 'mutation_request': 380}
+
+🏆 Best strategy:
+   Power: 3
+   Modulus filters: [(3, [0, 2])]
+   Smoothness bound: 11
+   Min small prime hits: 3
+
+📁 Exporting metrics to results/c1_gen_history/collaborative_seed6004.json...
+✅ Metrics exported successfully
+✅ C1 pilot 6004 complete
+
+🎉 All 5 C1 pilots complete!
+Results saved to: results/c1_gen_history/collaborative_seed*.json
+
+Compare with C2:
+  python scripts/analyze_fitness_growth.py results/c2_validation/c2_gen_analysis_seed*.json \
+    --max-gen 6 --compare results/c1_gen_history/collaborative_seed*.json \
+    --mode1-name 'C2 LLM' --mode2-name 'C1 Rule-based'

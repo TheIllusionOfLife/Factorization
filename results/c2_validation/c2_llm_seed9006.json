@@ -1,0 +1,73 @@
+{
+  "mode": "prometheus_collaborative",
+  "target_number": 961730063,
+  "generations": 20,
+  "population_size": 20,
+  "random_seed": 9006,
+  "config": {
+    "max_llm_calls": 100,
+    "llm_enabled": true,
+    "temperature_base": 0.8,
+    "temperature_max": 1.2,
+    "max_tokens": 1024,
+    "temperature_scaling_generations": 10,
+    "elite_selection_rate": 0.2,
+    "crossover_rate": 0.3,
+    "mutation_rate": 0.5,
+    "evaluation_duration": 0.5,
+    "meta_learning_min_rate": 0.1,
+    "meta_learning_max_rate": 0.7,
+    "adaptation_window": 5,
+    "fallback_inf_rate": 0.8,
+    "fallback_finite_rate": 0.2,
+    "power_min": 2,
+    "power_max": 5,
+    "max_filters": 4,
+    "min_hits_min": 1,
+    "min_hits_max": 6,
+    "mutation_prob_power": 0.3,
+    "mutation_prob_filter": 0.3,
+    "mutation_prob_modulus": 0.5,
+    "mutation_prob_residue": 0.5,
+    "mutation_prob_add_filter": 0.15,
+    "prometheus_enabled": true,
+    "prometheus_mode": "collaborative",
+    "max_api_cost": 1.0
+  },
+  "best_fitness": 264579,
+  "best_strategy": {
+    "power": 3,
+    "modulus_filters": [
+      [
+        3,
+        [
+          0,
+          1,
+          2
+        ]
+      ]
+    ],
+    "smoothness_bound": 29,
+    "min_small_prime_hits": 1
+  },
+  "communication_stats": {
+    "total_messages": 1600,
+    "messages_by_type": {
+      "strategy_request": 20,
+      "strategy_response": 400,
+      "evaluation_request": 400,
+      "evaluation_response": 400,
+      "mutation_request": 380
+    },
+    "messages_by_sender": {
+      "orchestrator": 400,
+      "search-1": 800,
+      "eval-1": 400
+    },
+    "messages_by_recipient": {
+      "search-1": 800,
+      "orchestrator": 400,
+      "eval-1": 400
+    }
+  }
+}
